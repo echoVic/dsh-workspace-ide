@@ -403,9 +403,10 @@ describe('requestJson failure handling', () => {
     await assert.rejects(
       () => S.requestJson('api/test'),
       (error) => {
-        assert.ok(error instanceof S.RequestFailure);
-        assert.equal(error.code, 'network');
-        assert.equal(error.message, 'Failed to fetch');
+        const failure = /** @type {any} */ (error);
+        assert.ok(failure instanceof S.RequestFailure);
+        assert.equal(failure.code, 'network');
+        assert.equal(failure.message, 'Failed to fetch');
         return true;
       },
     );
@@ -445,7 +446,7 @@ describe('requestJson failure handling', () => {
     });
     await assert.rejects(
       () => S.requestJson('api/test'),
-      (error) => error instanceof S.RequestFailure && error.code === 'outside-workspace' && error.message === 'escaped',
+      (error) => /** @type {any} */ (error) instanceof S.RequestFailure && /** @type {any} */ (error).code === 'outside-workspace' && /** @type {any} */ (error).message === 'escaped',
     );
 
     sandbox.fetch = async () => ({
@@ -455,7 +456,7 @@ describe('requestJson failure handling', () => {
     });
     await assert.rejects(
       () => S.requestJson('api/test'),
-      (error) => error.code === 'git-failed' && error.message === 'bad revision',
+      (error) => /** @type {any} */ (error).code === 'git-failed' && /** @type {any} */ (error).message === 'bad revision',
     );
   });
 
@@ -468,10 +469,10 @@ describe('requestJson failure handling', () => {
         throw new SyntaxError('Unexpected token');
       },
     });
-    await assert.rejects(() => S.requestJson('api/test'), (error) => error.code === 'http-200');
+    await assert.rejects(() => S.requestJson('api/test'), (error) => /** @type {any} */ (error).code === 'http-200');
 
     sandbox.fetch = async () => ({ ok: false, status: 500, json: async () => ({ ok: true }) });
-    await assert.rejects(() => S.requestJson('api/test'), (error) => error.code === 'http-500');
+    await assert.rejects(() => S.requestJson('api/test'), (error) => /** @type {any} */ (error).code === 'http-500');
   });
 
   it('serialises POST bodies, passes the AbortSignal through and rejects unserialisable bodies', async () => {
@@ -494,7 +495,7 @@ describe('requestJson failure handling', () => {
     const circular = { a: 1 };
     circular.self = circular;
     const before = seen.length;
-    await assert.rejects(() => S.requestJson('api/save', { body: circular }), (error) => error.code === 'bad-body');
+    await assert.rejects(() => S.requestJson('api/save', { body: circular }), (error) => /** @type {any} */ (error).code === 'bad-body');
     assert.equal(seen.length, before, 'unserialisable bodies never reach fetch');
   });
 

@@ -157,6 +157,8 @@ plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/d
 ## Development
 
 ```bash
+npm ci                                 # dev-only tooling: TypeScript type checker
+npm run typecheck                      # tsc --checkJs over lib/ + src/client + tests (no emit)
 node scripts/build-client.mjs          # rebuild lib/client.js from src/client/*.js
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
@@ -165,6 +167,12 @@ node test/smoke/client-smoke.mjs            # headless client module/face smoke 
 node --test test/review/*.test.mjs          # independent adversarial + contract suites (78)
 python3 scripts/screenshots/build-screenshots.py   # rebuild docs/ screenshots (mock data)
 ```
+
+TypeScript is used **only as a dev-time type checker**: sources stay plain JavaScript with
+JSDoc annotations, `tsc --noEmit --checkJs` checks `lib/`, `src/client/` and the tests
+(`types/client-globals.d.ts` declares the shared factory scope and the React element alias).
+There is still no client bundler, no build step for the Host and no runtime dependency —
+`npm ci` installs `typescript`, `@types/node` and `@types/react` into devDependencies only.
 
 `lib/client.js` is served directly by the Host and DSH's client HMR watches installed
 bundle artifacts, so saving a rebuilt `lib/client.js` updates an open Harness page without
@@ -176,6 +184,8 @@ a restart.
 lib/index.js             Host plugin entry (`apply`, `inject`, `name`)
 lib/host/                filesystem / search / git route implementation
 lib/client.js            built browser module (committed)
+tsconfig.json            dev-only type checker config (allowJs + checkJs, no emit)
+types/                   ambient declarations for the client factory scope
 src/client/              browser sources: core, icons (vendored Lucide), highlighter,
                          shell, files, search, git, module face
 THIRD_PARTY_NOTICES.md   icon license attribution

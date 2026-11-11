@@ -6,6 +6,35 @@
 // reuse the syntax highlighter from 07-highlight.js, and every colour comes from
 // the shared --dsw-alias-* tokens, so the preview follows the selected theme.
 
+/**
+ * @typedef {Object} InlineNode
+ * @property {string} type
+ * @property {string} [text]
+ * @property {Array<InlineNode>} [children]
+ * @property {string} [url]
+ * @property {string} [alt]
+ */
+/**
+ * @typedef {Object} ListItem
+ * @property {Array<InlineNode>} inline
+ * @property {boolean|null} [task]
+ * @property {BlockNode|null} [nested]
+ */
+/**
+ * @typedef {Object} BlockNode
+ * @property {string} type
+ * @property {number} [depth]
+ * @property {Array<InlineNode>} [inline]
+ * @property {Array<BlockNode>} [blocks]
+ * @property {string} [text]
+ * @property {string} [lang]
+ * @property {boolean} [ordered]
+ * @property {Array<ListItem>} [items]
+ * @property {Array<Array<InlineNode>>} [header]
+ * @property {Array<string|null>} [align]
+ * @property {Array<Array<Array<InlineNode>>>} [rows]
+ */
+
 const MD_MAX_SOURCE_CHARS = 300 * 1024;
 const MD_HEADING_SIZES = [26, 21, 17.5, 15.5, 13.5, 13.5];
 
@@ -89,7 +118,7 @@ function mdMatchDelimited(text, index, delimiters) {
  * Inline tokenizer: escapes, code spans, images, links, strong/em/del,
  * autolinks. Everything else becomes text nodes (React escapes them).
  * @param {string} text - inline markdown.
- * @returns {Array<object>} inline nodes.
+ * @returns {Array<InlineNode>} inline nodes.
  */
 function parseMarkdownInline(text) {
   const nodes = [];
@@ -230,7 +259,7 @@ function mdIsBlockStart(line) {
  * fenced code, blockquotes, nested ordered/unordered lists with task boxes,
  * GFM tables, horizontal rules and paragraphs. Raw HTML is kept as text.
  * @param {string} source - markdown source.
- * @returns {Array<object>} block nodes.
+ * @returns {Array<BlockNode>} block nodes.
  */
 function parseMarkdown(source) {
   if (typeof source !== 'string' || source.length === 0) return [];
@@ -346,7 +375,7 @@ function parseMarkdown(source) {
  * `startIndex`. Returns the list block and the first unconsumed line index.
  * @param {Array<string>} lines - document lines.
  * @param {number} startIndex - index of the first marker line.
- * @returns {{block: object, nextIndex: number}} parsed list.
+ * @returns {{block: BlockNode, nextIndex: number}} parsed list.
  */
 function mdParseList(lines, startIndex) {
   const first = /^(\s*)([-*+]|\d+[.)])\s+/.exec(lines[startIndex]);
@@ -468,7 +497,7 @@ const MD_STYLE = {
 
 /**
  * Render inline nodes to React elements.
- * @param {Array<object>} nodes - inline nodes.
+ * @param {Array<InlineNode>} nodes - inline nodes.
  * @param {string} keyPrefix - stable key prefix.
  * @returns {Array} React children.
  */
@@ -555,7 +584,7 @@ function renderMarkdownCode(block, key) {
 
 /**
  * Render block nodes to React elements.
- * @param {Array<object>} blocks - block nodes.
+ * @param {Array<BlockNode>} blocks - block nodes.
  * @param {string} keyPrefix - stable key prefix.
  * @returns {Array} React children.
  */

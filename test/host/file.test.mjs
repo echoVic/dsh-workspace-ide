@@ -205,7 +205,7 @@ describe('POST save', () => {
     writeFileSync(join(root, 'a.txt'), 'a');
     await assert.rejects(
       saveWorkspaceFile({ requestedRoot: root, realRoot: root }, 'a.txt', 'x'.repeat(MAX_SAVE_BODY_BYTES + 1)),
-      (error) => error.status === 400,
+      (error) => /** @type {any} */ (error).status === 400,
     );
   });
 

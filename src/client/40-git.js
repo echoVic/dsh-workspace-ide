@@ -8,6 +8,15 @@
  * parser tracks old/new line numbers so the viewer reads like an editor gutter.
  */
 
+/**
+ * @typedef {Object} GitFileRow
+ * @property {string} path
+ * @property {string} [index]
+ * @property {string} [worktree]
+ * @property {string} [status]
+ * @property {string} [from]
+ */
+
 const ST_GIT = {
   root: {
     display: 'flex',
@@ -678,7 +687,7 @@ function GitCommitRow(props) {
 
 /**
  * Normalise the Host's porcelain rows into the four display groups.
- * @param {Array<object>} files - `{path, index, worktree, status, from}` rows.
+ * @param {Array<GitFileRow>} files - `{path, index, worktree, status, from}` rows.
  * @returns {{staged: Array, unstaged: Array, untracked: Array, conflicted: Array}} groups.
  */
 function groupChanges(files) {
@@ -936,7 +945,7 @@ function GitHeader(props) {
 
 /**
  * The Git tab.
- * @param {{t: Function, root: string, reloadToken?: number, onOpenFile?: Function}} props - slot props.
+ * @param {{t: Function, root: string, reloadToken?: number, onOpenFile?: Function, workspaces?: Array<any>, onSelectWorkspace?: Function}} props - slot props.
  */
 function GitView(props) {
   const fallbackT = S.useT();

@@ -73,12 +73,12 @@ describe('line matcher', () => {
   it('rejects invalid regular expressions', () => {
     assert.throws(
       () => createLineMatcher({ query: 'hello(', regex: true, caseSensitive: false, whole: false }),
-      (error) => error.status === 400 && error.code === 'bad-request',
+      (error) => /** @type {any} */ (error).status === 400 && /** @type {any} */ (error).code === 'bad-request',
     );
   });
 
   it('rejects an empty query', () => {
-    assert.throws(() => createLineMatcher({ query: '', regex: false }), (error) => error.status === 400);
+    assert.throws(() => createLineMatcher({ query: '', regex: false }), (error) => /** @type {any} */ (error).status === 400);
   });
 });
 

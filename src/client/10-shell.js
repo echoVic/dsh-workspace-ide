@@ -700,7 +700,7 @@ function ShellToolbar(props) {
           ),
           h(
             'select',
-            {
+            /** @type {any} */ ({
               style: ST_SHELL.pickerSelect,
               title: typeof props.root === 'string' ? props.root : t('root.pick'),
               'aria-label': t('root.select.title'),
@@ -712,7 +712,7 @@ function ShellToolbar(props) {
                 const value = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? event.target.value : '';
                 if (typeof props.onSelectRoot === 'function') props.onSelectRoot(value);
               },
-            },
+            }),
             workspaces.map(function (entry) {
               return h(
                 'option',

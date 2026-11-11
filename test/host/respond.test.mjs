@@ -116,22 +116,24 @@ describe('readJsonBody', () => {
 
   it('rejects non-JSON bodies with bad-request', async () => {
     await assert.rejects(readJsonBody(withBody('not json'), 1024), (error) => {
-      assert.equal(error.status, 400);
-      assert.equal(error.code, 'bad-request');
+      const failure = /** @type {any} */ (error);
+      assert.equal(failure.status, 400);
+      assert.equal(failure.code, 'bad-request');
       return true;
     });
   });
 
   it('rejects non-object JSON bodies', async () => {
     for (const body of ['[1,2]', '"text"', 'null', '42']) {
-      await assert.rejects(readJsonBody(withBody(body), 1024), (error) => error.code === 'bad-request');
+      await assert.rejects(readJsonBody(withBody(body), 1024), (error) => /** @type {any} */ (error).code === 'bad-request');
     }
   });
 
   it('rejects bodies above the byte cap', async () => {
     await assert.rejects(readJsonBody(withBody('{"a":"xxxxxxxxxx"}'), 5), (error) => {
-      assert.equal(error.code, 'bad-request');
-      assert.match(error.message, /byte limit/);
+      const failure = /** @type {any} */ (error);
+      assert.equal(failure.code, 'bad-request');
+      assert.match(failure.message, /byte limit/);
       return true;
     });
   });

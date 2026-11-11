@@ -517,7 +517,7 @@ describe('save route adversarial behaviour', () => {
     const workspace = { requestedRoot: ws, realRoot: ws };
     await assert.rejects(
       () => saveWorkspaceFile(workspace, 'guard.txt', 'x'.repeat(4 * 1024 * 1024 + 1)),
-      (error) => error.status === 400 && error.code === 'bad-request',
+      (error) => /** @type {any} */ (error).status === 400 && /** @type {any} */ (error).code === 'bad-request',
     );
     assert.equal(readFileSync(target, 'utf8'), 'guard\n');
     const read = await readWorkspaceFile(workspace, 'guard.txt');

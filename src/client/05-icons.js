@@ -10,6 +10,19 @@
  * language and follow the DSH theme tokens that set the surrounding colour.
  */
 
+/**
+ * @typedef {Object} IconProps
+ * @property {number} [size]
+ * @property {boolean} [active]
+ */
+/**
+ * @typedef {Object} IconOptions
+ * @property {number} [strokeWidth]
+ * @property {boolean} [fill]
+ * @property {string} [stroke]
+ * @property {number} [defaultSize]
+ */
+
 const LUCIDE_ICONS = Object.freeze({
   'files': [
     ['path', { 'd': "M20 7h-3a2 2 0 0 1-2-2V2" }],
@@ -89,7 +102,7 @@ const LUCIDE_ICONS = Object.freeze({
 });
 
 /**
- * @param {object} props - owner props `{size, active}`.
+ * @param {any} props - owner props `{size, active}`.
  * @param {number} [fallback] - size when the owner passes none.
  * @returns {number} rendered pixel size.
  */
@@ -99,7 +112,7 @@ function iconSize(props, fallback) {
   return size;
 }
 
-/** @param {object} props - owner props `{size, active}`. @returns {boolean} active. */
+/** @param {any} props - owner props `{size, active}`. @returns {boolean} active. */
 function iconActive(props) {
   return props !== null && props !== undefined && props.active === true;
 }
@@ -112,9 +125,9 @@ const ICON_STROKE_ACTIVE = 2.25;
 /**
  * Render one vendored Lucide icon.
  * @param {string} name - registry key.
- * @param {object} props - owner props `{size, active}`.
- * @param {object} [options] - `{strokeWidth, fill, stroke, defaultSize}`.
- * @returns {object} React element.
+ * @param {any} props - owner props `{size, active}`.
+ * @param {IconOptions} [options] - `{strokeWidth, fill, stroke, defaultSize}`.
+ * @returns {any} React element.
  */
 function renderLucide(name, props, options) {
   const conf = options !== null && typeof options === 'object' ? options : {};
@@ -142,7 +155,9 @@ function renderLucide(name, props, options) {
       style: { display: 'block', flex: '0 0 auto' },
     },
     (nodes !== undefined && nodes !== null ? nodes : []).map(function (node, index) {
-      return h(node[0], Object.assign({ key: node[0] + '-' + String(index) }, node[1]));
+      const tag = String(node[0]);
+      const attrs = /** @type {Record<string, any>} */ (node[1]);
+      return h(tag, Object.assign({ key: tag + '-' + String(index) }, attrs));
     }),
   );
 }
@@ -150,8 +165,8 @@ function renderLucide(name, props, options) {
 /**
  * Build one icon component from the registry.
  * @param {string} name - Lucide registry key.
- * @param {object} [options] - rendering options.
- * @returns {Function} React component receiving `{size, active}`.
+ * @param {IconOptions} [options] - rendering options.
+ * @returns {(props?: IconProps) => any} React component receiving `{size, active}`.
  */
 function makeIcon(name, options) {
   return function LucideIcon(props) {
@@ -227,7 +242,9 @@ function SpinnerIcon(props) {
       'g',
       null,
       (nodes !== undefined && nodes !== null ? nodes : []).map(function (node, index) {
-        return h(node[0], Object.assign({ key: 'arc-' + String(index) }, node[1]));
+        const tag = String(node[0]);
+        const attrs = /** @type {Record<string, any>} */ (node[1]);
+        return h(tag, Object.assign({ key: 'arc-' + String(index) }, attrs));
       }),
       h('animateTransform', {
         key: 'spin',

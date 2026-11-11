@@ -929,7 +929,7 @@ function isThemeId(id) {
  * @returns {string} a valid theme id (`auto` for anything unknown).
  */
 function normalizeThemeId(id) {
-  return isThemeId(id) ? id : 'auto';
+  return isThemeId(id) ? /** @type {string} */ (id) : 'auto';
 }
 
 /**
@@ -1130,7 +1130,8 @@ function getCurrentSessionId() {
 function preferredWorkspaceRoot(snapshot, sessionId) {
   if (typeof sessionId !== 'string' || sessionId.length === 0) return null;
   if (snapshot === null || typeof snapshot !== 'object') return null;
-  const items = Array.isArray(snapshot.items) ? snapshot.items : [];
+  const record = /** @type {Record<string, any>} */ (snapshot);
+  const items = Array.isArray(record.items) ? record.items : [];
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
     if (item === null || typeof item !== 'object') continue;

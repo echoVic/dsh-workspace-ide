@@ -128,6 +128,38 @@ function isAttrPartCode(code) {
 }
 
 /**
+ * @typedef {Object} LanguageConfig
+ * @property {Record<string, boolean>} keywords
+ * @property {Record<string, boolean>} constants
+ * @property {Record<string, boolean>} types
+ * @property {Record<string, boolean>} functions
+ * @property {ReadonlyArray<string>} lineComments
+ * @property {ReadonlyArray<{open: string, close: string}>} blockComments
+ * @property {ReadonlyArray<{open: string, close: string, escape: boolean, multiline: boolean, kind: string}>} stringDefs
+ * @property {boolean} propertyLookahead
+ * @property {boolean} propertyLookaheadEquals
+ * @property {boolean} propertyAfterStrings
+ * @property {boolean} caseInsensitive
+ * @property {boolean} hexColor
+ * @property {boolean} atRules
+ * @property {boolean} customProperty
+ * @property {string} variablePrefix
+ * @property {boolean} sectionBrackets
+ * @property {boolean} [markup]
+ */
+/**
+ * @typedef {Object} ScanState
+ * @property {string|null} blockEnd
+ * @property {string|null} stringEnd
+ * @property {string} stringKind
+ * @property {boolean} inTag
+ * @property {string|null} fence
+ * @property {LanguageConfig|null} fenceConfig
+ * @property {boolean} fenceMarkup
+ * @property {ScanState|null} fenceState
+ */
+
+/**
  * @param {string} line - source line.
  * @param {number} index - start position.
  * @returns {number} index of the first non-space/tab character at/after index.
@@ -145,7 +177,7 @@ function skipSpaces(line, index) {
 /**
  * Build a word lookup table from a whitespace-separated literal.
  * @param {string} literal - words separated by spaces.
- * @returns {object} `word -> true`.
+ * @returns {Record<string, boolean>} `word -> true`.
  */
 function words(literal) {
   const table = {};
@@ -213,8 +245,8 @@ const COMMENT_SLASH = Object.freeze([block('/*', '*/')]);
 /**
  * Merge per-language differences onto the scanner defaults. A config only
  * declares what differs from "C-like code with no words".
- * @param {object} overrides - config fields.
- * @returns {object} a complete scanner config.
+ * @param {Partial<LanguageConfig>} overrides - config fields.
+ * @returns {LanguageConfig} a complete scanner config.
  */
 function makeConfig(overrides) {
   return Object.freeze(
@@ -617,7 +649,9 @@ function normalizeLanguage(language) {
 
 // ─── scanner state ──────────────────────────────────────────────────────────
 
-/** One line-to-line carrier of open block comments / strings / markup tags. */
+/** One line-to-line carrier of open block comments / strings / markup tags.
+ * @returns {ScanState} fresh scanner state.
+ */
 function createScanState() {
   return {
     blockEnd: null,
@@ -640,7 +674,7 @@ function createScanState() {
  * @param {string} word - identifier text.
  * @param {string} line - full source line.
  * @param {number} after - index just past the identifier.
- * @param {object} config - language config.
+ * @param {LanguageConfig} config - language config.
  * @returns {string} segment kind.
  */
 function classifyWord(word, line, after, config) {
@@ -665,7 +699,7 @@ function classifyWord(word, line, after, config) {
  * Consume one numeric literal (decimal, hex, binary, octal, float, exponent).
  * @param {string} line - source line.
  * @param {number} start - index of the first digit (or the dot of `.5`).
- * @param {Function} push - segment sink.
+ * @param {(kind: string, text: string) => void} push - segment sink.
  * @returns {number} index just past the literal.
  */
 function scanNumber(line, start, push) {
@@ -722,8 +756,8 @@ function scanNumber(line, start, push) {
  * in `state` across lines.
  *
  * @param {string} line - source line (no trailing newline).
- * @param {object} state - mutable cross-line state.
- * @param {object} config - language config.
+ * @param {ScanState} state - mutable cross-line state.
+ * @param {LanguageConfig} config - language config.
  * @returns {Array<Array<string>>} `[kind, text]` segments.
  */
 function scanCodeLine(line, state, config) {
@@ -993,8 +1027,8 @@ function scanCodeLine(line, state, config) {
  * Consume the attribute body of a tag until its closing `>`.
  * @param {string} line - source line.
  * @param {number} start - index just past the tag name.
- * @param {object} state - mutable state (`inTag` survives line ends).
- * @param {Function} push - segment sink.
+ * @param {ScanState} state - mutable state (`inTag` survives line ends).
+ * @param {(kind: string, text: string) => void} push - segment sink.
  * @returns {number} index to continue scanning at.
  */
 function scanTagBody(line, start, state, push) {
@@ -1064,7 +1098,7 @@ function scanTagBody(line, start, state, push) {
  * Tokenize one line of markup: comments, declarations, tags with attributes,
  * entities, and plain character data.
  * @param {string} line - source line.
- * @param {object} state - mutable cross-line state.
+ * @param {ScanState} state - mutable cross-line state.
  * @returns {Array<Array<string>>} segments.
  */
 function scanMarkupLine(line, state) {
@@ -1190,7 +1224,7 @@ function scanMarkupLine(line, state) {
  * Classify inline markdown spans from `start` to the end of the line.
  * @param {string} line - source line.
  * @param {number} start - first index to classify.
- * @param {Function} push - segment sink.
+ * @param {(kind: string, text: string) => void} push - segment sink.
  */
 function scanMarkdownInline(line, start, push) {
   const length = line.length;
@@ -1280,7 +1314,7 @@ function scanMarkdownInline(line, start, push) {
  * Tokenize one markdown line, including fenced code blocks (whose content is
  * highlighted with the fence info string's language when it is known).
  * @param {string} line - source line.
- * @param {object} state - mutable fence state.
+ * @param {ScanState} state - mutable fence state.
  * @returns {Array<Array<string>>} segments.
  */
 function scanMarkdownLine(line, state) {

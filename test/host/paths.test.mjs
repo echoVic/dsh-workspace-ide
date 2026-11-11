@@ -26,8 +26,9 @@ import { makeApp, temporaryDirectory } from './support.mjs';
  */
 async function rejectsWith(promise, status, code) {
   await assert.rejects(promise, (error) => {
-    assert.equal(error.status, status, `expected status ${status}, got ${error.status} (${error.message})`);
-    assert.equal(error.code, code);
+    const failure = /** @type {any} */ (error);
+    assert.equal(failure.status, status, `expected status ${status}, got ${failure.status} (${failure.message})`);
+    assert.equal(failure.code, code);
     return true;
   });
 }

@@ -28,6 +28,32 @@ function detectEol(text) {
   return typeof text === 'string' && text.indexOf('\r\n') !== -1 ? '\r\n' : '\n';
 }
 
+/**
+ * @typedef {Object} TreeEntry
+ * @property {string} name
+ * @property {string} path
+ * @property {string} type
+ * @property {number} [size]
+ * @property {number} [mtimeMs]
+ * @property {boolean} [hidden]
+ */
+/**
+ * @typedef {{width: number, height: number}} ImageDimensions
+ */
+/**
+ * @typedef {Object} FileState
+ * @property {string} status
+ * @property {any} data
+ * @property {string} [eol]
+ * @property {any} error
+ */
+/**
+ * @typedef {Object} OpenRequest
+ * @property {string} [path]
+ * @property {number} [line]
+ * @property {number} [token]
+ */
+
 const ST_FILES = {
   mdToggle: {
     display: 'inline-flex',
@@ -517,7 +543,7 @@ function caretFromIndex(text, index) {
   return { line: line, column: position - lineStart + 1 };
 }
 
-/** @param {object} entry - list entry. @returns {boolean} keep it in the tree. */
+/** @param {TreeEntry} entry - list entry. @returns {boolean} keep it in the tree. */
 function keepTreeEntry(entry) {
   if (entry === null || entry === undefined) return false;
   if (typeof entry.name !== 'string' || typeof entry.path !== 'string') return false;
@@ -638,7 +664,7 @@ function TreeDirRows(props) {
 /**
  * Raster image pane: breadcrumb header, a centred preview over a checkerboard
  * surface, and a status bar with the natural dimensions once the image loads.
- * @param {{t: Function, path: string, src: string, mime: string, size: number, mtimeMs: number|null, dimensions: object|null, onDimensions: Function}} props - viewer props.
+ * @param {{t: Function, path: string, src: string, mime: string, size: number, mtimeMs: number|null, dimensions: ImageDimensions|null, onDimensions: Function}} props - viewer props.
  */
 function ImageViewer(props) {
   const t = props.t;
@@ -986,7 +1012,7 @@ function FileViewer(props) {
 
 /**
  * The Files tab: tree on the left, viewer on the right.
- * @param {{t: Function, root: string, openRequest?: object, reloadToken?: number, onOpenFile?: Function}} props - slot props.
+ * @param {{t: Function, root: string, openRequest?: OpenRequest|null, reloadToken?: number, onOpenFile?: Function}} props - slot props.
  */
 function FilesView(props) {
   const fallbackT = S.useT();
@@ -996,7 +1022,7 @@ function FilesView(props) {
   const [tree, setTree] = useState({});
   const [expanded, setExpanded] = useState({ '': true });
   const [selected, setSelected] = useState(null);
-  const [file, setFile] = useState({ status: 'idle', data: null, error: null });
+  const [file, setFile] = useState(/** @type {FileState} */ ({ status: 'idle', data: null, error: null }));
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
@@ -1049,7 +1075,7 @@ function FilesView(props) {
     };
   }, []);
 
-  const loadDir = useCallback(function (dirPath, generation) {
+  const loadDir = useCallback(/** @param {string} dirPath - directory path relative to the root. @param {number} [generation] - tree generation for stale-response rejection. */ function (dirPath, generation) {
     const gen = generation === undefined ? genRef.current : generation;
     setTree(function (previous) {
       const next = Object.assign({}, previous);

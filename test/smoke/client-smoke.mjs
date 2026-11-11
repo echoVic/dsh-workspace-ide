@@ -160,8 +160,8 @@ function createFakeReact() {
  * invoked (so every render path under test actually runs), class components are
  * instantiated and rendered, arrays are flattened.
  *
- * @param {unknown} node - fake React node.
- * @param {(visit: object) => void} visit - host/text visitor.
+ * @param {any} node - fake React node.
+ * @param {(visit: any) => void} visit - host/text visitor.
  * @param {number} [depth] - recursion guard.
  */
 function walk(node, visit, depth) {
@@ -238,7 +238,7 @@ function loadBundle() {
     },
   };
   const previousWindow = globalThis.window;
-  globalThis.window = fakeWindow;
+  globalThis.window = /** @type {any} */ (fakeWindow);
   try {
     vm.runInThisContext(source, { filename: ARTIFACT });
   } finally {
@@ -337,10 +337,10 @@ function run() {
   const plain = makeContext();
   const pings = [];
   const realFetch = globalThis.fetch;
-  globalThis.fetch = function fakeFetch(url, init) {
+  globalThis.fetch = /** @type {any} */ (function fakeFetch(url, init) {
     pings.push({ url: String(url), init: init });
     return Promise.resolve({ ok: true, json: async function json() { return { ok: true }; } });
-  };
+  });
   try {
     face.apply(plain.ctx);
   } finally {
@@ -416,13 +416,13 @@ function run() {
 
   // A persisted theme mounts the panel with that palette's override table.
   const previousWindow = globalThis.window;
-  globalThis.window = {
+  globalThis.window = /** @type {any} */ ({
     localStorage: {
       getItem: function (key) { return key === 'dsh-workspace-ide:theme' ? 'dracula' : null; },
       setItem: function () {},
       removeItem: function () {},
     },
-  };
+  });
   let themedRender;
   try {
     themedRender = renderTree(main[0].component({ t: keyTranslator }));
@@ -437,7 +437,7 @@ function run() {
   assert.equal(themedRoots[0].props.style['--dsw-alias-link'], '#bd93f9', 'the root carries the palette accent override');
 
   // Unknown persisted values fall back to the DSH theme.
-  globalThis.window = { localStorage: { getItem: function () { return 'not-a-theme'; }, setItem: function () {}, removeItem: function () {} } };
+  globalThis.window = /** @type {any} */ ({ localStorage: { getItem: function () { return 'not-a-theme'; }, setItem: function () {}, removeItem: function () {} } });
   let invalidRender;
   try {
     invalidRender = renderTree(main[0].component({ t: keyTranslator }));
@@ -491,9 +491,9 @@ function run() {
     },
   });
   const realFetchForLocale = globalThis.fetch;
-  globalThis.fetch = function fakeFetch() {
+  globalThis.fetch = /** @type {any} */ (function fakeFetch() {
     return Promise.resolve({ ok: true, json: async function json() { return { ok: true }; } });
-  };
+  });
   try {
     face.apply(localeCtx.ctx);
   } finally {
@@ -631,6 +631,7 @@ function run() {
   ok('highlightLines: keyword/string/comment/plain, concat invariant, empty / unknown / text fallbacks');
 
   // Round-trip invariant + the kind enum, across multi-line constructs.
+  /** @type {Array<[string, string, string[]]>} */
   const invariantSamples = [
     ['javascript', 'a /* start\nmiddle */ b\n`t ${x}`', ['comment', 'string']],
     ['typescript', 'interface A { b: string }\nconst c: number = 1;', ['keyword', 'type', 'number']],

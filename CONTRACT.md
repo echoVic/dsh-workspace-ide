@@ -28,7 +28,11 @@ Reference material already in this workspace (read if unsure):
 ## Hard rules
 
 - Never run `plugin_manager`, never edit `~/.dsh/**`, never restart/kill the DSH app.
-- Never run `npm install` / `pnpm add` / any network call.
+- Do not add runtime dependencies: the shipped client still requires only `react`, and the
+  Host still uses Node built-ins only. TypeScript/`@types/*` are **devDependencies only**
+  (`npm ci` + `npm run typecheck`); they never change `lib/` or the published package.
+- Type checking stays green: `npm run typecheck` (tsc `--checkJs`, no emit) must exit 0
+  before a PR is done. Do not silence errors with `@ts-ignore`; fix the JSDoc type.
 - Only touch the files in **your** write scope (see Team task). Do not touch the other
   teammate's files, `package.json`, `cordis.patch.yml`, `icon.svg`, `CONTRACT.md`, `README.md`.
 - Host half: plain ESM (`"type": "module"`), Node ≥ 22 built-ins only, **no `@deepseek-ai/*`
@@ -508,6 +512,21 @@ the top-left corner — see that package's README.)
 otherwise en; `t('key', { count: 3 })` replaces `{count}`. Every visible string (labels,
 placeholders, empty states, errors, buttons, notices) must be in the dictionary.
 
+### Type checking (`tsconfig.json` + `types/`)
+
+- Plain JavaScript stays the source of truth; TypeScript is a **dev-only checker**
+  (`allowJs + checkJs + noEmit`). No bundler, no emitted JS, no runtime dependency.
+- `types/client-globals.d.ts` declares the factory-scope globals that
+  `scripts/build-client.mjs` injects (`React`, `h` typed as `React.createElement`, the five
+  hooks, and the shared `S` namespace), so `src/client/*.js` can be checked as one scope.
+- `types/dsh-services.d.ts` is intentionally absent for now: Host code only reads `ctx`
+  through optional service lookups, and the JSDoc contracts on `lib/host/*` already check
+  cleanly. Add narrow local declarations (never `@deepseek-ai/*` imports) if that changes.
+- The project includes `lib/`, `src/client/`, `scripts/` and `test/` in the same `tsconfig`;
+  `npm run typecheck` must exit 0, and CI runs it after `npm ci`.
+- `package.json` keeps the dev toolchain pinned via `package-lock.json`; the npm tarball
+  excludes all of it (`files` allow-list), so installed plugins stay dependency-free.
+
 ### Verification (`test/smoke/client-smoke.mjs`)
 
 Runs on plain Node, no third-party deps, exits 0/1:
@@ -533,8 +552,9 @@ Runs on plain Node, no third-party deps, exits 0/1:
 
 ## Definition of done
 
-- `node scripts/build-client.mjs && node --check lib/client.js && node --test test/host/ &&
-  node test/smoke/client-smoke.mjs` all pass (the smoke suite now also asserts the
+- `npm ci && npm run typecheck` passes (dev-only type checker, no emit) and
+  `node scripts/build-client.mjs && node --check lib/client.js && node --test test/host/ &&
+  node test/smoke/client-smoke.mjs` all pass (the smoke suite also asserts the
   highlighter's segment invariant, language fallbacks and theme token variables).
 - All three surfaces implemented; every fetch error path renders a message instead of
   throwing; the whole panel works with zero data (empty workspace, non-git folder).
