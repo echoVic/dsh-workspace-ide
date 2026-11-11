@@ -1,8 +1,8 @@
 {
   "name": "dsh-workspace-ide",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": false,
-  "description": "A VS Code-like workspace IDE panel for DeepSeek Harness: file tree with code viewer, full-text workspace search, and git status / diff / history",
+  "description": "A JetBrains-inspired workspace IDE panel for DeepSeek Harness: file tree, TypeScript code editor with find & replace, Quick Open, tabs and syntax highlighting, full-text search, and git status / diff / history",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -57,9 +57,12 @@
     "plugin",
     "bundle",
     "workspace",
+    "ide",
+    "editor",
     "files",
     "search",
-    "git"
+    "git",
+    "syntax-highlighting"
   ],
   "author": "echoVic",
   "repository": {
