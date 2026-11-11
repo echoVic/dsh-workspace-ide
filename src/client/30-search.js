@@ -330,8 +330,8 @@ function SearchView(props) {
   const [lastQuery, setLastQuery] = useState('');
 
   const requestRef = useRef(0);
-  const abortRef = useRef(null);
-  const queryRef = useRef(null);
+  const abortRef = useRef(/** @type {AbortController|null} */ (null));
+  const queryRef = useRef(/** @type {HTMLInputElement|null} */ (null));
 
   // Focusing the query field when the view opens makes the tab instantly usable.
   useEffect(function () {
@@ -470,6 +470,7 @@ function SearchView(props) {
     'ab|',
   );
 
+  /** @type {any} */
   let body = null;
   if (result.status === 'loading') {
     body = h(S.LoadingIndicator, { t: t, label: t('search.running') });

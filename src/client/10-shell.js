@@ -438,9 +438,9 @@ function ThemePicker(props) {
   const t = typeof props.t === 'function' ? props.t : S.translate;
   const activeTheme = typeof props.theme === 'string' ? props.theme : 'auto';
   const [open, setOpen] = useState(false);
-  const [hot, setHot] = useState(null);
-  const wrapRef = useRef(null);
-  const optionRefs = useRef([]);
+  const [hot, setHot] = useState(/** @type {string|null} */ (null));
+  const wrapRef = useRef(/** @type {HTMLElement|null} */ (null));
+  const optionRefs = useRef(/** @type {Array<HTMLElement|null>} */ ([]));
   optionRefs.current = [];
 
   /** Focus the trigger button again (the wrapper's first button is the trigger). */
@@ -563,7 +563,7 @@ function ThemePicker(props) {
           hot === entry.id && !selected ? ST_SHELL.themeOptionHot : null,
         ),
         ref: function (node) {
-          optionRefs.current[index] = node;
+          optionRefs.current[index] = /** @type {HTMLElement|null} */ (node);
         },
         onMouseEnter: function () { setHot(entry.id); },
         onMouseLeave: function () { setHot(null); },
@@ -757,18 +757,18 @@ function Shell(props) {
     // Persisted colour theme; `auto` (no overrides) is the default.
     return S.readTheme();
   });
-  const [workspaces, setWorkspaces] = useState([]);
-  const [root, setRoot] = useState(null);
+  const [workspaces, setWorkspaces] = useState(/** @type {Array<any>} */ ([]));
+  const [root, setRoot] = useState(/** @type {string|null} */ (null));
   const [loading, setLoading] = useState(true);
-  const [rootError, setRootError] = useState(null);
+  const [rootError, setRootError] = useState(/** @type {any} */ (null));
   const [reloadToken, setReloadToken] = useState(0);
-  const [openRequest, setOpenRequest] = useState(null);
+  const [openRequest, setOpenRequest] = useState(/** @type {{path?: string, line?: number, token?: number}|null} */ (null));
 
-  const abortRef = useRef(null);
+  const abortRef = useRef(/** @type {AbortController|null} */ (null));
   const requestRef = useRef(0);
   const openTokenRef = useRef(0);
-  const workspacesRef = useRef([]);
-  const preferredRootRef = useRef(null);
+  const workspacesRef = useRef(/** @type {Array<any>} */ ([]));
+  const preferredRootRef = useRef(/** @type {string|null} */ (null));
   preferredRootRef.current = typeof props.preferredRoot === 'string' && props.preferredRoot.length > 0 ? props.preferredRoot : null;
 
   const loadWorkspaces = useCallback(function () {
@@ -877,6 +877,7 @@ function Shell(props) {
     });
   }, []);
 
+  /** @type {any} */
   let body = null;
   if (root === null) {
     if (rootError !== null) {

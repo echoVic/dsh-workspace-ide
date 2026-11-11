@@ -160,7 +160,7 @@ plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/d
 npm ci                                 # dev-only tooling: TypeScript type checker
 npm run typecheck                      # tsc --checkJs over lib/ + src/client + tests (no emit)
 npm run typecheck:host                 # lib/ under strictNullChecks (see tsconfig.host.json)
-npm run typecheck:client               # pure client modules under strictNullChecks (tsconfig.client.json)
+npm run typecheck:client               # all client modules under strictNullChecks (tsconfig.client.json)
 node scripts/build-client.mjs          # rebuild lib/client.js from src/client/*.js
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
@@ -176,8 +176,9 @@ JSDoc annotations, `tsc --noEmit --checkJs` checks `lib/`, `src/client/` and the
 `types/dsh-services.d.ts` declares the optional Host context/services). The Host half is
 additionally checked with `strictNullChecks` via `tsconfig.host.json`
 (`npm run typecheck:host`), so every filesystem/git route handles absent values explicitly;
-the pure client modules (core helpers, icons, highlighter, Markdown renderer) are checked
-with `strictNullChecks` via `tsconfig.client.json` (`npm run typecheck:client`).
+all client modules (core helpers, icons, highlighter, Markdown renderer, shell, files,
+search and git views) are checked with `strictNullChecks` via `tsconfig.client.json`
+(`npm run typecheck:client`).
 There is still no client bundler, no build step for the Host and no runtime dependency —
 `npm ci` installs `typescript`, `@types/node` and `@types/react` into devDependencies only.
 
@@ -193,7 +194,7 @@ lib/host/                filesystem / search / git route implementation
 lib/client.js            built browser module (committed)
 tsconfig.json            dev-only type checker config (allowJs + checkJs, no emit)
 tsconfig.host.json       Host-only config with strictNullChecks enabled
-tsconfig.client.json     pure client modules under strictNullChecks
+tsconfig.client.json     client modules under strictNullChecks
 types/                   ambient declarations: client factory scope + Host context/services
 src/client/              browser sources: core, icons (vendored Lucide), highlighter,
                          shell, files, search, git, module face

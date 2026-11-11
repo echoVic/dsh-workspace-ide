@@ -778,7 +778,7 @@ function FileViewer(props) {
   );
 
   const textareaRef = props.textareaRef !== null && props.textareaRef !== undefined ? props.textareaRef : null;
-  const syntaxRef = useRef(null);
+  const syntaxRef = useRef(/** @type {HTMLElement|null} */ (null));
 
   // The overlay has no scroll of its own: it follows the textarea's scroll
   // offsets with a transform, so the coloured glyphs stay on the same pixels as
@@ -1021,23 +1021,23 @@ function FilesView(props) {
 
   const [tree, setTree] = useState({});
   const [expanded, setExpanded] = useState({ '': true });
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(/** @type {string|null} */ (null));
   const [file, setFile] = useState(/** @type {FileState} */ ({ status: 'idle', data: null, error: null }));
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useState(/** @type {any} */ (null));
   const [caret, setCaret] = useState({ line: 1, column: 1 });
-  const [pendingLine, setPendingLine] = useState(null);
+  const [pendingLine, setPendingLine] = useState(/** @type {number|null} */ (null));
   const [markdownMode, setMarkdownMode] = useState('source');
   const [svgMode, setSvgMode] = useState('image');
-  const [image, setImage] = useState({ status: 'idle', data: null, error: null });
-  const [dimensions, setDimensions] = useState(null);
+  const [image, setImage] = useState(/** @type {{status: string, data: any, error: any}} */ ({ status: 'idle', data: null, error: null }));
+  const [dimensions, setDimensions] = useState(/** @type {ImageDimensions|null} */ (null));
 
-  const textareaRef = useRef(null);
-  const gutterRef = useRef(null);
+  const textareaRef = useRef(/** @type {HTMLTextAreaElement|null} */ (null));
+  const gutterRef = useRef(/** @type {HTMLElement|null} */ (null));
   const fileRequestRef = useRef(0);
   const genRef = useRef(0);
-  const noticeTimerRef = useRef(null);
+  const noticeTimerRef = useRef(/** @type {ReturnType<typeof setTimeout>|null} */ (null));
 
   // Success / info notices fade after a moment; error notices stay until the
   // next action so a failed save is never missed.
@@ -1319,7 +1319,7 @@ function FilesView(props) {
   useEffect(function () {
     const request = props.openRequest;
     if (request === null || request === undefined || typeof request.path !== 'string' || request.path.length === 0) return undefined;
-    const targetLine = Number.isFinite(request.line) ? Math.floor(request.line) : 1;
+    const targetLine = typeof request.line === 'number' && Number.isFinite(request.line) ? Math.floor(request.line) : 1;
     if (selected === request.path && file.status === 'loaded') {
       setPendingLine(targetLine);
       return undefined;
@@ -1466,6 +1466,7 @@ function FilesView(props) {
     ),
   );
 
+  /** @type {any} */
   let viewer = null;
   if (image.status === 'loading') {
     viewer = h(S.LoadingIndicator, { t: t, label: t('files.loading') });

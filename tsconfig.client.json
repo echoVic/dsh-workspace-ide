@@ -21,10 +21,7 @@
     "strictNullChecks": true
   },
   "include": [
-    "src/client/00-core.js",
-    "src/client/05-icons.js",
-    "src/client/07-highlight.js",
-    "src/client/08-markdown.js",
+    "src/client/*.js",
     "types/**/*.d.ts"
   ],
   "exclude": [

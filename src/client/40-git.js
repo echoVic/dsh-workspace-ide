@@ -691,6 +691,7 @@ function GitCommitRow(props) {
  * @returns {{staged: Array, unstaged: Array, untracked: Array, conflicted: Array}} groups.
  */
 function groupChanges(files) {
+  /** @type {{staged: Array<{path: string, from: string|null, code: string, letter: string, staged: boolean}>, unstaged: Array<any>, untracked: Array<any>, conflicted: Array<any>}} */
   const groups = { staged: [], unstaged: [], untracked: [], conflicted: [] };
   const list = Array.isArray(files) ? files : [];
   list.forEach(function (file) {
@@ -853,6 +854,7 @@ function GitDiffPane(props) {
   const t = props.t;
   const selection = props.selection;
   const diff = props.diff;
+  /** @type {any} */
   let body = null;
   if (selection === null || selection === undefined) {
     body = h(S.EmptyState, {
@@ -882,7 +884,7 @@ function GitDiffPane(props) {
 
 /** Segmented Changes / History switch. */
 function GitSwitch(props) {
-  const [hover, setHover] = useState(null);
+  const [hover, setHover] = useState(/** @type {string|null} */ (null));
   const options = [
     { id: 'changes', label: props.t('git.changes') },
     { id: 'history', label: props.t('git.history') },
@@ -952,17 +954,17 @@ function GitView(props) {
   const t = props !== null && props !== undefined && typeof props.t === 'function' ? props.t : fallbackT;
   const root = props.root;
 
-  const [status, setStatus] = useState(null);
-  const [log, setLog] = useState(null);
+  const [status, setStatus] = useState(/** @type {any} */ (null));
+  const [log, setLog] = useState(/** @type {any} */ (null));
   const [load, setLoad] = useState({ status: 'loading', error: null });
   const [view, setView] = useState('changes');
-  const [selection, setSelection] = useState(null);
+  const [selection, setSelection] = useState(/** @type {string|null} */ (null));
   const [diff, setDiff] = useState({ status: 'idle', payload: null, error: null });
   const [version, setVersion] = useState(0);
 
   const diffRequestRef = useRef(0);
-  const lastDiffRef = useRef(null);
-  const abortRef = useRef(null);
+  const lastDiffRef = useRef(/** @type {{params: any, selection: any}|null} */ (null));
+  const abortRef = useRef(/** @type {AbortController|null} */ (null));
 
   useEffect(function () {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -1047,6 +1049,7 @@ function GitView(props) {
   const repo = status !== null && status !== undefined && status.repo === true;
   const commits = log !== null && log !== undefined && Array.isArray(log.commits) ? log.commits : [];
 
+  /** @type {any} */
   let content = null;
   if (load.status === 'loading') {
     content = h(S.LoadingIndicator, { t: t, label: t('git.loading') });

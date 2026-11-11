@@ -24,7 +24,7 @@ jobs:
       - name: Host strict type check (strictNullChecks)
         run: npm run typecheck:host
 
-      - name: Client pure-module strict type check (strictNullChecks)
+      - name: Client strict type check (strictNullChecks)
         run: npm run typecheck:client
 
       - name: Client bundle is up to date

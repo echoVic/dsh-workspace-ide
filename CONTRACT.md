@@ -526,12 +526,12 @@ placeholders, empty states, errors, buttons, notices) must be in the dictionary.
 - Three gates, all must exit 0 in CI after `npm ci`:
   1. `npm run typecheck` — relaxed nullability over `lib/` + `src/client/` + `scripts/` + `test/`;
   2. `npm run typecheck:host` — `lib/` under `strictNullChecks` (`tsconfig.host.json`);
-  3. `npm run typecheck:client` — the pure client modules (`00-core`, `05-icons`,
-     `07-highlight`, `08-markdown`) under `strictNullChecks` (`tsconfig.client.json`).
-- Remaining phases (measured, deliberately deferred): the client UI modules
-  `10-shell`/`20-files`/`30-search`/`40-git` add 93 diagnostics under `strictNullChecks`,
-  tests add 138, and `noImplicitAny` is 783. Raise these project by project (extend
-  `tsconfig.client.json`, then add a test config) instead of switching globally.
+  3. `npm run typecheck:client` — **all** client modules (`00-core`, `05-icons`,
+     `07-highlight`, `08-markdown`, `10-shell`, `20-files`, `30-search`, `40-git`,
+     `99-face`) under `strictNullChecks` (`tsconfig.client.json`).
+- Remaining phases (measured, deliberately deferred): the test suites add 138 diagnostics
+  under `strictNullChecks`, and `noImplicitAny` is 783. Add a test config first, then raise
+  `noImplicitAny` per area instead of switching globally.
 - `package.json` keeps the dev toolchain pinned via `package-lock.json`; the npm tarball
   excludes all of it (`files` allow-list), so installed plugins stay dependency-free.
 
