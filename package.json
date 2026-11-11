@@ -1,0 +1,70 @@
+{
+  "name": "dsh-workspace-ide",
+  "version": "0.1.0",
+  "private": false,
+  "description": "A VS Code-like workspace IDE panel for DeepSeek Harness: file tree with code viewer, full-text workspace search, and git status / diff / history",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./icon": {
+      "default": "./icon.svg"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/host/",
+    "lib/client.js",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses/",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build-client.mjs",
+    "check": "node scripts/build-client.mjs --check && node --check lib/index.js && for f in lib/host/*.js; do node --check \"$f\" || exit 1; done",
+    "test": "node --test test/host/ && node test/smoke/client-smoke.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "bundle",
+    "workspace",
+    "files",
+    "search",
+    "git"
+  ],
+  "author": "echoVic",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/echoVic/dsh-workspace-ide.git"
+  },
+  "homepage": "https://github.com/echoVic/dsh-workspace-ide",
+  "bugs": {
+    "url": "https://github.com/echoVic/dsh-workspace-ide/issues"
+  }
+}
