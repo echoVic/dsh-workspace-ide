@@ -1,6 +1,7 @@
 # dsh-workspace-ide
 
 [![test](https://github.com/echoVic/dsh-workspace-ide/actions/workflows/test.yml/badge.svg)](https://github.com/echoVic/dsh-workspace-ide/actions/workflows/test.yml)
+[![license](https://img.shields.io/github/license/echoVic/dsh-workspace-ide)](LICENSE)
 
 A VS Code-like workspace panel plugin for
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH): browse the
@@ -173,3 +174,11 @@ test/smoke/              headless client-module smoke test (38 checks)
 test/review/             independent adversarial + client-contract suites (78 tests)
 docs/                    screenshots
 ```
+
+## License
+
+[MIT](LICENSE) © 2026 echoVic.
+
+The vendored Lucide icon set (and the Feather-derived glyphs inside it) keep their own
+licenses — full texts and attribution are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+and [licenses/](licenses/).
