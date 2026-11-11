@@ -142,6 +142,7 @@ S.face = {
       GitCommitRow: S.GitCommitRow,
       FilesView: S.FilesView,
       FileViewer: S.FileViewer,
+      TabStrip: S.TabStrip,
       FileTreeRow: S.FileTreeRow,
       SearchView: S.SearchView,
       SearchResults: S.SearchResults,

@@ -1017,6 +1017,33 @@ function run() {
   assert.equal(findRender.texts.some(function (text) { return text.indexOf('find.count[current=1,total=2]') === 0; }), true, 'the bar shows the match counter');
   ok('FileViewer: find bar with toggles, replacement row and match highlight layer');
 
+  const selectedTabs = [];
+  const closedTabs = [];
+  const tabRender = renderTree(T.TabStrip({
+    t: keyTranslator,
+    tabs: [
+      { path: 'src/client/00-core.ts', active: true, dirty: true },
+      { path: 'README.md', active: false, dirty: false },
+      { path: 'docs/image.svg', active: false, dirty: false },
+    ],
+    onSelect: function (path) { selectedTabs.push(path); },
+    onClose: function (path) { closedTabs.push(path); },
+  }));
+  const tabHosts = tabRender.hosts.filter(function (host) { return host.props.role === 'tab'; });
+  assert.equal(tabHosts.length, 3, 'one tab per open file');
+  assert.equal(tabHosts[0].props['aria-selected'], 'true', 'the active tab is announced');
+  assert.equal(tabRender.texts.includes('00-core.ts'), true, 'tabs label files by basename');
+  assert.equal(tabRender.texts.includes('README.md'), true, 'non-active tabs render too');
+  const closeButtons = tabRender.hosts.filter(function (host) {
+    return host.type === 'button' && host.props['aria-label'] === 'files.tab.close';
+  });
+  assert.equal(closeButtons.length, 3, 'every tab has a close button');
+  tabHosts[1].props.onMouseDown({ preventDefault: function () {} });
+  assert.deepEqual(selectedTabs, ['README.md'], 'selecting a tab activates it');
+  closeButtons[2].props.onMouseDown({ preventDefault: function () {}, stopPropagation: function () {} });
+  assert.deepEqual(closedTabs, ['docs/image.svg'], 'the close button closes that tab');
+  ok('TabStrip: per-file tabs, active state, dirty dot and close buttons');
+
   const plainViewerProps = {
     t: keyTranslator, path: 'notes.txt', value: 'plain a\nplain b', lineCount: 2, language: 'text', size: 17,
     mtimeMs: 0, dirty: false, saving: false, readOnly: false, tooBig: false, truncated: false, notice: null,

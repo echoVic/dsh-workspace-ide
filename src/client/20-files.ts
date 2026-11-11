@@ -734,6 +734,79 @@ const ST_FILES = {
     color: C.textTertiary,
     flex: '0 0 auto',
   },
+  // JetBrains-style editor tab strip: one tab per open file, dirty dot and a
+  // per-tab close button; the active tab carries an accent top border.
+  tabBar: {
+    display: 'flex',
+    alignItems: 'stretch',
+    flex: '0 0 auto',
+    height: 32,
+    minWidth: 0,
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    background: C.base,
+    borderBottom: '1px solid ' + C.border2,
+    boxSizing: 'border-box',
+  },
+  tab: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    flex: '0 0 auto',
+    maxWidth: 220,
+    minWidth: 0,
+    height: 32,
+    padding: '0 6px 0 12px',
+    borderRight: '1px solid ' + C.border1,
+    borderTop: '2px solid transparent',
+    boxSizing: 'border-box',
+    color: C.textSecondary,
+    fontFamily: FONT_UI,
+    fontSize: 12,
+    cursor: 'pointer',
+    userSelect: 'none',
+  },
+  tabActive: {
+    background: C.layer1,
+    color: C.text,
+    borderTopColor: C.accent,
+  },
+  tabLabel: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  tabClose: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 18,
+    height: 18,
+    padding: 0,
+    border: 'none',
+    borderRadius: 4,
+    background: 'transparent',
+    color: C.textTertiary,
+    cursor: 'pointer',
+    flex: '0 0 auto',
+  },
+  tabDirty: {
+    color: C.warnLabel,
+    display: 'inline-flex',
+    flex: '0 0 auto',
+  },
+  closeConfirmBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flex: '0 0 auto',
+    padding: '6px 12px',
+    background: C.platform,
+    borderBottom: '1px solid ' + C.border1,
+    color: C.warnLabel,
+    fontFamily: FONT_UI,
+    fontSize: 12,
+  },
 };
 
 /**
@@ -1250,6 +1323,60 @@ function ImageViewer(props: any) {
       dimensions !== null ? h('span', null, t('files.image.dimensions', { width: String(dimensions.width), height: String(dimensions.height) })) : null,
       h('span', null, S.formatBytes(size)),
     ),
+  );
+}
+
+/**
+ * Editor tab strip: one entry per open file, with dirty dot and close button.
+ * @param props - `{t, tabs: [{path, dirty, active}], onSelect, onClose, label}`.
+ */
+function TabStrip(props: any) {
+  const t = props.t;
+  const tabs = Array.isArray(props.tabs) ? props.tabs : [];
+  if (tabs.length === 0) return null;
+  return h(
+    'div',
+    { style: ST_FILES.tabBar, role: 'tablist', 'aria-label': typeof props.label === 'string' ? props.label : 'tabs' },
+    tabs.map(function (tab: any, index: number) {
+      const path = tab !== null && tab !== undefined && typeof tab.path === 'string' ? tab.path : '';
+      const label = typeof S.baseName === 'function' ? S.baseName(path) : path;
+      const active = tab !== null && tab !== undefined && tab.active === true;
+      return h(
+        'div',
+        {
+          key: 'tab-' + String(index) + '-' + path,
+          role: 'tab',
+          'aria-selected': active ? 'true' : 'false',
+          title: path,
+          style: Object.assign({}, ST_FILES.tab, active ? ST_FILES.tabActive : null),
+          onMouseDown: function (event: any) {
+            if (event !== null && event !== undefined && typeof event.preventDefault === 'function') event.preventDefault();
+            if (typeof props.onSelect === 'function') props.onSelect(path);
+          },
+        },
+        h('span', { style: ST_FILES.tabLabel }, label.length > 0 ? label : path),
+        tab !== null && tab !== undefined && tab.dirty === true
+          ? h('span', { style: ST_FILES.tabDirty, title: t('files.modified') }, h(S.Icons.Dot, { size: 8 }))
+          : null,
+        h(
+          'button',
+          {
+            type: 'button',
+            title: t('files.tab.close'),
+            'aria-label': t('files.tab.close'),
+            style: ST_FILES.tabClose,
+            onMouseDown: function (event: any) {
+              if (event !== null && event !== undefined) {
+                if (typeof event.preventDefault === 'function') event.preventDefault();
+                if (typeof event.stopPropagation === 'function') event.stopPropagation();
+              }
+              if (typeof props.onClose === 'function') props.onClose(path);
+            },
+          },
+          h(S.Icons.Close, { size: 10 }),
+        ),
+      );
+    }),
   );
 }
 
@@ -1934,6 +2061,8 @@ function FilesView(props: any) {
   const [quickError, setQuickError] = useState<any>(null);
   const [quickTruncated, setQuickTruncated] = useState(false);
   const [quickIndex, setQuickIndex] = useState(0);
+  const [tabs, setTabs] = useState<string[]>([]);
+  const [closingTab, setClosingTab] = useState<string | null>(null);
 
   const textareaRef = useRef<any>(null);
   const gutterRef = useRef<any>(null);
@@ -1943,6 +2072,7 @@ function FilesView(props: any) {
   const historyIndexRef = useRef(-1);
   const quickInputRef = useRef<any>(null);
   const quickFilesRef = useRef<string[] | null>(null);
+  const tabStateRef = useRef<Record<string, any>>({});
 
   // Success / info notices fade after a moment; error notices stay until the
   // next action so a failed save is never missed.
@@ -2021,6 +2151,13 @@ function FilesView(props: any) {
     setPendingLine(null);
     setMarkdownMode('source');
     setCaret({ line: 1, column: 1 });
+    setTabs([]);
+    tabStateRef.current = {};
+    setClosingTab(null);
+    quickFilesRef.current = null;
+    setQuickFiles(null);
+    setQuickOpen(false);
+    setQuickTruncated(false);
     loadDir('', gen);
     return function () {
       genRef.current = genRef.current + 1;
@@ -2043,21 +2180,8 @@ function FilesView(props: any) {
     }
   }, [expanded, tree, loadDir]);
 
-  const openFile = useCallback(function (path: any, line: any, options?: any) {
+  const loadFile = useCallback(function (path: any, line: any) {
     if (typeof path !== 'string' || path.length === 0) return;
-    const skipHistory = options !== null && typeof options === 'object' && options.skipHistory === true;
-    if (skipHistory === false) {
-      const entry = { path: path, line: Number.isFinite(line) && line > 0 ? Math.floor(line) : 1 };
-      setHistory(function (previous: Array<{ path: string, line: number }>) {
-        const base = previous.slice(0, historyIndexRef.current + 1);
-        const last = base[base.length - 1];
-        if (last !== undefined && last !== null && last.path === entry.path && last.line === entry.line) return previous;
-        const next = base.concat([entry]);
-        historyIndexRef.current = next.length - 1;
-        setHistoryIndex(historyIndexRef.current);
-        return next;
-      });
-    }
     const requestId = fileRequestRef.current + 1;
     fileRequestRef.current = requestId;
     const gen = genRef.current;
@@ -2104,6 +2228,111 @@ function FilesView(props: any) {
       });
   }, [root, showNotice]);
 
+  /** Store the active tab's live editor state so switching tabs loses nothing. */
+  function snapshotActiveTab() {
+    if (selected === null) return;
+    tabStateRef.current[selected] = {
+      file: file,
+      draft: draft,
+      caret: caret,
+      markdownMode: markdownMode,
+      svgMode: svgMode,
+      image: image,
+      dimensions: dimensions,
+    };
+  }
+
+  /** Restore a previously stored tab snapshot; false when the tab never loaded. */
+  function restoreTabSnapshot(path: string, line: any): boolean {
+    const snapshot = tabStateRef.current[path];
+    if (snapshot === null || snapshot === undefined) return false;
+    setSelected(path);
+    setFile(snapshot.file);
+    setDraft(snapshot.draft);
+    setCaret(snapshot.caret);
+    setMarkdownMode(snapshot.markdownMode);
+    setSvgMode(snapshot.svgMode);
+    setImage(snapshot.image);
+    setDimensions(snapshot.dimensions);
+    setSaving(false);
+    showNotice(null);
+    setPendingLine(Number.isFinite(line) && line > 0 ? Math.floor(line) : null);
+    return true;
+  }
+
+  const openPath = useCallback(function (path: any, line: any, options?: any) {
+    if (typeof path !== 'string' || path.length === 0) return;
+    const opts = options !== null && typeof options === 'object' ? options : {};
+    const skipHistory = opts.skipHistory === true;
+    const force = opts.reload === true;
+    if (skipHistory === false) {
+      const entry = { path: path, line: Number.isFinite(line) && line > 0 ? Math.floor(line) : 1 };
+      setHistory(function (previous: Array<{ path: string, line: number }>) {
+        const base = previous.slice(0, historyIndexRef.current + 1);
+        const last = base[base.length - 1];
+        if (last !== undefined && last !== null && last.path === entry.path && last.line === entry.line) return previous;
+        const next = base.concat([entry]);
+        historyIndexRef.current = next.length - 1;
+        setHistoryIndex(historyIndexRef.current);
+        return next;
+      });
+    }
+    if (force === true) {
+      loadFile(path, line);
+      return;
+    }
+    if (path === selected) {
+      if (Number.isFinite(line) && line > 0) setPendingLine(Math.floor(line));
+      return;
+    }
+    snapshotActiveTab();
+    setTabs(function (previous: string[]) { return previous.indexOf(path) === -1 ? previous.concat([path]) : previous; });
+    if (restoreTabSnapshot(path, line)) return;
+    loadFile(path, line);
+  }, [selected, file, draft, caret, markdownMode, svgMode, image, dimensions, loadFile, showNotice]);
+
+  /** Whether one tab currently holds unsaved edits (active uses live state). */
+  function tabDirty(path: string): boolean {
+    if (path === selected) {
+      const liveData = file !== null && file !== undefined ? file.data : null;
+      if (liveData === null || liveData === undefined || typeof liveData.content !== 'string') return false;
+      return draft !== normalizeEol(liveData.content);
+    }
+    const snapshot = tabStateRef.current[path];
+    if (snapshot === null || snapshot === undefined) return false;
+    const data = snapshot.file !== null && snapshot.file !== undefined ? snapshot.file.data : null;
+    if (data === null || data === undefined || typeof data.content !== 'string') return false;
+    return snapshot.draft !== normalizeEol(data.content);
+  }
+
+  const closeTab = useCallback(function (path: any) {
+    if (typeof path !== 'string' || path.length === 0) return;
+    if (tabDirty(path) === true && closingTab !== path) {
+      setClosingTab(path);
+      return;
+    }
+    const remaining = tabs.filter(function (item: string) { return item !== path; });
+    delete tabStateRef.current[path];
+    setTabs(remaining);
+    setClosingTab(null);
+    if (path !== selected) return;
+    if (remaining.length === 0) {
+      setSelected(null);
+      setFile({ status: 'idle', data: null, error: null });
+      setDraft('');
+      setCaret({ line: 1, column: 1 });
+      setImage({ status: 'idle', data: null, error: null });
+      setDimensions(null);
+      setPendingLine(null);
+      setMarkdownMode('source');
+      setSvgMode('image');
+      return;
+    }
+    const index = tabs.indexOf(path);
+    const nextPath = remaining[Math.min(index < 0 ? 0 : index, remaining.length - 1)];
+    if (restoreTabSnapshot(nextPath, null) === false) loadFile(nextPath, null);
+  }, [tabs, selected, closingTab, loadFile]);
+
   const navigateHistory = useCallback(function (delta: any) {
     const target = historyIndex + (delta < 0 ? -1 : 1);
     if (target < 0 || target >= history.length) return;
@@ -2111,8 +2340,8 @@ function FilesView(props: any) {
     if (entry === null || entry === undefined) return;
     historyIndexRef.current = target;
     setHistoryIndex(target);
-    openFile(entry.path, entry.line, { skipHistory: true });
-  }, [history, historyIndex, openFile]);
+    openPath(entry.path, entry.line, { skipHistory: true });
+  }, [history, historyIndex, openPath]);
 
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex >= 0 && historyIndex < history.length - 1;
@@ -2161,8 +2390,8 @@ function FilesView(props: any) {
   const openQuickPath = useCallback(function (filePath: any) {
     if (typeof filePath !== 'string' || filePath.length === 0) return;
     setQuickOpen(false);
-    openFile(filePath, 1);
-  }, [openFile]);
+    openPath(filePath, 1);
+  }, [openPath]);
 
   const moveQuick = useCallback(function (delta: any) {
     if (quickResults.length === 0) return;
@@ -2257,14 +2486,14 @@ function FilesView(props: any) {
 
   const reloadSelected = useCallback(function () {
     if (selected === null) return;
-    openFile(selected, null);
-  }, [selected, openFile]);
+    openPath(selected, null, { reload: true });
+  }, [selected, openPath]);
 
   const discard = useCallback(function () {
     if (selected === null) return;
-    openFile(selected, null);
+    openPath(selected, null, { reload: true });
     showNotice({ kind: 'info', text: t('files.discard') });
-  }, [selected, openFile, t, showNotice]);
+  }, [selected, openPath, t, showNotice]);
 
   const syncCaret = useCallback(function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
@@ -2481,7 +2710,7 @@ function FilesView(props: any) {
       setPendingLine(targetLine);
       return undefined;
     }
-    openFile(request.path, targetLine);
+    openPath(request.path, targetLine);
     return undefined;
   }, [openToken]);
 
@@ -2524,12 +2753,17 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
     const key = event.key;
     const meta = event.metaKey === true || event.ctrlKey === true;
+    if (meta && (key === 'w' || key === 'W')) {
+      event.preventDefault();
+      if (selected !== null) closeTab(selected);
+      return;
+    }
     if (meta && (key === 'p' || key === 'P')) {
       event.preventDefault();
       openQuick();
@@ -2667,7 +2901,7 @@ function FilesView(props: any) {
         expanded: expanded,
         selected: selected,
         onToggle: toggleDir,
-        onOpen: openFile,
+        onOpen: openPath,
         onReloadDir: loadDir,
         dirPath: '',
         depth: 0,
@@ -2889,12 +3123,60 @@ function FilesView(props: any) {
       )
     : null;
 
+  const tabItems = tabs.map(function (path: string) {
+    return { path: path, active: path === selected, dirty: tabDirty(path) };
+  });
+  const closeConfirm = closingTab !== null
+    ? h(
+        'div',
+        { style: ST_FILES.closeConfirmBar, role: 'alert' },
+        h(
+          'span',
+          { style: { flex: '1 1 auto' } },
+          t('files.tab.unsaved', { name: String(S.baseName(closingTab) || closingTab) }),
+        ),
+        h(
+          S.GhostButton,
+          { title: t('files.tab.cancelClose'), ariaLabel: t('files.tab.cancelClose'), onClick: function () { setClosingTab(null); } },
+          t('files.tab.cancelClose'),
+        ),
+        h(
+          S.GhostButton,
+          {
+            title: t('files.tab.confirmClose'),
+            ariaLabel: t('files.tab.confirmClose'),
+            onClick: function () {
+              const path = closingTab;
+              setClosingTab(null);
+              closeTab(path);
+            },
+          },
+          t('files.tab.confirmClose'),
+        ),
+      )
+    : null;
+  const rightPane = h(
+    'div',
+    { style: { display: 'flex', flexDirection: 'column', flex: '1 1 auto', minWidth: 0, minHeight: 0, height: '100%' } },
+    h(S.TabStrip, {
+      t: t,
+      tabs: tabItems,
+      label: t('tabs.files'),
+      onSelect: function (path: any) {
+        if (path !== selected) openPath(path, null);
+      },
+      onClose: closeTab,
+    }),
+    closeConfirm,
+    viewer,
+  );
+
   return h(
     'div',
     { style: { display: 'flex', position: 'relative', height: '100%', minHeight: 0, width: '100%' } },
     h(S.SplitPane, {
       left: treePane,
-      right: viewer,
+      right: rightPane,
       storageKey: 'dsh-workspace-ide:files-tree-width',
       initialWidth: 300,
       minWidth: SPLIT_MIN,
@@ -2907,6 +3189,7 @@ function FilesView(props: any) {
 
 S.FilesView = FilesView;
 S.FileViewer = FileViewer;
+S.TabStrip = TabStrip;
 S.ImageViewer = ImageViewer;
 S.FileTreeRow = FileTreeRow;
 S.TreeDirRows = TreeDirRows;

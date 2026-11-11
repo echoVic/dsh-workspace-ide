@@ -468,6 +468,12 @@ the top-left corner — see that package's README.)
     answer no matches instead of throwing.
   - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
     encoding, a clickable soft-wrap state and the read-only lock.
+  - Multi-tab editor: every opened file becomes a tab above the viewer (basename,
+    dirty dot, per-tab close). Switching stores the live `{file, draft, caret,
+    markdownMode, svgMode, image, dimensions}` snapshot in memory and restores it
+    without a network round-trip, so unsaved drafts and carets survive tab switches.
+    Closing a dirty tab first shows an inline confirmation bar (Close Anyway /
+    Cancel); the workspace root change resets the tab set.
   - Quick open (`Cmd/Ctrl+P`, or the search button in the tree header): a centered palette
     fetches `api/dsh-workspace-ide.files` once per session, then ranks paths locally with
     `S.quickOpenScore` / `S.rankQuickOpen` (case-insensitive subsequence, boundary and
@@ -477,7 +483,8 @@ the top-left corner — see that package's README.)
     header gets back/forward buttons and `Cmd/Ctrl+Alt+←/→` walks the stack (history
     navigation itself does not push).
   - Markdown/HTML just shown as text (this is a code viewer).
-  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+P opens Quick Open; Ctrl/Cmd+Alt+Left/Right walk
+  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+W closes the active tab; Ctrl/Cmd+P opens
+    Quick Open; Ctrl/Cmd+Alt+Left/Right walk
     the navigation history; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;
     Ctrl/Cmd+H opens Find with the replace row; Alt+Z toggles soft-wrap; in the find bar
     Enter/Shift+Enter walk matches and Escape closes it; Escape otherwise closes
