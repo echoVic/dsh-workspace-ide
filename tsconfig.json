@@ -25,10 +25,13 @@
     "scripts/*.mjs",
     "test/**/*.mjs",
     "test/**/*.js",
-    "types/**/*.d.ts"
+    "types/**/*.d.ts",
+    "src/client/*.ts",
+    "src/client/*.tsx"
   ],
   "exclude": [
-    "lib/client.js",
-    "node_modules"
+    "node_modules",
+    "build",
+    "lib/client.js"
   ]
 }

@@ -39,8 +39,11 @@ Reference material already in this workspace (read if unsure):
   imports** (they do not resolve from a linked package outside the profile). Relative
   imports inside `lib/` are fine (`import { … } from './host/x.js'`).
 - Client half: single built file `lib/client.js`, plain JS, **no bundler**. Authoring
-  happens in `src/client/*.js`, concatenated by `scripts/build-client.mjs`. The only
-  allowed `require()` is `react`. No JSX — use `React.createElement` through the `h` alias.
+  happens in `src/client/` — plain `.js` fragments and TypeScript `.ts`/`.tsx` fragments
+  (compiled by `tsc`, no bundler) — concatenated by `scripts/build-client.mjs`. The only
+  allowed `require()` is `react`. TypeScript fragments stay script-style: no
+  `import`/`export`, shared globals (`h`, `S`, hooks, core constants) come from the factory
+  scope; JSX compiles through the `h` alias when a `.tsx` source is added.
 - All visible text goes through a tiny built-in i18n dictionary (zh + en); never hardcode
   Chinese/English strings in JSX. Prefer the Client locale service when present, fall back
   to the built-in dictionary (`navigator.language`).
@@ -217,8 +220,9 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
 
 ### Build
 
-`scripts/build-client.mjs` concatenates, in filename order:
-`src/client/00-core.js`, `05-icons.js`, `07-highlight.js`, `08-markdown.js`, `10-shell.js`,
+`scripts/build-client.mjs` compiles TypeScript fragments with `tsc`
+(`tsconfig.client-build.json` → `build/client-parts/`) and concatenates, in filename order:
+`src/client/00-core.js`, `05-icons.ts`, `07-highlight.js`, `08-markdown.js`, `10-shell.js`,
 `20-files.js`, `30-search.js`, `40-git.js`, `99-face.js` into `lib/client.js`:
 
 ```js
@@ -247,7 +251,7 @@ Constraints for `src/client/*.js`:
   `lib/client.js` is stale (recompute and compare, do not write).
 - Keep `lib/client.js` committed in the repo (the Host serves it directly).
 
-### Icons (`05-icons.js`)
+### Icons (`05-icons.ts`)
 
 The icon set is the open-source **Lucide** set (https://lucide.dev, ISC; the
 Feather-derived glyphs carry the Feather MIT license). The SVG node data is vendored at
@@ -283,7 +287,7 @@ the DSH app theme:
   properties the existing `var(--dsw-alias-*)` references already read.
 
 The theme picker glyphs are Lucide `palette` / `check`, vendored like every other icon in
-`05-icons.js`.
+`05-icons.ts` (TypeScript pilot for the client build pipeline).
 
 ### Syntax highlighting (`07-highlight.js`)
 
@@ -520,8 +524,8 @@ placeholders, empty states, errors, buttons, notices) must be in the dictionary.
   1. `npm run typecheck` — `strict: true` over `lib/`, `src/client/`, `scripts/` and `test/`;
   2. `npm run typecheck:host` — `lib/` additionally under `noImplicitAny`
      (`tsconfig.host.json`);
-  3. `npm run typecheck:client` — client core + icon modules (`00-core`, `05-icons`)
-     additionally under `noImplicitAny` (`tsconfig.client.json`).
+  3. `npm run typecheck:client` — client core + icon modules (`00-core.js`,
+     `05-icons.ts`) additionally under `noImplicitAny` (`tsconfig.client.json`).
 - Remaining `noImplicitAny` work is staged: the other client modules (216 diagnostics:
   highlight 65, files 40, shell 34, git 32, markdown 22, search 16, face 7) and the test
   suites (311). Extend `tsconfig.client.json`'s include list module by module, and add a

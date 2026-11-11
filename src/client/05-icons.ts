@@ -10,20 +10,27 @@
  * language and follow the DSH theme tokens that set the surrounding colour.
  */
 
-/**
- * @typedef {Object} IconProps
- * @property {number} [size]
- * @property {boolean} [active]
- */
-/**
- * @typedef {Object} IconOptions
- * @property {number} [strokeWidth]
- * @property {boolean} [fill]
- * @property {string} [stroke]
- * @property {number} [defaultSize]
- */
+/** Props every generated icon component accepts. */
+interface IconProps {
+  size?: number;
+  active?: boolean;
+}
 
-const LUCIDE_ICONS = Object.freeze({
+/** Rendering overrides for one generated icon. */
+interface IconOptions {
+  strokeWidth?: number;
+  fill?: boolean;
+  stroke?: string;
+  defaultSize?: number;
+}
+
+/** Lucide SVG node pairs (`[tagName, attributes]`). */
+type LucideArc = [string, Record<string, any>];
+
+/** React component produced by {@link makeIcon}. */
+type IconComponent = import('react').FunctionComponent<IconProps>;
+
+const LUCIDE_ICONS: Record<string, LucideArc[]> = Object.freeze({
   'files': [
     ['path', { 'd': "M20 7h-3a2 2 0 0 1-2-2V2" }],
     ['path', { 'd': "M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z" }],
@@ -101,19 +108,15 @@ const LUCIDE_ICONS = Object.freeze({
   ],
 });
 
-/**
- * @param {any} props - owner props `{size, active}`.
- * @param {number} [fallback] - size when the owner passes none.
- * @returns {number} rendered pixel size.
- */
-function iconSize(props, fallback) {
+/** Rendered pixel size from owner props, falling back when absent. */
+function iconSize(props: IconProps | null | undefined, fallback?: number): number {
   const size = typeof fallback === 'number' && Number.isFinite(fallback) && fallback > 0 ? fallback : 16;
-  if (props !== null && props !== undefined && Number.isFinite(props.size) && props.size > 0) return props.size;
+  if (props !== null && props !== undefined && Number.isFinite(props.size) && props.size! > 0) return props.size!;
   return size;
 }
 
-/** @param {any} props - owner props `{size, active}`. @returns {boolean} active. */
-function iconActive(props) {
+/** Whether the owner marked the icon as active (selected tab). */
+function iconActive(props: IconProps | null | undefined): boolean {
   return props !== null && props !== undefined && props.active === true;
 }
 
@@ -122,16 +125,10 @@ const ICON_STROKE = 2;
 /** Slightly heavier stroke for the selected toolbar tab. */
 const ICON_STROKE_ACTIVE = 2.25;
 
-/**
- * Render one vendored Lucide icon.
- * @param {string} name - registry key.
- * @param {any} props - owner props `{size, active}`.
- * @param {IconOptions} [options] - `{strokeWidth, fill, stroke, defaultSize}`.
- * @returns {any} React element.
- */
-function renderLucide(name, props, options) {
-  const conf = options !== null && typeof options === 'object' ? options : {};
-  const nodes = /** @type {Record<string, any>} */ (LUCIDE_ICONS)[name];
+/** Render one vendored Lucide icon. */
+function renderLucide(name: string, props: IconProps | null | undefined, options?: IconOptions): any {
+  const conf: IconOptions = options !== null && typeof options === 'object' ? options : {};
+  const nodes = LUCIDE_ICONS[name];
   const size = iconSize(props, conf.defaultSize);
   const active = iconActive(props);
   const filled = conf.fill === true;
@@ -154,22 +151,17 @@ function renderLucide(name, props, options) {
       focusable: false,
       style: { display: 'block', flex: '0 0 auto' },
     },
-    (nodes !== undefined && nodes !== null ? nodes : []).map(/** @param {any} node @param {number} index */ function (node, index) {
+    (nodes !== undefined && nodes !== null ? nodes : []).map(function (node: LucideArc, index: number) {
       const tag = String(node[0]);
-      const attrs = /** @type {Record<string, any>} */ (node[1]);
+      const attrs = node[1];
       return h(tag, Object.assign({ key: tag + '-' + String(index) }, attrs));
     }),
   );
 }
 
-/**
- * Build one icon component from the registry.
- * @param {string} name - Lucide registry key.
- * @param {IconOptions} [options] - rendering options.
- * @returns {import('react').FunctionComponent<IconProps>} React component receiving `{size, active}`.
- */
-function makeIcon(name, options) {
-  return function LucideIcon(props) {
+/** Build one icon component from the registry. */
+function makeIcon(name: string, options?: IconOptions): IconComponent {
+  return function LucideIcon(props: IconProps) {
     return renderLucide(name, props, options);
   };
 }
@@ -219,13 +211,10 @@ const PaletteIcon = makeIcon('palette');
 /** Applied-theme marker in the theme popover. */
 const CheckIcon = makeIcon('check');
 
-/**
- * Indeterminate spinner (SMIL, so no stylesheet is needed).
- * @param {any} props - owner props `{size, active}`.
- */
-function SpinnerIcon(props) {
+/** Indeterminate spinner (SMIL, so no stylesheet is needed). */
+function SpinnerIcon(props: IconProps): any {
   const size = iconSize(props, 14);
-  const nodes = /** @type {Record<string, any>} */ (LUCIDE_ICONS)['loader-circle'];
+  const nodes = LUCIDE_ICONS['loader-circle'];
   return h(
     'svg',
     {
@@ -244,9 +233,9 @@ function SpinnerIcon(props) {
     h(
       'g',
       null,
-      (nodes !== undefined && nodes !== null ? nodes : []).map(/** @param {any} node @param {number} index */ function (node, index) {
+      (nodes !== undefined && nodes !== null ? nodes : []).map(function (node: LucideArc, index: number) {
         const tag = String(node[0]);
-        const attrs = /** @type {Record<string, any>} */ (node[1]);
+        const attrs = node[1];
         return h(tag, Object.assign({ key: 'arc-' + String(index) }, attrs));
       }),
       h('animateTransform', {

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    "outDir": "build/client-parts",
+    "rootDir": "src/client"
+  },
+  "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "types/**/*.d.ts"],
+  "exclude": ["lib/client.js", "node_modules", "build"]
+}

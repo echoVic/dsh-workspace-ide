@@ -5,17 +5,24 @@
  * The DSH browser runtime boots a client package by executing one plain script
  * that calls `window.__ModuleLoader__.load({ id, factory })`. There is no
  * bundler in the profile and the only module the factory may require is
- * `react`, so authoring stays split across `src/client/*.js` and this script
- * concatenates them (in the fixed order below) into the single shipped file
- * `lib/client.js`. Every source file is a fragment of the same factory body and
- * may only attach to the shared `S` object — no import/export, no JSX, no
- * top-level `return`.
+ * `react`. Sources live in `src/client/` — plain `.js` fragments and
+ * TypeScript `.ts`/`.tsx` fragments; the TS ones are compiled by `tsc` (no
+ * bundler) into `build/client-parts/` and then every part is concatenated (in
+ * the fixed order below) into the single shipped file `lib/client.js`. Every
+ * source file is a fragment of the same factory body and may only attach to the
+ * shared `S` object — no import/export, no top-level `return`.
+ *
+ * The TypeScript compiler is the only authored-toolchain dependency: it emits
+ * plain ES2022 scripts, so the artifact keeps its contract (one
+ * `__ModuleLoader__.load` call, `require('react')` only, no bundler).
  *
  * Usage:
  *   node scripts/build-client.mjs            write lib/client.js
  *   node scripts/build-client.mjs --check    compare only; exit 1 when stale
  */
 
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -25,11 +32,14 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, '..');
 const SRC_DIR = path.join(PROJECT, 'src', 'client');
 const OUT_FILE = path.join(PROJECT, 'lib', 'client.js');
+const TSC_BIN = path.join(PROJECT, 'node_modules', 'typescript', 'bin', 'tsc');
+const TSC_PROJECT = path.join(PROJECT, 'tsconfig.client-build.json');
+const BUILD_DIR = path.join(PROJECT, 'build', 'client-parts');
 
 /** Concatenation order; the names are part of the file contract. */
 const SOURCES = [
   '00-core.js',
-  '05-icons.js',
+  '05-icons.ts',
   '07-highlight.js',
   '08-markdown.js',
   '10-shell.js',
@@ -84,13 +94,37 @@ function inspectSource(file, text) {
 }
 
 /**
+ * Compile the TypeScript fragments (if any) into `build/client-parts/`.
+ * @returns {{ ok: boolean, message: string }} compilation result.
+ */
+function compileTypeScript() {
+  const hasTypeScript = SOURCES.some((file) => /\.(ts|tsx)$/.test(file));
+  if (!hasTypeScript) return { ok: true, message: '' };
+  if (!existsSync(TSC_BIN)) {
+    return { ok: false, message: `TypeScript compiler missing (${TSC_BIN}); run "npm ci"` };
+  }
+  const result = spawnSync(process.execPath, [TSC_BIN, '-p', TSC_PROJECT], { encoding: 'utf8' });
+  if (result.status === 0) return { ok: true, message: '' };
+  const detail = String(result.stdout || '') + String(result.stderr || '');
+  return { ok: false, message: detail.trim() || 'tsc failed' };
+}
+
+/** Resolve one source part: TypeScript fragments come from the compiled dir. */
+function resolvePart(file) {
+  if (/\.(ts|tsx)$/.test(file)) {
+    return path.join(BUILD_DIR, file.replace(/\.(ts|tsx)$/, '.js'));
+  }
+  return path.join(SRC_DIR, file);
+}
+
+/**
  * Compose the artifact text from the current sources.
  * @returns {Promise<string>} artifact bytes as text.
  */
 async function compose() {
   const chunks = [HEADER];
   for (const file of SOURCES) {
-    const absolute = path.join(SRC_DIR, file);
+    const absolute = resolvePart(file);
     let text;
     try {
       text = await readFile(absolute, 'utf8');
@@ -124,6 +158,12 @@ async function main() {
   if (unknown.length > 0) {
     process.stderr.write(`build-client: unknown argument(s): ${unknown.join(', ')}\nusage: node scripts/build-client.mjs [--check]\n`);
     process.exit(2);
+  }
+
+  const compiled = compileTypeScript();
+  if (!compiled.ok) {
+    process.stderr.write(`build-client: TypeScript compilation failed:\n${compiled.message}\n`);
+    process.exit(1);
   }
 
   let artifact;

@@ -140,8 +140,8 @@ plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/d
   (one diagnostic line in `$DSH_HOME/workspace-ide/status.jsonl`, used by the client to
   prove it executed). Git runs through `child_process.execFile` with bounded output; a
   non-repository root is a normal answer, not an error.
-- **Client half** (`lib/client.js`, generated from `src/client/*.js` by
-  `scripts/build-client.mjs`): one `window.__ModuleLoader__.load(...)` browser module that
+- **Client half** (`lib/client.js`, generated from `src/client/*.js` + compiled
+  TypeScript fragments by `scripts/build-client.mjs`): one `window.__ModuleLoader__.load(...)` browser module that
   registers a `sidebar.panellist` icon and the matching keyed `main` panel. It only uses
   `require('react')`, the `--dsw-alias-*` theme tokens (dark and light), a built-in zh/en
   dictionary, and the DSH frame's `--dsh-frame-*` chrome insets; the page is wrapped in an
@@ -149,7 +149,7 @@ plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/d
   `useWorkspaces` hook, and falls back safely when that hook is absent.
 - **Icons**: the whole toolbar/tree/git/theme icon set is the open-source
   [Lucide](https://lucide.dev) set (ISC, with Feather-derived glyphs under MIT). Its SVG
-  node data is vendored at authoring time in `src/client/05-icons.js` — no runtime icon
+  node data is vendored at authoring time in `src/client/05-icons.ts` — no runtime icon
   dependency — and renders through one factory so every glyph shares the 24px grid, round
   caps and `currentColor` stroke. Licenses: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md),
   [`licenses/lucide-LICENSE.txt`](licenses/lucide-LICENSE.txt).
@@ -161,7 +161,7 @@ npm ci                                 # dev-only tooling: TypeScript type check
 npm run typecheck                      # tsc --checkJs, strict, over lib/ + src/client + scripts + tests (no emit)
 npm run typecheck:host                 # lib/ additionally under noImplicitAny (see tsconfig.host.json)
 npm run typecheck:client               # client core + icon modules under noImplicitAny (tsconfig.client.json)
-node scripts/build-client.mjs          # rebuild lib/client.js from src/client/*.js
+node scripts/build-client.mjs          # rebuild lib/client.js from src/client/ (.js + compiled .ts)
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
 node --test test/host/                      # Host route unit tests (node:test, 118)
@@ -178,6 +178,11 @@ element alias; `types/dsh-services.d.ts` declares the optional Host context/serv
 There is still no client bundler, no build step for the Host and no runtime dependency —
 `npm ci` installs `typescript`, `@types/node` and `@types/react` into devDependencies only.
 
+The client half is mid-migration to TypeScript: `05-icons.ts` is the pilot fragment. TS
+sources are script-style fragments compiled by `tsc` into `build/client-parts/` (never
+shipped, git-ignored) and concatenated with the plain-JS fragments — still no bundler, and
+`lib/client.js` keeps its exact loader contract.
+
 `lib/client.js` is served directly by the Host and DSH's client HMR watches installed
 bundle artifacts, so saving a rebuilt `lib/client.js` updates an open Harness page without
 a restart.
@@ -192,7 +197,7 @@ tsconfig.json            dev-only type checker config (allowJs + checkJs, strict
 tsconfig.host.json       Host-only config adding noImplicitAny
 tsconfig.client.json     client core+icons config adding noImplicitAny
 types/                   ambient declarations: client factory scope + Host context/services
-src/client/              browser sources: core, icons (vendored Lucide), highlighter,
+src/client/              browser sources: core, icons (vendored Lucide, TS), highlighter,
                          shell, files, search, git, module face
 THIRD_PARTY_NOTICES.md   icon license attribution
 licenses/                full third-party license texts
