@@ -519,11 +519,16 @@ placeholders, empty states, errors, buttons, notices) must be in the dictionary.
 - `types/client-globals.d.ts` declares the factory-scope globals that
   `scripts/build-client.mjs` injects (`React`, `h` typed as `React.createElement`, the five
   hooks, and the shared `S` namespace), so `src/client/*.js` can be checked as one scope.
-- `types/dsh-services.d.ts` is intentionally absent for now: Host code only reads `ctx`
-  through optional service lookups, and the JSDoc contracts on `lib/host/*` already check
-  cleanly. Add narrow local declarations (never `@deepseek-ai/*` imports) if that changes.
-- The project includes `lib/`, `src/client/`, `scripts/` and `test/` in the same `tsconfig`;
-  `npm run typecheck` must exit 0, and CI runs it after `npm ci`.
+- `types/dsh-services.d.ts` declares the optional DSH Host context subset (`get`,
+  `effect`, `connection.fetch`, `logger`) as local ambient interfaces — never
+  `@deepseek-ai/*` imports. All members are optional because the Host half degrades
+  gracefully and tests pass partial contexts.
+- Two gates: `npm run typecheck` covers `lib/` + `src/client/` + `scripts/` + `test/`
+  (relaxed nullability), and `npm run typecheck:host` re-checks `lib/` alone under
+  `strictNullChecks` (`tsconfig.host.json`). Both must exit 0; CI runs both after `npm ci`.
+- Client `strictNullChecks` (139 diagnostics at the time of writing) and
+  `noImplicitAny` (783) are deliberately deferred to later phases; do not raise them
+  globally without fixing the surfaced diagnostics.
 - `package.json` keeps the dev toolchain pinned via `package-lock.json`; the npm tarball
   excludes all of it (`files` allow-list), so installed plugins stay dependency-free.
 
@@ -552,7 +557,7 @@ Runs on plain Node, no third-party deps, exits 0/1:
 
 ## Definition of done
 
-- `npm ci && npm run typecheck` passes (dev-only type checker, no emit) and
+- `npm ci && npm run typecheck && npm run typecheck:host` passes (dev-only type checker, no emit) and
   `node scripts/build-client.mjs && node --check lib/client.js && node --test test/host/ &&
   node test/smoke/client-smoke.mjs` all pass (the smoke suite also asserts the
   highlighter's segment invariant, language fallbacks and theme token variables).

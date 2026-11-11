@@ -159,6 +159,7 @@ plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/d
 ```bash
 npm ci                                 # dev-only tooling: TypeScript type checker
 npm run typecheck                      # tsc --checkJs over lib/ + src/client + tests (no emit)
+npm run typecheck:host                 # lib/ under strictNullChecks (see tsconfig.host.json)
 node scripts/build-client.mjs          # rebuild lib/client.js from src/client/*.js
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
@@ -170,7 +171,10 @@ python3 scripts/screenshots/build-screenshots.py   # rebuild docs/ screenshots (
 
 TypeScript is used **only as a dev-time type checker**: sources stay plain JavaScript with
 JSDoc annotations, `tsc --noEmit --checkJs` checks `lib/`, `src/client/` and the tests
-(`types/client-globals.d.ts` declares the shared factory scope and the React element alias).
+(`types/client-globals.d.ts` declares the shared factory scope and the React element alias;
+`types/dsh-services.d.ts` declares the optional Host context/services). The Host half is
+additionally checked with `strictNullChecks` via `tsconfig.host.json`
+(`npm run typecheck:host`), so every filesystem/git route handles absent values explicitly.
 There is still no client bundler, no build step for the Host and no runtime dependency —
 `npm ci` installs `typescript`, `@types/node` and `@types/react` into devDependencies only.
 
@@ -185,7 +189,8 @@ lib/index.js             Host plugin entry (`apply`, `inject`, `name`)
 lib/host/                filesystem / search / git route implementation
 lib/client.js            built browser module (committed)
 tsconfig.json            dev-only type checker config (allowJs + checkJs, no emit)
-types/                   ambient declarations for the client factory scope
+tsconfig.host.json       Host-only config with strictNullChecks enabled
+types/                   ambient declarations: client factory scope + Host context/services
 src/client/              browser sources: core, icons (vendored Lucide), highlighter,
                          shell, files, search, git, module face
 THIRD_PARTY_NOTICES.md   icon license attribution

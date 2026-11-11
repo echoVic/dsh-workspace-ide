@@ -1,6 +1,6 @@
 {
   "name": "dsh-workspace-ide",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": false,
   "description": "A VS Code-like workspace IDE panel for DeepSeek Harness: file tree with code viewer, full-text workspace search, and git status / diff / history",
   "type": "module",
@@ -32,7 +32,8 @@
     "build": "node scripts/build-client.mjs",
     "check": "node scripts/build-client.mjs --check && node --check lib/index.js && for f in lib/host/*.js; do node --check \"$f\" || exit 1; done",
     "test": "node --test test/host/ && node test/smoke/client-smoke.mjs",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "typecheck:host": "tsc -p tsconfig.host.json"
   },
   "dsh": {
     "bundle": {
