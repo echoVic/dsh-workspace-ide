@@ -32,11 +32,11 @@ export function makeApp(services = {}) {
 
 /**
  * Call one route and decode its JSON body.
- * @param app - routes from {@link makeApp}.
- * @param name - route name.
- * @param query - query string including the leading `?` (or "").
- * @param init - fetch init (for POST bodies).
- * @returns `{ response, status, body }`.
+ * @param {Array<any>} app - routes from {@link makeApp}.
+ * @param {string} name - route name.
+ * @param {string} [query] - query string including the leading `?` (or "").
+ * @param {RequestInit} [init] - fetch init (for POST bodies).
+ * @returns {Promise<{response: Response, status: number, body: any}>} decoded response.
  */
 export async function call(app, name, query = '', init = undefined) {
   const route = app.find((entry) => entry.name === name);
@@ -48,10 +48,10 @@ export async function call(app, name, query = '', init = undefined) {
 
 /**
  * Call a POST route with a JSON body.
- * @param app - routes from {@link makeApp}.
- * @param name - route name.
- * @param payload - JSON-serializable body.
- * @returns `{ response, status, body }`.
+ * @param {Array<any>} app - routes from {@link makeApp}.
+ * @param {string} name - route name.
+ * @param {any} payload - JSON-serializable body.
+ * @returns {Promise<{response: Response, status: number, body: any}>} decoded response.
  */
 export async function postJson(app, name, payload) {
   return call(app, name, '', {
@@ -63,7 +63,7 @@ export async function postJson(app, name, payload) {
 
 /**
  * Create a canonical temporary directory that is removed after the test.
- * @param t - node:test TestContext.
+ * @param {any} t - node:test TestContext.
  * @param prefix - directory name prefix.
  * @returns the canonical absolute directory path.
  */

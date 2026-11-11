@@ -175,11 +175,11 @@ describe('routes reject escaped paths end-to-end', () => {
   it('refuses ../ and absolute paths on the file route', async (t) => {
     const root = temporaryDirectory(t);
     const app = makeApp();
-    const escape = await app.find((route) => route.name === 'file').fetch(
+    const escape = await /** @type {any} */ (app.find((route) => route.name === 'file')).fetch(
       new Request(`http://localhost/api/dsh-workspace-ide.file?root=${encodeURIComponent(root)}&path=..%2Fsecret`),
     );
     assert.equal(escape.status, 403);
-    const absolute = await app.find((route) => route.name === 'file').fetch(
+    const absolute = await /** @type {any} */ (app.find((route) => route.name === 'file')).fetch(
       new Request(`http://localhost/api/dsh-workspace-ide.file?root=${encodeURIComponent(root)}&path=%2Fetc%2Fpasswd`),
     );
     assert.equal(absolute.status, 403);

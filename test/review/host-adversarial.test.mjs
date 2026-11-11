@@ -24,7 +24,10 @@ import { MAX_LIST_ENTRIES } from '../../lib/host/tree.js';
 
 const BASE = 'http://localhost';
 
-/** Build every route against a fake Host context. */
+/** Build every route against a fake Host context.
+ * @param {Record<string, any>} [services] - fake services.
+ * @returns {Array<any>} route descriptors.
+ */
 function makeApp(services = {}) {
   return createRoutes({
     get(name) {
@@ -34,8 +37,14 @@ function makeApp(services = {}) {
   });
 }
 
-/** Call one route with an optional raw query string and decode the JSON body. */
-async function call(app, name, query = '', init = undefined) {
+/** Call one route with an optional raw query string and decode the JSON body.
+ * @param {Array<any>} app - routes.
+ * @param {string} name - route name.
+ * @param {string} [query] - raw query string.
+ * @param {RequestInit} [init] - fetch init.
+ * @returns {Promise<{response: Response, status: number, headers: Headers, body: any, text: string}>} decoded response.
+ */
+async function call(app, name, query = '', init) {
   const route = app.find((entry) => entry.name === name);
   assert.ok(route, `route ${name} must exist`);
   const response = await route.fetch(new Request(`${BASE}/api/dsh-workspace-ide.${name}${query}`, init));
@@ -49,14 +58,24 @@ async function call(app, name, query = '', init = undefined) {
   return { response, status: response.status, headers: response.headers, body, text };
 }
 
-/** Call a GET route, URL-encoding every parameter. */
-async function get(app, name, params) {
+/** Call a GET route, URL-encoding every parameter.
+ * @param {Array<any>} app - routes.
+ * @param {string} name - route name.
+ * @param {Record<string, any>} [params] - query parameters.
+ * @returns {Promise<any>} decoded response.
+ */
+async function get(app, name, params = {}) {
   const entries = Object.entries(params ?? {}).filter(([, value]) => value !== undefined && value !== null);
   const query = entries.length === 0 ? '' : `?${new URLSearchParams(entries.map(([key, value]) => [key, String(value)])).toString()}`;
   return call(app, name, query);
 }
 
-/** Call a POST route with a JSON body. */
+/** Call a POST route with a JSON body.
+ * @param {Array<any>} app - routes.
+ * @param {string} name - route name.
+ * @param {any} payload - JSON body.
+ * @returns {Promise<any>} decoded response.
+ */
 async function postJson(app, name, payload) {
   return call(app, name, '', {
     method: 'POST',
@@ -65,14 +84,20 @@ async function postJson(app, name, payload) {
   });
 }
 
-/** Create a canonical temporary directory that is removed after the test. */
+/** Create a canonical temporary directory that is removed after the test.
+ * @param {any} t - node:test TestContext.
+ * @param {string} [prefix] - directory prefix.
+ * @returns {string} canonical directory path.
+ */
 function tempDir(t, prefix = 'wsi-review-') {
   const directory = realpathSync(mkdtempSync(join(realpathSync(tmpdir()), prefix)));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   return directory;
 }
 
-/** Every answer (success or failure envelope) must carry cache-control: no-store. */
+/** Every answer (success or failure envelope) must carry cache-control: no-store.
+ * @param {any} result - decoded route result.
+ */
 function assertNoStore(result) {
   assert.equal(result.response.headers.get('cache-control'), 'no-store', 'cache-control: no-store');
   assert.match(result.response.headers.get('content-type') ?? '', /application\/json/);

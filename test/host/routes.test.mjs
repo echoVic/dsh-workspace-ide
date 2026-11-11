@@ -262,6 +262,7 @@ describe('handler guard', () => {
     ];
     for (const request of requests) {
       const route = app.find((entry) => entry.name === request.name);
+      assert.ok(route);
       const init = route.methods.includes('POST')
         ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"broken":' }
         : undefined;
@@ -281,6 +282,7 @@ describe('handler guard', () => {
       },
     });
     const route = app.find((entry) => entry.name === 'workspaces');
+    assert.ok(route);
     const response = await route.fetch(new Request('http://localhost/api/dsh-workspace-ide.workspaces'));
     assert.equal(response.status, 200);
     const body = await response.json();

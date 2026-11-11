@@ -44,7 +44,8 @@ function gitAllowingFailure(root, ...args) {
   try {
     return { ok: true, stdout: git(root, ...args) };
   } catch (error) {
-    return { ok: false, stdout: String(error.stdout ?? ''), stderr: String(error.stderr ?? '') };
+    const failure = /** @type {any} */ (error);
+    return { ok: false, stdout: String(failure.stdout ?? ''), stderr: String(failure.stderr ?? '') };
   }
 }
 

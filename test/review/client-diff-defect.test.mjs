@@ -38,6 +38,7 @@ function loadClient() {
   const source = readFileSync(ARTIFACT, 'utf8');
   const instrumented = source.replace('    return S.face;', '    return S;');
   assert.notEqual(instrumented, source);
+  /** @type {any} */
   let definition = null;
   const sandbox = {
     window: {

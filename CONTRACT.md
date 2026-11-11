@@ -515,25 +515,19 @@ placeholders, empty states, errors, buttons, notices) must be in the dictionary.
 ### Type checking (`tsconfig.json` + `types/`)
 
 - Plain JavaScript stays the source of truth; TypeScript is a **dev-only checker**
-  (`allowJs + checkJs + noEmit`). No bundler, no emitted JS, no runtime dependency.
+  (`allowJs + checkJs + noEmit`) with `strict: true`. No bundler, no emitted JS, no runtime
+  dependency. One gate: `npm run typecheck` covers `lib/`, `src/client/`, `scripts/` and
+  `test/`, and CI runs it after `npm ci`; it must exit 0.
+- Deferred strict flag: `noImplicitAny` stays **off** for now (696 diagnostics measured when
+  the rest of `strict` was enabled). Raise it per area in a dedicated PR — do not flip it
+  globally without fixing the surfaced diagnostics.
 - `types/client-globals.d.ts` declares the factory-scope globals that
   `scripts/build-client.mjs` injects (`React`, `h` typed as `React.createElement`, the five
-  hooks, and the shared `S` namespace), so `src/client/*.js` can be checked as one scope.
-- `types/dsh-services.d.ts` declares the optional DSH Host context subset (`get`,
-  `effect`, `connection.fetch`, `logger`) as local ambient interfaces — never
-  `@deepseek-ai/*` imports. All members are optional because the Host half degrades
-  gracefully and tests pass partial contexts.
-- Three gates, all must exit 0 in CI after `npm ci`:
-  1. `npm run typecheck` — relaxed nullability over `lib/` + `src/client/` + `scripts/` + `test/`;
-  2. `npm run typecheck:host` — `lib/` under `strictNullChecks` (`tsconfig.host.json`);
-  3. `npm run typecheck:client` — **all** client modules (`00-core`, `05-icons`,
-     `07-highlight`, `08-markdown`, `10-shell`, `20-files`, `30-search`, `40-git`,
-     `99-face`) under `strictNullChecks` (`tsconfig.client.json`).
-- Remaining phases (measured, deliberately deferred): the test suites add 138 diagnostics
-  under `strictNullChecks`, and `noImplicitAny` is 783. Add a test config first, then raise
-  `noImplicitAny` per area instead of switching globally.
-- `package.json` keeps the dev toolchain pinned via `package-lock.json`; the npm tarball
-  excludes all of it (`files` allow-list), so installed plugins stay dependency-free.
+  hooks, the shared `S` namespace) so `src/client/*.js` is checked as one scope.
+- `types/dsh-services.d.ts` declares the optional DSH Host context subset (`get`, `effect`,
+  `connection.fetch`, `logger`) as local ambient interfaces — never `@deepseek-ai/*`
+  imports. All members are optional because the Host half degrades gracefully and tests
+  pass partial contexts.
 
 ### Verification (`test/smoke/client-smoke.mjs`)
 
@@ -560,7 +554,7 @@ Runs on plain Node, no third-party deps, exits 0/1:
 
 ## Definition of done
 
-- `npm ci && npm run typecheck && npm run typecheck:host` passes (dev-only type checker, no emit) and
+- `npm ci && npm run typecheck` passes (dev-only strict type checker, no emit) and
   `node scripts/build-client.mjs && node --check lib/client.js && node --test test/host/ &&
   node test/smoke/client-smoke.mjs` all pass (the smoke suite also asserts the
   highlighter's segment invariant, language fallbacks and theme token variables).

@@ -37,7 +37,7 @@ describe('respond envelopes', () => {
     const response = okResponse({ value: 1 });
     assert.equal(response.status, STATUS.ok);
     assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.match(response.headers.get('content-type'), /application\/json/);
+    assert.match(String(response.headers.get('content-type')), /application\/json/);
     assert.deepEqual(await response.json(), { ok: true, value: 1 });
   });
 

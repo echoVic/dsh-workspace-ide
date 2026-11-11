@@ -158,9 +158,7 @@ plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/d
 
 ```bash
 npm ci                                 # dev-only tooling: TypeScript type checker
-npm run typecheck                      # tsc --checkJs over lib/ + src/client + tests (no emit)
-npm run typecheck:host                 # lib/ under strictNullChecks (see tsconfig.host.json)
-npm run typecheck:client               # all client modules under strictNullChecks (tsconfig.client.json)
+npm run typecheck                      # tsc --checkJs, strict, over lib/ + src/client + scripts + tests (no emit)
 node scripts/build-client.mjs          # rebuild lib/client.js from src/client/*.js
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
@@ -171,14 +169,10 @@ python3 scripts/screenshots/build-screenshots.py   # rebuild docs/ screenshots (
 ```
 
 TypeScript is used **only as a dev-time type checker**: sources stay plain JavaScript with
-JSDoc annotations, `tsc --noEmit --checkJs` checks `lib/`, `src/client/` and the tests
-(`types/client-globals.d.ts` declares the shared factory scope and the React element alias;
-`types/dsh-services.d.ts` declares the optional Host context/services). The Host half is
-additionally checked with `strictNullChecks` via `tsconfig.host.json`
-(`npm run typecheck:host`), so every filesystem/git route handles absent values explicitly;
-all client modules (core helpers, icons, highlighter, Markdown renderer, shell, files,
-search and git views) are checked with `strictNullChecks` via `tsconfig.client.json`
-(`npm run typecheck:client`).
+JSDoc annotations, and `tsc --noEmit --checkJs` checks `lib/`, `src/client/`, `scripts/` and
+the tests with `strict: true` (the one deferred strict flag is `noImplicitAny`, see
+`CONTRACT.md`). `types/client-globals.d.ts` declares the shared factory scope and the React
+element alias; `types/dsh-services.d.ts` declares the optional Host context/services.
 There is still no client bundler, no build step for the Host and no runtime dependency —
 `npm ci` installs `typescript`, `@types/node` and `@types/react` into devDependencies only.
 
@@ -193,8 +187,6 @@ lib/index.js             Host plugin entry (`apply`, `inject`, `name`)
 lib/host/                filesystem / search / git route implementation
 lib/client.js            built browser module (committed)
 tsconfig.json            dev-only type checker config (allowJs + checkJs, no emit)
-tsconfig.host.json       Host-only config with strictNullChecks enabled
-tsconfig.client.json     client modules under strictNullChecks
 types/                   ambient declarations: client factory scope + Host context/services
 src/client/              browser sources: core, icons (vendored Lucide), highlighter,
                          shell, files, search, git, module face

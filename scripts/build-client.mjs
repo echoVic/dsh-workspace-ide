@@ -95,7 +95,7 @@ async function compose() {
     try {
       text = await readFile(absolute, 'utf8');
     } catch (cause) {
-      throw new Error(`missing client source ${file} (${absolute}): ${cause.message}`);
+      throw new Error(`missing client source ${file} (${absolute}): ${String(/** @type {any} */ (cause).message)}`);
     }
     const problems = inspectSource(file, text);
     if (problems.length > 0) {
@@ -112,7 +112,7 @@ async function readArtifact() {
   try {
     return await readFile(OUT_FILE, 'utf8');
   } catch (cause) {
-    if (cause.code === 'ENOENT') return null;
+    if (/** @type {any} */ (cause).code === 'ENOENT') return null;
     throw cause;
   }
 }
@@ -130,7 +130,7 @@ async function main() {
   try {
     artifact = await compose();
   } catch (cause) {
-    process.stderr.write(`build-client: ${cause.message}\n`);
+    process.stderr.write(`build-client: ${String(/** @type {any} */ (cause).message)}\n`);
     process.exit(1);
   }
 

@@ -36,6 +36,7 @@ const SOURCE_DIR = path.join(PROJECT, 'src', 'client');
 const BUILD_SCRIPT = path.join(PROJECT, 'scripts', 'build-client.mjs');
 const SOURCES = ['00-core.js', '07-highlight.js', '08-markdown.js', '10-shell.js', '20-files.js', '30-search.js', '40-git.js', '99-face.js'];
 
+/** @type {any} */
 let activeReact = null;
 
 let checks = 0;
@@ -58,8 +59,11 @@ function createFakeReact() {
   // Hook-order tracking: React crashes (or silently corrupts state) when a
   // component calls a different hook sequence between renders, so every
   // component render is scoped and its sequence compared with the first one.
+  /** @type {Map<any, Array<string>>} */
   const hookSequences = new Map();
+  /** @type {Array<string>|null} */
   let hookScope = null;
+  /** @type {any} */
   let hookScopeComponent = null;
   function recordHook(name) {
     if (hookScope !== null) hookScope.push(name);
@@ -242,7 +246,7 @@ function loadBundle() {
   try {
     vm.runInThisContext(source, { filename: ARTIFACT });
   } finally {
-    if (previousWindow === undefined) delete globalThis.window;
+    if (previousWindow === undefined) Reflect.deleteProperty(globalThis, 'window');
     else globalThis.window = previousWindow;
   }
   assert.equal(loaded.length, 1, 'the bundle must register exactly one module factory');
@@ -344,7 +348,7 @@ function run() {
   try {
     face.apply(plain.ctx);
   } finally {
-    if (realFetch === undefined) delete globalThis.fetch;
+    if (realFetch === undefined) Reflect.deleteProperty(globalThis, 'fetch');
     else globalThis.fetch = realFetch;
   }
 
@@ -427,7 +431,7 @@ function run() {
   try {
     themedRender = renderTree(main[0].component({ t: keyTranslator }));
   } finally {
-    if (previousWindow === undefined) delete globalThis.window;
+    if (previousWindow === undefined) Reflect.deleteProperty(globalThis, 'window');
     else globalThis.window = previousWindow;
   }
   const themedRoots = themedRender.hosts.filter(function (host) { return host.props['data-ide-theme'] !== undefined; });
@@ -442,7 +446,7 @@ function run() {
   try {
     invalidRender = renderTree(main[0].component({ t: keyTranslator }));
   } finally {
-    if (previousWindow === undefined) delete globalThis.window;
+    if (previousWindow === undefined) Reflect.deleteProperty(globalThis, 'window');
     else globalThis.window = previousWindow;
   }
   assert.equal(
@@ -497,7 +501,7 @@ function run() {
   try {
     face.apply(localeCtx.ctx);
   } finally {
-    if (realFetchForLocale === undefined) delete globalThis.fetch;
+    if (realFetchForLocale === undefined) Reflect.deleteProperty(globalThis, 'fetch');
     else globalThis.fetch = realFetchForLocale;
   }
   assert.equal(localeDicts.length, 1, 'locale.register must be called once');
@@ -1178,6 +1182,7 @@ function run() {
 try {
   run();
 } catch (cause) {
-  process.stderr.write('\nclient smoke test failed: ' + String(cause !== null && cause !== undefined && cause.stack ? cause.stack : cause) + '\n');
+  const failure = /** @type {any} */ (cause);
+  process.stderr.write('\nclient smoke test failed: ' + String(failure !== null && failure !== undefined && failure.stack ? failure.stack : failure) + '\n');
   process.exit(1);
 }

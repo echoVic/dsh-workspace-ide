@@ -81,10 +81,15 @@ describe('parseStatus', () => {
     assert.equal(parsed.behind, 1);
     assert.deepEqual(parsed.counts, { staged: 2, unstaged: 1, untracked: 1, conflicted: 1 });
     const renamed = parsed.files.find((file) => file.status === 'R ');
+    assert.ok(renamed);
     assert.equal(renamed.path, 'renamed file.txt');
     assert.equal(renamed.from, 'old file.txt');
-    assert.equal(parsed.files.find((file) => file.path === 'tracked.txt').status, ' M');
-    assert.equal(parsed.files.find((file) => file.path === 'fresh.txt').status, '??');
+    const tracked = parsed.files.find((file) => file.path === 'tracked.txt');
+    assert.ok(tracked);
+    assert.equal(tracked.status, ' M');
+    const fresh = parsed.files.find((file) => file.path === 'fresh.txt');
+    assert.ok(fresh);
+    assert.equal(fresh.status, '??');
   });
 
   it('parses unborn and detached headers', () => {

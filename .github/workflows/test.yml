@@ -18,14 +18,8 @@ jobs:
       - name: Install dev tooling
         run: npm ci
 
-      - name: Type check (JS + JSDoc via TypeScript)
+      - name: Type check (JS + JSDoc, strict)
         run: npm run typecheck
-
-      - name: Host strict type check (strictNullChecks)
-        run: npm run typecheck:host
-
-      - name: Client strict type check (strictNullChecks)
-        run: npm run typecheck:client
 
       - name: Client bundle is up to date
         run: node scripts/build-client.mjs --check

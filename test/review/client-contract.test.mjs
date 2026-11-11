@@ -102,12 +102,17 @@ function createStorage(initial = {}) {
  * into `return S;` so the review can reach internal helpers; the committed
  * artifact itself is never modified.
  */
+/** Load the built client in a vm sandbox.
+ * @param {{storage?: any, language?: string, fetch?: any}} [options] - sandbox overrides.
+ * @returns {any} the plugin namespace.
+ */
 function loadClient(options = {}) {
   const source = readFileSync(ARTIFACT, 'utf8');
   const instrumented = source.replace('    return S.face;', '    return S;');
   assert.notEqual(instrumented, source, 'instrumentation seam must exist exactly once');
   assert.equal(source.split('    return S.face;').length - 1, 1);
 
+  /** @type {any} */
   let definition = null;
   const fakeReact = createFakeReact();
   const storage = options.storage ?? createStorage();
@@ -300,7 +305,7 @@ describe('module face', () => {
     const effects = [];
     const bound = (namespace) => (key) => `LOCALE:${namespace}:${key}`;
     const locale = {
-      registrations: [],
+      registrations: /** @type {Array<any>} */ ([]),
       register(namespace, dictionary) {
         this.registrations.push({ namespace, dictionary });
         return () => {};

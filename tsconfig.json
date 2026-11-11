@@ -3,15 +3,20 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
-    "strict": false,
-    "noImplicitAny": false,
-    "useUnknownInCatchVariables": false,
+    "strict": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "noImplicitAny": false
   },
   "include": [
     "lib/index.js",
@@ -22,5 +27,8 @@
     "test/**/*.js",
     "types/**/*.d.ts"
   ],
-  "exclude": ["lib/client.js", "node_modules"]
+  "exclude": [
+    "lib/client.js",
+    "node_modules"
+  ]
 }

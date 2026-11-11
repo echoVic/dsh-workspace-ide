@@ -1032,8 +1032,9 @@ async function requestJson(url, options) {
   try {
     response = await fetch(url, init);
   } catch (cause) {
-    if (cause !== null && cause !== undefined && cause.name === 'AbortError') throw cause;
-    const reason = cause !== null && cause !== undefined && typeof cause.message === 'string' ? cause.message : 'network error';
+    const failure = /** @type {any} */ (cause);
+    if (failure !== null && failure !== undefined && failure.name === 'AbortError') throw cause;
+    const reason = failure !== null && failure !== undefined && typeof failure.message === 'string' ? failure.message : 'network error';
     throw new RequestFailure('network', reason);
   }
   /** @type {any} */
@@ -1041,7 +1042,8 @@ async function requestJson(url, options) {
   try {
     payload = await response.json();
   } catch (cause) {
-    if (cause !== null && cause !== undefined && cause.name === 'AbortError') throw cause;
+    const failure = /** @type {any} */ (cause);
+    if (failure !== null && failure !== undefined && failure.name === 'AbortError') throw cause;
     payload = null;
   }
   if (payload !== null && payload !== undefined && payload.ok === false) {
