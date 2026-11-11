@@ -1,5 +1,7 @@
 # dsh-workspace-ide
 
+[![test](https://github.com/echoVic/dsh-workspace-ide/actions/workflows/test.yml/badge.svg)](https://github.com/echoVic/dsh-workspace-ide/actions/workflows/test.yml)
+
 A VS Code-like workspace panel plugin for
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH): browse the
 workspace, search it, and read its git state without leaving the conversation.

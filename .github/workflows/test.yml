@@ -1,0 +1,33 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Client bundle is up to date
+        run: node scripts/build-client.mjs --check
+
+      - name: Syntax check
+        run: |
+          node --check lib/client.js
+          node --check lib/index.js
+          for file in lib/host/*.js; do node --check "$file"; done
+
+      - name: Host route tests
+        run: node --test test/host/index.js
+
+      - name: Client module smoke test
+        run: node test/smoke/client-smoke.mjs
+
+      - name: Adversarial and contract suites
+        run: node --test test/review/*.test.mjs
