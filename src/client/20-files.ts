@@ -637,6 +637,103 @@ const ST_FILES = {
     fontSize: 11,
     whiteSpace: 'nowrap',
   },
+  // Cmd/Ctrl+P quick-open palette: centered panel over a transparent scrim.
+  quickLayer: {
+    position: 'fixed',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 60,
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    paddingTop: '9%',
+    background: 'transparent',
+  },
+  quickPanel: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: 580,
+    maxWidth: '92%',
+    maxHeight: '62vh',
+    overflow: 'hidden',
+    borderRadius: 8,
+    border: '1px solid ' + C.border2,
+    background: C.layer2,
+  },
+  quickInputRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '10px 14px',
+    borderBottom: '1px solid ' + C.border1,
+    flex: '0 0 auto',
+  },
+  quickInput: {
+    flex: '1 1 auto',
+    minWidth: 0,
+    border: 'none',
+    outline: 'none',
+    background: 'transparent',
+    color: C.text,
+    fontFamily: FONT_UI,
+    fontSize: 13.5,
+  },
+  quickList: {
+    overflow: 'auto',
+    minHeight: 0,
+    padding: '4px 0',
+  },
+  quickRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '5px 14px',
+    cursor: 'pointer',
+    fontFamily: FONT_UI,
+    fontSize: 12.5,
+  },
+  quickRowActive: {
+    background: C.activeBg,
+  },
+  quickPathDir: {
+    color: C.textTertiary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  quickPathFile: {
+    color: C.text,
+    fontWeight: 500,
+    whiteSpace: 'nowrap',
+  },
+  quickEmpty: {
+    padding: '14px',
+    color: C.textTertiary,
+    fontFamily: FONT_UI,
+    fontSize: 12,
+  },
+  quickHint: {
+    flex: '0 0 auto',
+    padding: '6px 14px',
+    borderTop: '1px solid ' + C.border1,
+    color: C.textTertiary,
+    fontFamily: FONT_UI,
+    fontSize: 11,
+    whiteSpace: 'nowrap',
+  },
+  quickBadge: {
+    color: C.textTertiary,
+    fontFamily: FONT_UI,
+    fontSize: 11,
+    whiteSpace: 'nowrap',
+  },
+  quickIndexIcon: {
+    display: 'inline-flex',
+    color: C.textTertiary,
+    flex: '0 0 auto',
+  },
 };
 
 /**
@@ -774,6 +871,67 @@ function renderFindHighlights(text: string, matches: FindRange[], current: numbe
 
 S.findTextMatches = findTextMatches;
 S.groupFindMatches = groupFindMatches;
+
+/**
+ * Score one path for the quick-open palette (JetBrains-style fuzzy match).
+ * The query is matched as a case-insensitive subsequence; contiguous runs,
+ * word boundaries and basename hits score extra. `-1` means no match.
+ * @param query - typed query (may be empty).
+ * @param filePath - candidate path.
+ * @returns a score >= 0, or -1 when the query does not match.
+ */
+function quickOpenScore(query: string, filePath: string): number {
+  if (typeof filePath !== 'string' || filePath.length === 0) return -1;
+  if (typeof query !== 'string' || query.length === 0) return 0;
+  const needle = query.toLowerCase();
+  const haystack = filePath.toLowerCase();
+  const slash = haystack.lastIndexOf('/');
+  const baseStart = slash + 1;
+  let score = 0;
+  let cursor = 0;
+  let previous = -2;
+  for (let index = 0; index < needle.length; index = index + 1) {
+    const found = haystack.indexOf(needle.charAt(index), cursor);
+    if (found === -1) return -1;
+    if (found === previous + 1) score += 3;
+    else score += 1;
+    if (found === 0 || haystack.charAt(found - 1) === '/' || haystack.charAt(found - 1) === '-' || haystack.charAt(found - 1) === '_' || haystack.charAt(found - 1) === '.') score += 2;
+    if (found >= baseStart) score += 1;
+    previous = found;
+    cursor = found + 1;
+  }
+  // A contiguous basename hit beats scattered path matches by a wide margin.
+  if (haystack.slice(baseStart).indexOf(needle) !== -1) score += 20;
+  // Prefer shorter paths when scores tie.
+  return score - filePath.length * 0.001;
+}
+
+/**
+ * Rank candidate paths for the quick-open palette.
+ * @param query - typed query.
+ * @param files - indexed workspace paths.
+ * @param limit - maximum results to return.
+ * @returns ranked `{path, score}` rows, best first.
+ */
+function rankQuickOpen(query: string, files: string[], limit?: number): Array<{ path: string, score: number }> {
+  const list = Array.isArray(files) ? files : [];
+  const max = typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
+  const ranked: Array<{ path: string, score: number }> = [];
+  for (let index = 0; index < list.length; index = index + 1) {
+    const filePath = list[index];
+    const score = quickOpenScore(query, filePath);
+    if (score < 0) continue;
+    ranked.push({ path: filePath, score: score });
+  }
+  ranked.sort(function (left, right) {
+    if (right.score !== left.score) return right.score - left.score;
+    return left.path < right.path ? -1 : left.path > right.path ? 1 : 0;
+  });
+  return ranked.slice(0, max);
+}
+
+S.quickOpenScore = quickOpenScore;
+S.rankQuickOpen = rankQuickOpen;
 
 /**
  * Build JetBrains-style breadcrumb nodes for one path. Intermediate segments
@@ -1039,6 +1197,32 @@ function ImageViewer(props: any) {
     h(
       'div',
       { style: ST_FILES.viewerHeader },
+      typeof props.onNavigateBack === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('action.back'),
+              ariaLabel: t('action.back'),
+              disabled: props.canGoBack !== true,
+              style: { width: 22, height: 22 },
+              onClick: props.onNavigateBack,
+            },
+            h('span', { style: { display: 'inline-flex', transform: 'rotate(-90deg)' } }, h(S.Icons.Chevron, { size: 13 })),
+          )
+        : null,
+      typeof props.onNavigateForward === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('action.forward'),
+              ariaLabel: t('action.forward'),
+              disabled: props.canGoForward !== true,
+              style: { width: 22, height: 22 },
+              onClick: props.onNavigateForward,
+            },
+            h('span', { style: { display: 'inline-flex', transform: 'rotate(90deg)' } }, h(S.Icons.Chevron, { size: 13 })),
+          )
+        : null,
       h(
         'div',
         { style: ST_FILES.breadcrumb, title: props.path },
@@ -1221,6 +1405,32 @@ function FileViewer(props: any) {
     h(
       'div',
       { style: ST_FILES.viewerHeader },
+      typeof props.onNavigateBack === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('action.back'),
+              ariaLabel: t('action.back'),
+              disabled: props.canGoBack !== true,
+              style: { width: 22, height: 22 },
+              onClick: props.onNavigateBack,
+            },
+            h('span', { style: { display: 'inline-flex', transform: 'rotate(-90deg)' } }, h(S.Icons.Chevron, { size: 13 })),
+          )
+        : null,
+      typeof props.onNavigateForward === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('action.forward'),
+              ariaLabel: t('action.forward'),
+              disabled: props.canGoForward !== true,
+              style: { width: 22, height: 22 },
+              onClick: props.onNavigateForward,
+            },
+            h('span', { style: { display: 'inline-flex', transform: 'rotate(90deg)' } }, h(S.Icons.Chevron, { size: 13 })),
+          )
+        : null,
       h(
         'div',
         { style: ST_FILES.breadcrumb, title: props.path },
@@ -1715,12 +1925,24 @@ function FilesView(props: any) {
   const [findWhole, setFindWhole] = useState(false);
   const [findRegex, setFindRegex] = useState(false);
   const [findCurrent, setFindCurrent] = useState(0);
+  const [history, setHistory] = useState<Array<{ path: string, line: number }>>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quickQuery, setQuickQuery] = useState('');
+  const [quickFiles, setQuickFiles] = useState<string[] | null>(null);
+  const [quickLoading, setQuickLoading] = useState(false);
+  const [quickError, setQuickError] = useState<any>(null);
+  const [quickTruncated, setQuickTruncated] = useState(false);
+  const [quickIndex, setQuickIndex] = useState(0);
 
   const textareaRef = useRef<any>(null);
   const gutterRef = useRef<any>(null);
   const fileRequestRef = useRef(0);
   const genRef = useRef(0);
   const noticeTimerRef = useRef<any>(null);
+  const historyIndexRef = useRef(-1);
+  const quickInputRef = useRef<any>(null);
+  const quickFilesRef = useRef<string[] | null>(null);
 
   // Success / info notices fade after a moment; error notices stay until the
   // next action so a failed save is never missed.
@@ -1821,8 +2043,21 @@ function FilesView(props: any) {
     }
   }, [expanded, tree, loadDir]);
 
-  const openFile = useCallback(function (path: any, line: any) {
+  const openFile = useCallback(function (path: any, line: any, options?: any) {
     if (typeof path !== 'string' || path.length === 0) return;
+    const skipHistory = options !== null && typeof options === 'object' && options.skipHistory === true;
+    if (skipHistory === false) {
+      const entry = { path: path, line: Number.isFinite(line) && line > 0 ? Math.floor(line) : 1 };
+      setHistory(function (previous: Array<{ path: string, line: number }>) {
+        const base = previous.slice(0, historyIndexRef.current + 1);
+        const last = base[base.length - 1];
+        if (last !== undefined && last !== null && last.path === entry.path && last.line === entry.line) return previous;
+        const next = base.concat([entry]);
+        historyIndexRef.current = next.length - 1;
+        setHistoryIndex(historyIndexRef.current);
+        return next;
+      });
+    }
     const requestId = fileRequestRef.current + 1;
     fileRequestRef.current = requestId;
     const gen = genRef.current;
@@ -1868,6 +2103,92 @@ function FilesView(props: any) {
         setFile({ status: 'error', data: null, error: cause });
       });
   }, [root, showNotice]);
+
+  const navigateHistory = useCallback(function (delta: any) {
+    const target = historyIndex + (delta < 0 ? -1 : 1);
+    if (target < 0 || target >= history.length) return;
+    const entry = history[target];
+    if (entry === null || entry === undefined) return;
+    historyIndexRef.current = target;
+    setHistoryIndex(target);
+    openFile(entry.path, entry.line, { skipHistory: true });
+  }, [history, historyIndex, openFile]);
+
+  const canGoBack = historyIndex > 0;
+  const canGoForward = historyIndex >= 0 && historyIndex < history.length - 1;
+
+  const closeQuick = useCallback(function () {
+    setQuickOpen(false);
+  }, []);
+
+  const openQuick = useCallback(function () {
+    setQuickOpen(true);
+    setQuickQuery('');
+    setQuickIndex(0);
+    if (quickFilesRef.current !== null) return;
+    setQuickLoading(true);
+    setQuickError(null);
+    S.requestJson(S.apiUrl(ROUTES.files, { root: root }))
+      .then(function (payload: any) {
+        const files = Array.isArray(payload.files) ? payload.files : [];
+        quickFilesRef.current = files;
+        setQuickFiles(files);
+        setQuickTruncated(payload.truncated === true);
+        setQuickLoading(false);
+      })
+      .catch(function (cause: any) {
+        if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
+        setQuickError(cause);
+        setQuickFiles([]);
+        setQuickLoading(false);
+      });
+  }, [root]);
+
+  const changeQuickQuery = useCallback(function (event: any) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    setQuickQuery(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
+    setQuickIndex(0);
+  }, []);
+
+  const quickResults = useMemo(
+    function () {
+      if (quickOpen === false || quickFiles === null) return [];
+      return typeof S.rankQuickOpen === 'function' ? S.rankQuickOpen(quickQuery, quickFiles, 50) : [];
+    },
+    [quickOpen, quickQuery, quickFiles],
+  );
+
+  const openQuickPath = useCallback(function (filePath: any) {
+    if (typeof filePath !== 'string' || filePath.length === 0) return;
+    setQuickOpen(false);
+    openFile(filePath, 1);
+  }, [openFile]);
+
+  const moveQuick = useCallback(function (delta: any) {
+    if (quickResults.length === 0) return;
+    setQuickIndex(function (previous: number) {
+      const next = (previous + delta + quickResults.length) % quickResults.length;
+      return next;
+    });
+  }, [quickResults]);
+
+  useEffect(function () {
+    if (quickOpen === false) return undefined;
+    const input = quickInputRef.current;
+    if (input === null || input === undefined || typeof input.focus !== 'function') return undefined;
+    try {
+      input.focus();
+    } catch (error) {
+      /* focus is a nicety */
+    }
+    return undefined;
+  }, [quickOpen]);
+
+  useEffect(function () {
+    if (quickOpen === false || quickResults.length === 0) return undefined;
+    if (quickIndex >= quickResults.length) setQuickIndex(quickResults.length - 1);
+    return undefined;
+  }, [quickOpen, quickResults, quickIndex]);
 
   const data = file.status === 'loaded' && file.data !== null && file.data !== undefined ? file.data : null;
   const original = data !== null && typeof data.content === 'string' ? normalizeEol(data.content) : '';
@@ -2203,12 +2524,27 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
     const key = event.key;
     const meta = event.metaKey === true || event.ctrlKey === true;
+    if (meta && (key === 'p' || key === 'P')) {
+      event.preventDefault();
+      openQuick();
+      return;
+    }
+    if (meta && event.altKey === true && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+      event.preventDefault();
+      navigateHistory(key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
+    if (key === 'Escape' && quickOpen === true) {
+      event.preventDefault();
+      closeQuick();
+      return;
+    }
     if (meta && (key === 'f' || key === 'F')) {
       event.preventDefault();
       openFind(false);
@@ -2311,6 +2647,11 @@ function FilesView(props: any) {
       h('span', { style: ST_FILES.treeHeaderTitle, title: root }, String(S.baseName(root) || root).toUpperCase()),
       h('span', { style: { flex: '1 1 auto' } }),
       rootNode !== null && rootNode !== undefined && rootNode.status === 'loading' ? h(S.Icons.Spinner, { size: 12 }) : null,
+      h(
+        S.ToolButton,
+        { title: t('quickOpen.label'), ariaLabel: t('quickOpen.label'), style: { width: 22, height: 22 }, onClick: openQuick },
+        h(S.Icons.Search, { size: 12 }),
+      ),
       h(
         S.ToolButton,
         { title: t('action.refresh'), ariaLabel: t('action.refresh'), style: { width: 22, height: 22 }, onClick: refreshTree },
@@ -2441,6 +2782,10 @@ function FilesView(props: any) {
       eol: eol,
       onReload: reloadSelected,
       onBreadcrumb: revealPath,
+      canGoBack: canGoBack,
+      canGoForward: canGoForward,
+      onNavigateBack: function () { navigateHistory(-1); },
+      onNavigateForward: function () { navigateHistory(1); },
       findOpen: findOpen,
       findReplace: findReplace,
       findQuery: findQuery,
@@ -2464,15 +2809,100 @@ function FilesView(props: any) {
     viewer = h(S.EmptyState, { t: t, icon: S.Icons.Files, title: t('files.open.title'), body: t('files.open.body') });
   }
 
-  return h(S.SplitPane, {
-    left: treePane,
-    right: viewer,
-    storageKey: 'dsh-workspace-ide:files-tree-width',
-    initialWidth: 300,
-    minWidth: SPLIT_MIN,
-    maxWidth: SPLIT_MAX,
-    handleLabel: t('files.tree.label'),
-  });
+  const quickPanel = quickOpen
+    ? h(
+        'div',
+        { style: ST_FILES.quickLayer, onMouseDown: function () { closeQuick(); } },
+        h(
+          'div',
+          {
+            style: ST_FILES.quickPanel,
+            onMouseDown: function (event: any) {
+              if (event !== null && event !== undefined && typeof event.stopPropagation === 'function') event.stopPropagation();
+            },
+          },
+          h(
+            'div',
+            { style: ST_FILES.quickInputRow },
+            h('span', { style: ST_FILES.quickIndexIcon }, h(S.Icons.Search, { size: 14 })),
+            h('input', {
+              ref: quickInputRef,
+              type: 'text',
+              value: quickQuery,
+              placeholder: t('quickOpen.placeholder'),
+              'aria-label': t('quickOpen.label'),
+              style: ST_FILES.quickInput,
+              onChange: changeQuickQuery,
+              onKeyDown: function (event: any) {
+                if (event === null || event === undefined) return;
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  moveQuick(1);
+                } else if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  moveQuick(-1);
+                } else if (event.key === 'Enter') {
+                  event.preventDefault();
+                  const row = quickResults[quickIndex];
+                  if (row !== null && row !== undefined) openQuickPath(row.path);
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  closeQuick();
+                }
+              },
+            }),
+            quickTruncated ? h('span', { style: ST_FILES.quickBadge }, t('quickOpen.truncated')) : null,
+          ),
+          h(
+            'div',
+            { style: ST_FILES.quickList, role: 'listbox', 'aria-label': t('quickOpen.label') },
+            quickLoading
+              ? h('div', { style: ST_FILES.quickEmpty }, t('quickOpen.loading'))
+              : quickError !== null && quickError !== undefined
+                ? h('div', { style: ST_FILES.quickEmpty }, S.errorText(quickError))
+                : quickResults.length === 0
+                  ? h('div', { style: ST_FILES.quickEmpty }, t('quickOpen.noResults'))
+                  : quickResults.map(function (row: any, index: number) {
+                      const slash = row.path.lastIndexOf('/');
+                      const directory = slash >= 0 ? row.path.slice(0, slash + 1) : '';
+                      const basename = slash >= 0 ? row.path.slice(slash + 1) : row.path;
+                      return h(
+                        'div',
+                        {
+                          key: row.path,
+                          role: 'option',
+                          'aria-selected': index === quickIndex ? 'true' : 'false',
+                          style: Object.assign({}, ST_FILES.quickRow, index === quickIndex ? ST_FILES.quickRowActive : null),
+                          title: row.path,
+                          onMouseDown: function (event: any) {
+                            if (event !== null && event !== undefined && typeof event.preventDefault === 'function') event.preventDefault();
+                            openQuickPath(row.path);
+                          },
+                        },
+                        directory.length > 0 ? h('span', { style: ST_FILES.quickPathDir }, directory) : null,
+                        h('span', { style: ST_FILES.quickPathFile }, basename),
+                      );
+                    }),
+          ),
+          h('div', { style: ST_FILES.quickHint }, t('quickOpen.hint')),
+        ),
+      )
+    : null;
+
+  return h(
+    'div',
+    { style: { display: 'flex', position: 'relative', height: '100%', minHeight: 0, width: '100%' } },
+    h(S.SplitPane, {
+      left: treePane,
+      right: viewer,
+      storageKey: 'dsh-workspace-ide:files-tree-width',
+      initialWidth: 300,
+      minWidth: SPLIT_MIN,
+      maxWidth: SPLIT_MAX,
+      handleLabel: t('files.tree.label'),
+    }),
+    quickPanel,
+  );
 }
 
 S.FilesView = FilesView;

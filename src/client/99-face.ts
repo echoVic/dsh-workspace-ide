@@ -160,6 +160,8 @@ S.face = {
       splitMatch: S.splitMatch,
       findTextMatches: S.findTextMatches,
       groupFindMatches: S.groupFindMatches,
+      quickOpenScore: S.quickOpenScore,
+      rankQuickOpen: S.rankQuickOpen,
       normalizeWorkspaces: S.normalizeWorkspaces,
       pickRoot: S.pickRoot,
       getCurrentSessionId: S.getCurrentSessionId,

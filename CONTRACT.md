@@ -133,7 +133,13 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
    broken and racing symlinks stay `type:"symlink"`. A symlinked directory can be listed
    through its path normally.
 
-3. `GET /api/dsh-workspace-ide.file?root=&path=`
+3. `GET /api/dsh-workspace-ide.files?root=&limit=`
+   → `{"ok":true,"root","files":[path…],"truncated"}`.
+   Recursive index of regular files for the client's quick-open palette; POSIX relative
+   paths, sorted, `.git` skipped, cap 8000 entries by default (`limit` clamped to
+   100–20000). Unreadable directories are skipped, never fatal. Same root safety as above.
+
+4. `GET /api/dsh-workspace-ide.file?root=&path=`
    → `{"ok":true,"root","path","absolutePath","size","mtimeMs","binary","truncated",
    "content","language"}`.
    Read at most 2 MiB (`truncated` when bigger). Binary detection: NUL byte in the bytes
@@ -142,7 +148,7 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
    java, c/cpp/h, sh, yml/yaml, txt, …; default `text`).
    Directories → `bad-request`. Missing file → `not-found`.
 
-4. `GET /api/dsh-workspace-ide.image?root=&path=`
+5. `GET /api/dsh-workspace-ide.image?root=&path=`
    → `{"ok":true,"root","path","absolutePath","size","mtimeMs","mime","base64"}`.
    Raster/SVG image bytes for the viewer, base64-encoded (JSON envelope keeps the route
    uniform). Cap 8 MiB — larger files answer 413 `too-large` instead of a truncated image.
@@ -151,7 +157,7 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
    or an XML prolog). A file whose bytes do not match any supported image answers 415
    `unsupported-image`. Same path safety and directory/missing behaviour as `file`.
 
-5. `GET /api/dsh-workspace-ide.search?root=&q=&regex=0|1&case=0|1&whole=0|1&include=&exclude=&maxFiles=&maxMatches=&maxFileBytes=`
+6. `GET /api/dsh-workspace-ide.search?root=&q=&regex=0|1&case=0|1&whole=0|1&include=&exclude=&maxFiles=&maxMatches=&maxFileBytes=`
    → `{"ok":true,"root","query",{options},"files":[{"path","matches":[{"line","column",
    "length","text"}]}],"totalMatches","scannedFiles","scannedBytes","truncated","elapsedMs"}`.
    - `q` required, non-empty; `regex` compiles `q` as a RegExp (invalid regex → bad-request).
@@ -166,7 +172,7 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
      length; `text` is the line trimmed to ≤ 400 chars (trailing `\r`/`\n` removed).
    - Results ordered by path, then line. Never throw on unreadable files (skip them).
 
-6. `GET /api/dsh-workspace-ide.git?root=&kind=&…`
+7. `GET /api/dsh-workspace-ide.git?root=&kind=&…`
    - `kind=status` → `{"ok":true,"repo":true,"root","branch","upstream","ahead","behind",
      "clean","files":[{"path","index","worktree","status"}],"counts":{"staged","unstaged",
      "untracked","conflicted"}}`. Use `git status --porcelain=v1 -z --branch
@@ -189,12 +195,12 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
      `{"ok":false,"error":{"code":"git-failed","message":…}}` or `repo:false` for
      "not a git repository"; never crash the Host.
 
-7. `POST /api/dsh-workspace-ide.save` — body JSON `{"root","path","content"}` (≤ 4 MiB).
+8. `POST /api/dsh-workspace-ide.save` — body JSON `{"root","path","content"}` (≤ 4 MiB).
    Overwrite an existing regular text file only (do not create new files/dirs). Same path
    safety as above. → `{"ok":true,"path","size","mtimeMs"}`. Missing file → `not-found`.
    Use a temp file + rename in the same directory for atomicity.
 
-8. `POST /api/dsh-workspace-ide.ping` — body JSON `{"stage","detail"}` (bodies above
+9. `POST /api/dsh-workspace-ide.ping` — body JSON `{"stage","detail"}` (bodies above
    64 KiB are ignored rather than parsed; `stage`/`detail` are truncated).
    Append `{"at":ISO,"stage","detail","pid"}` as one line to
    `${process.env.DSH_HOME ?? join(homedir(), '.dsh')}/workspace-ide/status.jsonl`
@@ -462,8 +468,17 @@ the top-left corner — see that package's README.)
     answer no matches instead of throwing.
   - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
     encoding, a clickable soft-wrap state and the read-only lock.
+  - Quick open (`Cmd/Ctrl+P`, or the search button in the tree header): a centered palette
+    fetches `api/dsh-workspace-ide.files` once per session, then ranks paths locally with
+    `S.quickOpenScore` / `S.rankQuickOpen` (case-insensitive subsequence, boundary and
+    basename bonuses). Up/Down selects, Enter opens, Esc or a click outside closes; a
+    truncated index is labelled in the bar.
+  - Navigation history: every explicit open pushes `{path, line}` onto a stack; the editor
+    header gets back/forward buttons and `Cmd/Ctrl+Alt+←/→` walks the stack (history
+    navigation itself does not push).
   - Markdown/HTML just shown as text (this is a code viewer).
-  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;
+  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+P opens Quick Open; Ctrl/Cmd+Alt+Left/Right walk
+    the navigation history; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;
     Ctrl/Cmd+H opens Find with the replace row; Alt+Z toggles soft-wrap; in the find bar
     Enter/Shift+Enter walk matches and Escape closes it; Escape otherwise closes
     Go-to-Line or cancels dirty state (reload from disk);

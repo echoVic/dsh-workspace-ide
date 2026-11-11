@@ -11,6 +11,7 @@
 
 import './respond.test.mjs';
 import './paths.test.mjs';
+import './files.test.mjs';
 import './list.test.mjs';
 import './file.test.mjs';
 import './image.test.mjs';

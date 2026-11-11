@@ -58,13 +58,14 @@ describe('plugin module face', () => {
     assert.equal(typeof pluginApply, 'function');
   });
 
-  it('apply registers all eight routes through ctx.effect', () => {
+  it('apply registers all nine routes through ctx.effect', () => {
     const fake = fakePluginContext();
     pluginApply(fake.ctx);
-    assert.equal(fake.routes.length, 8);
-    assert.equal(fake.effects.length, 8);
+    assert.equal(fake.routes.length, 9);
+    assert.equal(fake.effects.length, 9);
     assert.deepEqual(fake.routes.map((route) => route.path).sort(), [
       `${ROUTE_PREFIX}file`,
+      `${ROUTE_PREFIX}files`,
       `${ROUTE_PREFIX}git`,
       `${ROUTE_PREFIX}image`,
       `${ROUTE_PREFIX}list`,
@@ -84,10 +85,11 @@ describe('plugin module face', () => {
 
 describe('route table', () => {
   it('declares the contracted paths, methods and body mode', () => {
-    assert.equal(ROUTE_DEFINITIONS.length, 8);
+    assert.equal(ROUTE_DEFINITIONS.length, 9);
     const expected = new Map([
       ['workspaces', ['GET']],
       ['list', ['GET']],
+      ['files', ['GET']],
       ['file', ['GET']],
       ['image', ['GET']],
       ['search', ['GET']],
@@ -114,8 +116,8 @@ describe('route table', () => {
   it('the registered disposer removes the route', () => {
     const fake = fakePluginContext();
     registerRoutes(fake.ctx);
-    assert.equal(fake.routes.length, 8);
-    assert.equal(fake.disposers.length, 8);
+    assert.equal(fake.routes.length, 9);
+    assert.equal(fake.disposers.length, 9);
     for (const dispose of fake.disposers) dispose();
     assert.equal(fake.routes.length, 0);
   });

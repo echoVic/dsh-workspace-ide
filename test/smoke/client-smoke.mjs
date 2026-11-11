@@ -579,6 +579,13 @@ function run() {
   assert.equal(groupedFind[1][0].start, 0, 'second match is line-relative');
   assert.equal(groupedFind[1][0].index, 1, 'match index survives grouping');
   assert.equal(T.Routes.workspaces, 'api/dsh-workspace-ide.workspaces', 'routes must be browser-relative');
+  assert.equal(T.Routes.files, 'api/dsh-workspace-ide.files', 'quick-open index route is exposed');
+  assert.equal(T.quickOpenScore('', 'a.ts'), 0, 'empty query matches everything with a neutral score');
+  assert.equal(T.quickOpenScore('zzz', 'a.ts'), -1, 'non-subsequence query does not match');
+  assert.equal(T.quickOpenScore('core', 'src/client/00-core.ts') > 0, true, 'fuzzy subsequence finds the basename');
+  const quickRanked = T.rankQuickOpen('core', ['docs/readme.md', 'src/client/00-core.ts', 'src/client/99-face.ts'], 5);
+  assert.equal(quickRanked[0].path, 'src/client/00-core.ts', 'basename hit ranks first');
+  assert.deepEqual(T.rankQuickOpen('zzz', ['a.ts'], 5), [], 'no match returns no rows');
   ok('formatBytes / countLines / lineNumbersText / caretFromIndex / splitMatch / routes');
 
   const normal = T.normalizeWorkspaces({
