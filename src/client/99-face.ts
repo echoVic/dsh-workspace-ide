@@ -165,6 +165,8 @@ S.face = {
       rankQuickOpen: S.rankQuickOpen,
       orderQuickFiles: S.orderQuickFiles,
       extractSymbols: S.extractSymbols,
+      duplicateLines: S.duplicateLines,
+      moveLines: S.moveLines,
       bracketMatch: S.bracketMatch,
       autoPairEdit: S.autoPairEdit,
       smartIndentEdit: S.smartIndentEdit,

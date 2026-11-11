@@ -1281,6 +1281,69 @@ S.bracketMatch = bracketMatch;
 S.autoPairEdit = autoPairEdit;
 S.smartIndentEdit = smartIndentEdit;
 
+/** Clamp one offset into a text buffer. */
+function clampEditOffset(text: string, value: any): number {
+  return Number.isFinite(value) ? Math.max(0, Math.min(text.length, Math.floor(value))) : 0;
+}
+
+/** Line range covering a selection (`lineEnd` excludes the trailing newline). */
+function selectionLineRange(text: string, start: number, end: number): any {
+  const from = clampEditOffset(text, start);
+  const to = Math.max(from, clampEditOffset(text, end));
+  const lineStart = text.lastIndexOf('\n', from - 1) + 1;
+  let lineEnd = text.indexOf('\n', to);
+  if (lineEnd === -1) lineEnd = text.length;
+  return { from: from, to: to, lineStart: lineStart, lineEnd: lineEnd };
+}
+
+/**
+ * Duplicate the current line (or selected lines), JetBrains Ctrl+D.
+ * @param text - current text.
+ * @param start - selection start.
+ * @param end - selection end.
+ * @returns the edit, or null for a non-string buffer.
+ */
+function duplicateLines(text: any, start: number, end: number): any {
+  if (typeof text !== 'string') return null;
+  const range = selectionLineRange(text, start, end);
+  const block = text.slice(range.lineStart, range.lineEnd);
+  const next = text.slice(0, range.lineEnd) + '\n' + block + text.slice(range.lineEnd);
+  return { text: next, selectionStart: range.from, selectionEnd: range.to };
+}
+
+/**
+ * Move the current line (or selected lines) one line up/down, JetBrains
+ * Alt+Shift+Up/Down. Returns null at the buffer edge.
+ * @param text - current text.
+ * @param start - selection start.
+ * @param end - selection end.
+ * @param direction - -1 moves up, 1 moves down.
+ * @returns the edit, or null when the move is impossible.
+ */
+function moveLines(text: any, start: number, end: number, direction: number): any {
+  if (typeof text !== 'string') return null;
+  const range = selectionLineRange(text, start, end);
+  const block = text.slice(range.lineStart, range.lineEnd);
+  if (direction < 0) {
+    if (range.lineStart === 0) return null;
+    const previousStart = text.lastIndexOf('\n', range.lineStart - 2) + 1;
+    const previousLine = text.slice(previousStart, range.lineStart - 1);
+    const next = text.slice(0, previousStart) + block + '\n' + previousLine + text.slice(range.lineEnd);
+    const delta = -(range.lineStart - previousStart);
+    return { text: next, selectionStart: range.from + delta, selectionEnd: range.to + delta };
+  }
+  if (range.lineEnd >= text.length) return null;
+  const nextNewline = text.indexOf('\n', range.lineEnd + 1);
+  const nextLineEnd = nextNewline === -1 ? text.length : nextNewline;
+  const nextLine = text.slice(range.lineEnd + 1, nextLineEnd);
+  const next = text.slice(0, range.lineStart) + nextLine + '\n' + block + text.slice(nextLineEnd);
+  const delta = nextLine.length + 1;
+  return { text: next, selectionStart: range.from + delta, selectionEnd: range.to + delta };
+}
+
+S.duplicateLines = duplicateLines;
+S.moveLines = moveLines;
+
 /**
  * Build JetBrains-style breadcrumb nodes for one path. Intermediate segments
  * are buttons that reveal their directory in the tree; the last one is the file.
@@ -3382,6 +3445,64 @@ function FilesView(props: any) {
       event.preventDefault();
       nextFind(event.shiftKey === true ? -1 : 1);
       return;
+    }
+    if (readOnly === false && file.status === 'loaded') {
+      const editArea = textareaRef.current;
+      if (editArea !== null && editArea !== undefined) {
+        const editValue = typeof editArea.value === 'string' ? editArea.value : draft;
+        const editStart = Number.isFinite(editArea.selectionStart) ? editArea.selectionStart : 0;
+        const editEnd = Number.isFinite(editArea.selectionEnd) ? editArea.selectionEnd : editStart;
+        if (meta && (key === 'd' || key === 'D')) {
+          event.preventDefault();
+          const result = typeof S.duplicateLines === 'function' ? S.duplicateLines(editValue, editStart, editEnd) : null;
+          if (result !== null && result !== undefined) {
+            setDraft(result.text);
+            setCaret(caretFromIndex(result.text, result.selectionStart));
+            setCaretIndex(result.selectionStart);
+            try {
+              setTimeout(function () {
+                const current = textareaRef.current;
+                if (current === null || current === undefined) return;
+                try {
+                  current.focus();
+                  current.setSelectionRange(result.selectionStart, result.selectionEnd);
+                } catch (error) {
+                  /* selection is a nicety */
+                }
+              }, 0);
+            } catch (error) {
+              /* no timer */
+            }
+          }
+          return;
+        }
+        if (event.altKey === true && event.shiftKey === true && (key === 'ArrowUp' || key === 'ArrowDown')) {
+          event.preventDefault();
+          const result = typeof S.moveLines === 'function'
+            ? S.moveLines(editValue, editStart, editEnd, key === 'ArrowUp' ? -1 : 1)
+            : null;
+          if (result !== null && result !== undefined) {
+            setDraft(result.text);
+            setCaret(caretFromIndex(result.text, result.selectionStart));
+            setCaretIndex(result.selectionStart);
+            try {
+              setTimeout(function () {
+                const current = textareaRef.current;
+                if (current === null || current === undefined) return;
+                try {
+                  current.focus();
+                  current.setSelectionRange(result.selectionStart, result.selectionEnd);
+                } catch (error) {
+                  /* selection is a nicety */
+                }
+              }, 0);
+            } catch (error) {
+              /* no timer */
+            }
+          }
+          return;
+        }
+      }
     }
     if (readOnly === false && file.status === 'loaded' && meta === false && event.altKey !== true) {
       const textarea = textareaRef.current;

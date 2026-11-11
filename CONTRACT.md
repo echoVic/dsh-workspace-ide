@@ -504,8 +504,9 @@ the top-left corner — see that package's README.)
     highlighted through a transparent overlay (`S.bracketMatch`); the current line
     and indent guides render behind the text in the same character grid (guides are
     hidden in soft-wrap/read-only/preview modes where visual lines no longer match).
-  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+= / Ctrl/Cmd+- zoom the editor (Ctrl/Cmd+0
-    resets); Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
+  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+D duplicates the current line / selected
+    lines; Alt+Shift+Up/Down move them; Ctrl/Cmd+= / Ctrl/Cmd+- zoom the editor
+    (Ctrl/Cmd+0 resets); Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
     the active tab; Ctrl/Cmd+P opens
     Quick Open; Ctrl/Cmd+Alt+Left/Right walk
     the navigation history; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;

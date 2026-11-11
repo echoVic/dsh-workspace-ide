@@ -595,6 +595,17 @@ function run() {
   assert.deepEqual(T.extractSymbols('# Title\n## Sub', 'markdown').map(function (symbol) { return symbol.kind; }), ['heading', 'heading'], 'markdown headings are symbols');
   assert.deepEqual(T.extractSymbols('{\n  "alpha": 1\n}', 'json').map(function (symbol) { return symbol.name; }), ['alpha'], 'json keys are symbols');
   assert.deepEqual(T.extractSymbols('', 'typescript'), [], 'empty source has no symbols');
+  const duplicated = T.duplicateLines('a\nb\nc', 2, 2);
+  assert.equal(duplicated.text, 'a\nb\nb\nc', 'Ctrl+D duplicates the current line');
+  assert.equal(duplicated.selectionStart, 2, 'the selection stays on the original line');
+  const movedUp = T.moveLines('a\nb\nc', 2, 2, -1);
+  assert.equal(movedUp.text, 'b\na\nc', 'Alt+Shift+Up moves the line up');
+  assert.equal(movedUp.selectionStart, 0, 'the selection follows the moved line');
+  const movedDown = T.moveLines('a\nb\nc', 0, 0, 1);
+  assert.equal(movedDown.text, 'b\na\nc', 'Alt+Shift+Down moves the line down');
+  assert.equal(T.moveLines('a\nb', 0, 0, -1), null, 'moving the first line up is a no-op');
+  assert.equal(T.moveLines('a\nb', 2, 2, 1), null, 'moving the last line down is a no-op');
+  assert.equal(T.duplicateLines('abc', 0, 0).text, 'abc\nabc', 'duplicating the last line adds a newline');
   assert.deepEqual(T.bracketMatch('(a)', 1), { open: 0, close: 2 }, 'caret inside a bracket pair matches it');
   assert.deepEqual(T.bracketMatch('((x))', 2), { open: 1, close: 3 }, 'nested pairs balance');
   assert.equal(T.bracketMatch('abc', 1), null, 'no bracket next to the caret');
