@@ -194,7 +194,7 @@ node scripts/build-client.mjs          # rebuild lib/client.js from src/client/ 
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
 node --test test/host/                      # Host route unit tests (node:test, 118)
-node test/smoke/client-smoke.mjs            # headless client module/face smoke test (39 checks)
+node test/smoke/client-smoke.mjs            # headless client module/face smoke test (43 checks)
 node --test test/review/*.test.mjs          # independent adversarial + contract suites (78)
 python3 scripts/screenshots/build-screenshots.py   # rebuild docs/ screenshots (mock data)
 ```
@@ -207,10 +207,9 @@ element alias; `types/dsh-services.d.ts` declares the optional Host context/serv
 There is still no client bundler, no build step for the Host and no runtime dependency —
 `npm ci` installs `typescript`, `@types/node` and `@types/react` into devDependencies only.
 
-The client half is mid-migration to TypeScript: `05-icons.ts`, `07-highlight.ts`,
-`08-markdown.ts` and `30-search.ts` are converted so far. TS
-sources are script-style fragments compiled by `tsc` into `build/client-parts/` (never
-shipped, git-ignored) and concatenated with the plain-JS fragments — still no bundler, and
+The client half is authored in TypeScript: script-style fragments in
+`src/client/*.ts` compiled by `tsc` into `build/client-parts/` (never shipped,
+git-ignored) and concatenated into one plain script — still no bundler, and
 `lib/client.js` keeps its exact loader contract.
 
 `lib/client.js` is served directly by the Host and DSH's client HMR watches installed
@@ -225,18 +224,22 @@ lib/host/                filesystem / search / git route implementation
 lib/client.js            built browser module (committed)
 tsconfig.json            dev-only type checker config (allowJs + checkJs, strict, no emit)
 tsconfig.host.json       Host-only config adding noImplicitAny
-tsconfig.client.json     client core+icons config adding noImplicitAny
+tsconfig.client.json     all client sources under noImplicitAny
 types/                   ambient declarations: client factory scope + Host context/services
 src/client/              browser sources (TS): core, icons (vendored Lucide), highlighter,
                          shell, files, search, git, module face
 THIRD_PARTY_NOTICES.md   icon license attribution
 licenses/                full third-party license texts
 scripts/build-client.mjs  concatenating build + staleness check
-test/host/               node:test suites (118 tests)
-test/smoke/              headless client-module smoke test (39 checks)
+test/host/               node:test suites (122 tests)
+test/smoke/              headless client-module smoke test (43 checks)
 test/review/             independent adversarial + client-contract suites (78 tests)
 docs/                    screenshots
 ```
+
+## Changelog
+
+Release history and feature milestones: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
