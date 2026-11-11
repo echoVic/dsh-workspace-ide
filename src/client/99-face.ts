@@ -163,6 +163,7 @@ S.face = {
       groupFindMatches: S.groupFindMatches,
       quickOpenScore: S.quickOpenScore,
       rankQuickOpen: S.rankQuickOpen,
+      orderQuickFiles: S.orderQuickFiles,
       bracketMatch: S.bracketMatch,
       autoPairEdit: S.autoPairEdit,
       smartIndentEdit: S.smartIndentEdit,

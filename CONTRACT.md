@@ -473,8 +473,8 @@ the top-left corner — see that package's README.)
     answer no matches instead of throwing.
   - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
     encoding, a clickable soft-wrap state and the read-only lock.
-  - Multi-tab editor: every opened file becomes a tab above the viewer (basename,
-    dirty dot, per-tab close). Switching stores the live `{file, draft, caret,
+  - Multi-tab editor: every opened file becomes a tab above the viewer (file glyph,
+    basename, dirty dot, per-tab close). Switching stores the live `{file, draft, caret,
     markdownMode, svgMode, image, dimensions}` snapshot in memory and restores it
     without a network round-trip, so unsaved drafts and carets survive tab switches.
     Closing a dirty tab first shows an inline confirmation bar (Close Anyway /
@@ -482,7 +482,8 @@ the top-left corner — see that package's README.)
   - Quick open (`Cmd/Ctrl+P`, or the search button in the tree header): a centered palette
     fetches `api/dsh-workspace-ide.files` once per session, then ranks paths locally with
     `S.quickOpenScore` / `S.rankQuickOpen` (case-insensitive subsequence, boundary and
-    basename bonuses). Up/Down selects, Enter opens, Esc or a click outside closes; a
+    basename bonuses); with an empty query it shows recently opened files first via
+    `S.orderQuickFiles` (JetBrains "Recent Files"). Up/Down selects, Enter opens, Esc or a click outside closes; a
     truncated index is labelled in the bar.
   - Navigation history: every explicit open pushes `{path, line}` onto a stack; the editor
     header gets back/forward buttons and `Cmd/Ctrl+Alt+←/→` walks the stack (history

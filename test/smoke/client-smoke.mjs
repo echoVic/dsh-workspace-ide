@@ -586,6 +586,9 @@ function run() {
   const quickRanked = T.rankQuickOpen('core', ['docs/readme.md', 'src/client/00-core.ts', 'src/client/99-face.ts'], 5);
   assert.equal(quickRanked[0].path, 'src/client/00-core.ts', 'basename hit ranks first');
   assert.deepEqual(T.rankQuickOpen('zzz', ['a.ts'], 5), [], 'no match returns no rows');
+  assert.deepEqual(T.orderQuickFiles(['b.ts', 'a.ts'], ['a.ts', 'b.ts', 'c.ts'], 5), ['a.ts', 'b.ts', 'c.ts'], 'recent files lead the empty query');
+  assert.deepEqual(T.orderQuickFiles(['missing.ts'], ['a.ts'], 5), ['a.ts'], 'unknown recent paths are skipped');
+  assert.deepEqual(T.orderQuickFiles([], ['b.ts', 'a.ts'], 1), ['b.ts'], 'the limit slices the ordered list');
   assert.deepEqual(T.bracketMatch('(a)', 1), { open: 0, close: 2 }, 'caret inside a bracket pair matches it');
   assert.deepEqual(T.bracketMatch('((x))', 2), { open: 1, close: 3 }, 'nested pairs balance');
   assert.equal(T.bracketMatch('abc', 1), null, 'no bracket next to the caret');

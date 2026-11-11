@@ -796,6 +796,11 @@ const ST_FILES = {
     color: C.text,
     borderTopColor: C.accent,
   },
+  tabFileIcon: {
+    display: 'inline-flex',
+    color: C.textTertiary,
+    flex: '0 0 auto',
+  },
   tabLabel: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -1030,6 +1035,40 @@ function rankQuickOpen(query: string, files: string[], limit?: number): Array<{ 
 
 S.quickOpenScore = quickOpenScore;
 S.rankQuickOpen = rankQuickOpen;
+
+/**
+ * Quick-open rows for an empty query: recently opened files first (most recent
+ * first), then the remaining index in order — JetBrains' "Recent Files" feel.
+ * @param recent - open history paths, oldest first.
+ * @param files - full workspace index.
+ * @param limit - maximum rows.
+ * @returns ordered path list.
+ */
+function orderQuickFiles(recent: string[], files: string[], limit?: number): string[] {
+  const list = Array.isArray(files) ? files : [];
+  const max = typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
+  const known = new Set(list);
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  const history = Array.isArray(recent) ? recent : [];
+  for (let index = history.length - 1; index >= 0; index = index - 1) {
+    const path = history[index];
+    if (typeof path !== 'string' || path.length === 0 || seen.has(path) || !known.has(path)) continue;
+    seen.add(path);
+    ordered.push(path);
+    if (ordered.length >= max) return ordered;
+  }
+  for (let index = 0; index < list.length; index = index + 1) {
+    const path = list[index];
+    if (seen.has(path)) continue;
+    seen.add(path);
+    ordered.push(path);
+    if (ordered.length >= max) break;
+  }
+  return ordered;
+}
+
+S.orderQuickFiles = orderQuickFiles;
 
 /** Bracket pairs the editor understands for matching / auto-pairing. */
 const BRACKET_PAIRS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
@@ -1502,6 +1541,7 @@ function TabStrip(props: any) {
             if (typeof props.onSelect === 'function') props.onSelect(path);
           },
         },
+        h('span', { style: ST_FILES.tabFileIcon }, h(S.Icons.File, { size: 12 })),
         h('span', { style: ST_FILES.tabLabel }, label.length > 0 ? label : path),
         tab !== null && tab !== undefined && tab.dirty === true
           ? h('span', { style: ST_FILES.tabDirty, title: t('files.modified') }, h(S.Icons.Dot, { size: 8 }))
@@ -2606,12 +2646,22 @@ function FilesView(props: any) {
     setQuickIndex(0);
   }, []);
 
+  const recentPaths = useMemo(
+    function () {
+      return history.map(function (entry: { path: string }) { return entry.path; });
+    },
+    [history],
+  );
+
   const quickResults = useMemo(
     function () {
       if (quickOpen === false || quickFiles === null) return [];
+      if (quickQuery.trim().length === 0) {
+        return typeof S.orderQuickFiles === 'function' ? S.orderQuickFiles(recentPaths, quickFiles, 50) : quickFiles.slice(0, 50);
+      }
       return typeof S.rankQuickOpen === 'function' ? S.rankQuickOpen(quickQuery, quickFiles, 50) : [];
     },
-    [quickOpen, quickQuery, quickFiles],
+    [quickOpen, quickQuery, quickFiles, recentPaths],
   );
 
   const openQuickPath = useCallback(function (filePath: any) {
@@ -3430,7 +3480,11 @@ function FilesView(props: any) {
                 }
               },
             }),
-            quickTruncated ? h('span', { style: ST_FILES.quickBadge }, t('quickOpen.truncated')) : null,
+            quickQuery.trim().length === 0 && quickResults.length > 0
+              ? h('span', { style: ST_FILES.quickBadge }, t('quickOpen.recent'))
+              : quickTruncated
+                ? h('span', { style: ST_FILES.quickBadge }, t('quickOpen.truncated'))
+                : null,
           ),
           h(
             'div',
