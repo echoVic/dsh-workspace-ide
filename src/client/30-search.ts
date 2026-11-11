@@ -185,7 +185,7 @@ const ST_SEARCH = {
 };
 
 /** Focus-ring text input used by the search bar. */
-function SearchField(props) {
+function SearchField(props: any) {
   const [focused, setFocused] = useState(false);
   return h('input', {
     type: 'text',
@@ -206,7 +206,7 @@ function SearchField(props) {
 }
 
 /** One result line: line number gutter + text with the matched span in `<mark>`. */
-function SearchHitRow(props) {
+function SearchHitRow(props: any) {
   const [hover, setHover] = useState(false);
   const segments = S.splitMatch(props.text, props.column, props.length);
   return h(
@@ -225,7 +225,7 @@ function SearchHitRow(props) {
     h(
       'span',
       { style: ST_SEARCH.hitText },
-      segments.map(function (segment, index) {
+      segments.map(function (segment: any, index: any) {
         return segment.hit
           ? h('mark', { key: 'seg-' + String(index), style: ST_SEARCH.mark }, segment.text)
           : h('span', { key: 'seg-' + String(index) }, segment.text);
@@ -235,7 +235,7 @@ function SearchHitRow(props) {
 }
 
 /** One file group: header row + hit rows. */
-function SearchFileGroup(props) {
+function SearchFileGroup(props: any) {
   const [hover, setHover] = useState(false);
   const file = props.file;
   const matches = Array.isArray(file.matches) ? file.matches : [];
@@ -267,7 +267,7 @@ function SearchFileGroup(props) {
       ),
       h('span', { style: ST_SEARCH.fileCount }, S.tt(props.t, 'search.matches', { count: matches.length })),
     ),
-    matches.map(function (match) {
+    matches.map(function (match: any) {
       return h(SearchHitRow, {
         key: 'hit:' + path + ':' + String(match.line) + ':' + String(match.column),
         t: props.t,
@@ -283,7 +283,7 @@ function SearchFileGroup(props) {
 }
 
 /** Results body: summary + grouped file blocks (pure). */
-function SearchResults(props) {
+function SearchResults(props: any) {
   const t = props.t;
   const data = props.data !== null && props.data !== undefined ? props.data : {};
   const files = Array.isArray(data.files) ? data.files : [];
@@ -301,7 +301,7 @@ function SearchResults(props) {
     ),
     files.length === 0
       ? h(S.EmptyState, { t: t, icon: S.Icons.Search, title: t('search.empty', { query: props.query }), body: t('search.empty.body') })
-      : files.map(function (file) {
+      : files.map(function (file: any) {
           return h(SearchFileGroup, {
             key: 'file:' + file.path,
             t: t,
@@ -316,7 +316,7 @@ function SearchResults(props) {
  * The Search tab.
  * @param {{t: Function, root: string, onOpenFile: Function, reloadToken?: number}} props - slot props.
  */
-function SearchView(props) {
+function SearchView(props: any) {
   const fallbackT = S.useT();
   const t = props !== null && props !== undefined && typeof props.t === 'function' ? props.t : fallbackT;
   const root = props.root;
@@ -376,11 +376,11 @@ function SearchView(props) {
     const includeText = typeof include === 'string' ? include.trim() : '';
     if (includeText.length > 0) params.include = includeText;
     S.requestJson(S.apiUrl(ROUTES.search, params), { signal: controller === null ? undefined : controller.signal })
-      .then(function (payload) {
+      .then(function (payload: any) {
         if (requestRef.current !== requestId) return;
         setResult({ status: 'loaded', data: payload, error: null });
       })
-      .catch(function (cause) {
+      .catch(function (cause: any) {
         if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
         if (requestRef.current !== requestId) return;
         setResult({ status: 'error', data: null, error: cause });
@@ -405,24 +405,24 @@ function SearchView(props) {
     return undefined;
   }, [root]);
 
-  const onQueryChange = useCallback(function (event) {
+  const onQueryChange = useCallback(function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     setQuery(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
   }, []);
 
-  const onIncludeChange = useCallback(function (event) {
+  const onIncludeChange = useCallback(function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     setInclude(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
   }, []);
 
-  const onKeyDown = useCallback(function (event) {
+  const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
     if (event.key !== 'Enter') return;
     event.preventDefault();
     runSearch();
   }, [runSearch]);
 
-  const onOpenHit = useCallback(function (path, line) {
+  const onOpenHit = useCallback(function (path: any, line: any) {
     if (typeof props.onOpenFile === 'function') props.onOpenFile(path, line);
   }, [props.onOpenFile]);
 

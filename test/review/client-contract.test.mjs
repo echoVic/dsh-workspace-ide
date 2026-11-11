@@ -23,7 +23,7 @@ import vm from 'node:vm';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, '..', '..');
 const ARTIFACT = path.join(PROJECT, 'lib', 'client.js');
-const SOURCE_FILES = ['00-core.js', '10-shell.js', '20-files.js', '30-search.ts', '40-git.js', '99-face.js'];
+const SOURCE_FILES = ['00-core.ts', '10-shell.ts', '20-files.ts', '30-search.ts', '40-git.ts', '99-face.ts'];
 
 // ─── fake React ──────────────────────────────────────────────────────────────
 
@@ -745,7 +745,7 @@ describe('i18n completeness', () => {
       const zhEnd = lines.findIndex((line) => line.trim() === 'en: {');
       lines.forEach((line, index) => {
         if (!cjk.test(line)) return;
-        const inDictionary = file === '00-core.js' && zhStart !== -1 && zhEnd !== -1 && index > zhStart && index < zhEnd;
+        const inDictionary = file === '00-core.ts' && zhStart !== -1 && zhEnd !== -1 && index > zhStart && index < zhEnd;
         assert.ok(inDictionary, `hard-coded CJK outside the dictionary in ${file}:${index + 1}: ${line.trim()}`);
       });
     }

@@ -14,12 +14,12 @@
 
 S.face = {
   inject: ['slots'],
-  apply: function apply(ctx) {
-    const fallbackT = function (key, params) {
+  apply: function apply(ctx: any) {
+    const fallbackT = function (key: any, params: any) {
       return translateText(localePref(), key, params);
     };
-    let t = fallbackT;
-    let localeOption = {};
+    let t: any = fallbackT;
+    let localeOption: any = {};
 
     try {
       const locale = ctx !== null && ctx !== undefined && typeof ctx.get === 'function' ? ctx.get('locale') : null;
@@ -60,8 +60,8 @@ S.face = {
      * workspace that owns the session the app is currently viewing, so opening
      * the panel lands on the user's own workspace instead of registry order.
      */
-    function PanelWithWorkspaces(props) {
-      const snapshot = props.useWorkspaces(function (value) { return value; });
+    function PanelWithWorkspaces(props: any) {
+      const snapshot = props.useWorkspaces(function (value: any) { return value; });
       const sessionId = S.getCurrentSessionId();
       const preferredRoot = S.preferredWorkspaceRoot(snapshot, sessionId);
       const translator = typeof props.t === 'function' ? props.t : t;
@@ -69,7 +69,7 @@ S.face = {
     }
 
     /** Panel body fallback: no workspace hook in the slot kit. */
-    function PanelPlain(props) {
+    function PanelPlain(props: any) {
       const translator = typeof props.t === 'function' ? props.t : t;
       return h(S.PanelBoundary, { t: translator }, h(S.Shell, { t: translator }));
     }
@@ -77,7 +77,7 @@ S.face = {
     ctx.slots.inject('main', function () {
       return ctx.slots.register(
         Object.assign({ name: 'main', key: PANEL_ID }, localeOption),
-        function WorkspaceIdePanel(props) {
+        function WorkspaceIdePanel(props: any) {
           const translator = props !== null && props !== undefined && typeof props.t === 'function' ? props.t : t;
           const bound = props !== null && props !== undefined && typeof props.useWorkspaces === 'function'
             ? h(PanelWithWorkspaces, { t: translator, useWorkspaces: props.useWorkspaces })

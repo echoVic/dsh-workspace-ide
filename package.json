@@ -1,6 +1,6 @@
 {
   "name": "dsh-workspace-ide",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": false,
   "description": "A VS Code-like workspace IDE panel for DeepSeek Harness: file tree with code viewer, full-text workspace search, and git status / diff / history",
   "type": "module",

@@ -24,7 +24,7 @@ jobs:
       - name: Host noImplicitAny type check
         run: npm run typecheck:host
 
-      - name: Client noImplicitAny type check (core + icons)
+      - name: Client noImplicitAny type check (all client sources)
         run: npm run typecheck:client
 
       - name: Client bundle is up to date

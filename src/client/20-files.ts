@@ -14,45 +14,47 @@
  * Windows-checked-out file would be silently rewritten with LF endings merely
  * because it was opened and saved.
  */
-function normalizeEol(text) {
+function normalizeEol(text: any) {
   return typeof text === 'string' ? text.replace(/\r\n/g, '\n') : '';
 }
 
 /** @param {string} text - LF text. @param {string} eol - original line ending. @returns {string} text in that ending. */
-function applyEol(text, eol) {
+function applyEol(text: string, eol: string): string {
   return eol === '\r\n' ? text.replace(/\n/g, '\r\n') : text;
 }
 
 /** @param {string} text - raw file content. @returns {string} the detected line ending. */
-function detectEol(text) {
+function detectEol(text: string): string {
   return typeof text === 'string' && text.indexOf('\r\n') !== -1 ? '\r\n' : '\n';
 }
 
-/**
- * @typedef {Object} TreeEntry
- * @property {string} name
- * @property {string} path
- * @property {string} type
- * @property {number} [size]
- * @property {number} [mtimeMs]
- * @property {boolean} [hidden]
- */
-/**
- * @typedef {{width: number, height: number}} ImageDimensions
- */
-/**
- * @typedef {Object} FileState
- * @property {string} status
- * @property {any} data
- * @property {string} [eol]
- * @property {any} error
- */
-/**
- * @typedef {Object} OpenRequest
- * @property {string} [path]
- * @property {number} [line]
- * @property {number} [token]
- */
+/** One tree row. */
+interface TreeEntry {
+  name: string;
+  path: string;
+  type: string;
+  size?: number;
+  mtimeMs?: number;
+  hidden?: boolean;
+}
+
+/** Pixel size measured from a loaded image. */
+type ImageDimensions = { width: number; height: number };
+
+/** Loaded file payload state. */
+interface FileState {
+  status: string;
+  data: any;
+  eol?: string;
+  error: any;
+}
+
+/** Request to open a file (optionally at a line). */
+interface OpenRequest {
+  path?: string;
+  line?: number;
+  token?: number;
+}
 
 const ST_FILES = {
   mdToggle: {
@@ -446,7 +448,7 @@ const ST_FILES = {
  * @param {string} text - file text.
  * @returns {number} number of lines (1 for an empty file, 0 only for null).
  */
-function countLines(text) {
+function countLines(text: string): number {
   if (typeof text !== 'string') return 0;
   if (text.length === 0) return 1;
   let lines = 1;
@@ -462,9 +464,9 @@ function countLines(text) {
  * @param {number} count - line count.
  * @returns {string} newline-separated right-aligned line numbers (one <pre>).
  */
-function lineNumbersText(count) {
+function lineNumbersText(count: number): string {
   const total = Math.max(1, Number.isFinite(count) ? Math.floor(count) : 1);
-  const rows = [];
+  const rows: any[] = [];
   for (let line = 1; line <= total; line = line + 1) rows.push(String(line));
   return rows.join('\n');
 }
@@ -478,7 +480,7 @@ function lineNumbersText(count) {
  * @param {Array<Array<Array<string>>>} lines - highlightLines output.
  * @returns {boolean} true when nothing needs a coloured span.
  */
-function isPlainHighlight(lines) {
+function isPlainHighlight(lines: Array<Array<Array<string>>>): boolean {
   if (!Array.isArray(lines)) return true;
   for (let index = 0; index < lines.length; index = index + 1) {
     const segments = lines[index];
@@ -498,8 +500,8 @@ function isPlainHighlight(lines) {
  * @param {Array<Array<Array<string>>>} lines - highlightLines output.
  * @returns {Array} React children for a `<pre>`.
  */
-function renderSyntaxChildren(lines) {
-  const children = [];
+function renderSyntaxChildren(lines: Array<Array<Array<string>>>): any[] {
+  const children: any[] = [];
   if (!Array.isArray(lines)) return children;
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex = lineIndex + 1) {
     if (lineIndex > 0) children.push('\n');
@@ -529,7 +531,7 @@ function renderSyntaxChildren(lines) {
  * @param {number} index - UTF-16 offset.
  * @returns {{line: number, column: number}} 1-based caret location.
  */
-function caretFromIndex(text, index) {
+function caretFromIndex(text: string, index: number): any {
   const value = typeof text === 'string' ? text : '';
   const position = Number.isFinite(index) ? clampNumber(Math.floor(index), 0, value.length) : 0;
   let line = 1;
@@ -544,7 +546,7 @@ function caretFromIndex(text, index) {
 }
 
 /** @param {TreeEntry} entry - list entry. @returns {boolean} keep it in the tree. */
-function keepTreeEntry(entry) {
+function keepTreeEntry(entry: TreeEntry): boolean {
   if (entry === null || entry === undefined) return false;
   if (typeof entry.name !== 'string' || typeof entry.path !== 'string') return false;
   if (entry.name === '.git' || entry.name === '.DS_Store') return false;
@@ -552,7 +554,7 @@ function keepTreeEntry(entry) {
 }
 
 /** One clickable row in the workspace tree (pure). */
-function FileTreeRow(props) {
+function FileTreeRow(props: any) {
   const [hover, setHover] = useState(false);
   const entry = props.entry;
   const isDir = entry.type === 'dir';
@@ -600,7 +602,7 @@ function FileTreeRow(props) {
 }
 
 /** Recursive tree rows for one directory (pure; children only when expanded). */
-function TreeDirRows(props) {
+function TreeDirRows(props: any) {
   const t = props.t;
   const node = props.tree[props.dirPath];
   if (node === undefined || node === null) return null;
@@ -628,8 +630,8 @@ function TreeDirRows(props) {
   }
   const entries = Array.isArray(node.entries) ? node.entries : [];
   if (entries.length === 0) return h('div', { style: ST_FILES.treeEmpty }, t('files.tree.empty'));
-  const rows = [];
-  entries.forEach(function (entry) {
+  const rows: any[] = [];
+  entries.forEach(function (entry: any) {
     rows.push(
       h(FileTreeRow, {
         key: 'row:' + entry.path,
@@ -666,12 +668,12 @@ function TreeDirRows(props) {
  * surface, and a status bar with the natural dimensions once the image loads.
  * @param {{t: Function, path: string, src: string, mime: string, size: number, mtimeMs: number|null, dimensions: ImageDimensions|null, onDimensions: Function}} props - viewer props.
  */
-function ImageViewer(props) {
+function ImageViewer(props: any) {
   const t = props.t;
   const segments = typeof props.path === 'string' && props.path.length > 0 ? props.path.split('/') : [];
   const dimensions = props.dimensions !== null && props.dimensions !== undefined ? props.dimensions : null;
   const size = Number.isFinite(props.size) ? props.size : 0;
-  const onImageLoad = function (event) {
+  const onImageLoad = function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     if (target === null || target === undefined) return;
     if (typeof props.onDimensions !== 'function') return;
@@ -687,7 +689,7 @@ function ImageViewer(props) {
       h(
         'div',
         { style: ST_FILES.breadcrumb, title: props.path },
-        segments.map(function (segment, index) {
+        segments.map(function (segment: any, index: any) {
           return h(
             'span',
             { key: 'crumb-' + String(index), style: { display: 'inline-flex', alignItems: 'center', minWidth: 0 } },
@@ -718,7 +720,7 @@ function ImageViewer(props) {
 }
 
 /** The code viewer pane: header, gutter + textarea (or read-only pre), status bar. */
-function FileViewer(props) {
+function FileViewer(props: any) {
   const t = props.t;
   const readOnly = props.readOnly === true;
   const dirty = props.dirty === true;
@@ -729,7 +731,7 @@ function FileViewer(props) {
   const svgMode = props.svgMode === 'source' ? 'source' : 'image';
   const svgImageMode = isSvg && svgMode === 'image';
   const dimensions = props.dimensions !== null && props.dimensions !== undefined ? props.dimensions : null;
-  const onImageLoad = function (event) {
+  const onImageLoad = function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     if (target === null || target === undefined) return;
     if (typeof props.onDimensions !== 'function') return;
@@ -751,7 +753,7 @@ function FileViewer(props) {
   // turn into tens of thousands of spans.
   const highlight = useMemo(
     function () {
-      let lines = [];
+      let lines: any[] = [];
       try {
         lines = typeof S.highlightLines === 'function' ? S.highlightLines(props.value, props.language) : [];
       } catch (error) {
@@ -778,7 +780,7 @@ function FileViewer(props) {
   );
 
   const textareaRef = props.textareaRef !== null && props.textareaRef !== undefined ? props.textareaRef : null;
-  const syntaxRef = useRef(/** @type {HTMLElement|null} */ (null));
+  const syntaxRef = useRef<any>(null);
 
   // The overlay has no scroll of its own: it follows the textarea's scroll
   // offsets with a transform, so the coloured glyphs stay on the same pixels as
@@ -803,7 +805,7 @@ function FileViewer(props) {
     return undefined;
   }, [props.path, syncSyntaxScroll]);
 
-  function handleEditorScroll(event) {
+  function handleEditorScroll(event: any) {
     syncSyntaxScroll();
     if (typeof props.onScroll === 'function') props.onScroll(event);
   }
@@ -819,7 +821,7 @@ function FileViewer(props) {
       h(
         'div',
         { style: ST_FILES.breadcrumb, title: props.path },
-        segments.map(function (segment, index) {
+        segments.map(function (segment: any, index: any) {
           return h(
             'span',
             { key: 'crumb-' + String(index), style: { display: 'inline-flex', alignItems: 'center', minWidth: 0 } },
@@ -1014,34 +1016,34 @@ function FileViewer(props) {
  * The Files tab: tree on the left, viewer on the right.
  * @param {{t: Function, root: string, openRequest?: OpenRequest|null, reloadToken?: number, onOpenFile?: Function}} props - slot props.
  */
-function FilesView(props) {
+function FilesView(props: any) {
   const fallbackT = S.useT();
   const t = props !== null && props !== undefined && typeof props.t === 'function' ? props.t : fallbackT;
   const root = props.root;
 
-  const [tree, setTree] = useState({});
-  const [expanded, setExpanded] = useState({ '': true });
-  const [selected, setSelected] = useState(/** @type {string|null} */ (null));
-  const [file, setFile] = useState(/** @type {FileState} */ ({ status: 'idle', data: null, error: null }));
+  const [tree, setTree] = useState<Record<string, any>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ '': true });
+  const [selected, setSelected] = useState<any>(null);
+  const [file, setFile] = useState<any>({ status: 'idle', data: null, error: null });
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState(/** @type {any} */ (null));
+  const [notice, setNotice] = useState<any>(null);
   const [caret, setCaret] = useState({ line: 1, column: 1 });
-  const [pendingLine, setPendingLine] = useState(/** @type {number|null} */ (null));
+  const [pendingLine, setPendingLine] = useState<any>(null);
   const [markdownMode, setMarkdownMode] = useState('source');
   const [svgMode, setSvgMode] = useState('image');
-  const [image, setImage] = useState(/** @type {{status: string, data: any, error: any}} */ ({ status: 'idle', data: null, error: null }));
-  const [dimensions, setDimensions] = useState(/** @type {ImageDimensions|null} */ (null));
+  const [image, setImage] = useState<any>({ status: 'idle', data: null, error: null });
+  const [dimensions, setDimensions] = useState<any>(null);
 
-  const textareaRef = useRef(/** @type {HTMLTextAreaElement|null} */ (null));
-  const gutterRef = useRef(/** @type {HTMLElement|null} */ (null));
+  const textareaRef = useRef<any>(null);
+  const gutterRef = useRef<any>(null);
   const fileRequestRef = useRef(0);
   const genRef = useRef(0);
-  const noticeTimerRef = useRef(/** @type {ReturnType<typeof setTimeout>|null} */ (null));
+  const noticeTimerRef = useRef<any>(null);
 
   // Success / info notices fade after a moment; error notices stay until the
   // next action so a failed save is never missed.
-  const showNotice = useCallback(function (next) {
+  const showNotice = useCallback(function (next: any) {
     setNotice(next);
     if (noticeTimerRef.current !== null && noticeTimerRef.current !== undefined) {
       try {
@@ -1075,7 +1077,7 @@ function FilesView(props) {
     };
   }, []);
 
-  const loadDir = useCallback(/** @param {string} dirPath - directory path relative to the root. @param {number} [generation] - tree generation for stale-response rejection. */ function (dirPath, generation) {
+  const loadDir = useCallback(/** @param {string} dirPath - directory path relative to the root. @param {number} [generation] - tree generation for stale-response rejection. */ function (dirPath: any, generation?: any) {
     const gen = generation === undefined ? genRef.current : generation;
     setTree(function (previous) {
       const next = Object.assign({}, previous);
@@ -1083,7 +1085,7 @@ function FilesView(props) {
       return next;
     });
     S.requestJson(S.apiUrl(ROUTES.list, { root: root, path: dirPath }))
-      .then(function (payload) {
+      .then(function (payload: any) {
         if (genRef.current !== gen) return;
         const entries = Array.isArray(payload.entries) ? payload.entries.filter(keepTreeEntry) : [];
         setTree(function (previous) {
@@ -1092,7 +1094,7 @@ function FilesView(props) {
           return next;
         });
       })
-      .catch(function (cause) {
+      .catch(function (cause: any) {
         if (genRef.current !== gen) return;
         if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
         setTree(function (previous) {
@@ -1122,7 +1124,7 @@ function FilesView(props) {
     };
   }, [root, loadDir]);
 
-  const toggleDir = useCallback(function (entry) {
+  const toggleDir = useCallback(function (entry: any) {
     if (entry === null || entry === undefined || entry.type !== 'dir' || typeof entry.path !== 'string') return;
     const path = entry.path;
     const open = expanded[path] === true;
@@ -1138,7 +1140,7 @@ function FilesView(props) {
     }
   }, [expanded, tree, loadDir]);
 
-  const openFile = useCallback(function (path, line) {
+  const openFile = useCallback(function (path: any, line: any) {
     if (typeof path !== 'string' || path.length === 0) return;
     const requestId = fileRequestRef.current + 1;
     fileRequestRef.current = requestId;
@@ -1159,11 +1161,11 @@ function FilesView(props) {
       setFile({ status: 'idle', data: null, error: null });
       setImage({ status: 'loading', data: null, error: null });
       S.requestJson(S.apiUrl(ROUTES.image, { root: root, path: path }))
-        .then(function (payload) {
+        .then(function (payload: any) {
           if (fileRequestRef.current !== requestId || genRef.current !== gen) return;
           setImage({ status: 'loaded', data: payload, error: null });
         })
-        .catch(function (cause) {
+        .catch(function (cause: any) {
           if (fileRequestRef.current !== requestId || genRef.current !== gen) return;
           if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
           setImage({ status: 'error', data: null, error: cause });
@@ -1171,7 +1173,7 @@ function FilesView(props) {
       return;
     }
     S.requestJson(S.apiUrl(ROUTES.file, { root: root, path: path }))
-      .then(function (payload) {
+      .then(function (payload: any) {
         if (fileRequestRef.current !== requestId || genRef.current !== gen) return;
         const content = typeof payload.content === 'string' ? payload.content : '';
         setFile({ status: 'loaded', data: payload, eol: detectEol(content), error: null });
@@ -1179,7 +1181,7 @@ function FilesView(props) {
         const target = Number.isFinite(line) && line > 0 ? Math.floor(line) : null;
         if (target !== null) setPendingLine(target);
       })
-      .catch(function (cause) {
+      .catch(function (cause: any) {
         if (fileRequestRef.current !== requestId || genRef.current !== gen) return;
         if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
         setFile({ status: 'error', data: null, error: cause });
@@ -1220,8 +1222,8 @@ function FilesView(props) {
     setSaving(true);
     setNotice(null);
     S.requestJson(ROUTES.save, { method: 'POST', body: { root: root, path: selected, content: contentToSave } })
-      .then(function (payload) {
-        setFile(function (previous) {
+      .then(function (payload: any) {
+        setFile(function (previous: any) {
           if (previous === null || previous === undefined || previous.status !== 'loaded') return previous;
           const nextData = Object.assign({}, previous.data, {
             content: contentToSave,
@@ -1233,7 +1235,7 @@ function FilesView(props) {
         setSaving(false);
         showNotice({ kind: 'success', text: t('files.saved') });
       })
-      .catch(function (cause) {
+      .catch(function (cause: any) {
         setSaving(false);
         showNotice({ kind: 'error', text: t('files.saveError', { message: S.errorText(cause) }) });
       });
@@ -1250,13 +1252,13 @@ function FilesView(props) {
     showNotice({ kind: 'info', text: t('files.discard') });
   }, [selected, openFile, t, showNotice]);
 
-  const syncCaret = useCallback(function (event) {
+  const syncCaret = useCallback(function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     if (target === null || target === undefined) return;
     setCaret(caretFromIndex(typeof target.value === 'string' ? target.value : draft, target.selectionStart));
   }, [draft]);
 
-  const onEditorScroll = useCallback(function (event) {
+  const onEditorScroll = useCallback(function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     const gutter = gutterRef.current;
     if (target !== null && target !== undefined && gutter !== null && gutter !== undefined) {
@@ -1264,7 +1266,7 @@ function FilesView(props) {
     }
   }, []);
 
-  function applyLineJump(targetLine) {
+  function applyLineJump(targetLine: any) {
     const textarea = textareaRef.current;
     if (textarea === null || textarea === undefined) return;
     const value = typeof textarea.value === 'string' ? textarea.value : draft;
@@ -1328,7 +1330,7 @@ function FilesView(props) {
     return undefined;
   }, [openToken]);
 
-  const onChange = useCallback(function (event) {
+  const onChange = useCallback(function (event: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     const value = target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '';
     setDraft(value);
@@ -1366,7 +1368,7 @@ function FilesView(props) {
     return true;
   }, [draft, file.status, language, readOnly]);
 
-  const onKeyDown = useCallback(function (event) {
+  const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
     const key = event.key;
     const meta = event.metaKey === true || event.ctrlKey === true;
@@ -1467,7 +1469,7 @@ function FilesView(props) {
   );
 
   /** @type {any} */
-  let viewer = null;
+  let viewer: any = null;
   if (image.status === 'loading') {
     viewer = h(S.LoadingIndicator, { t: t, label: t('files.loading') });
   } else if (image.status === 'error') {

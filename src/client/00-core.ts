@@ -35,7 +35,7 @@ const ROUTES = Object.freeze({
   ping: 'api/dsh-workspace-ide.ping',
 });
 /** Image extensions the Files tab can render. SVG keeps a source/preview toggle. */
-const IMAGE_MIME_BY_EXTENSION = Object.freeze({
+const IMAGE_MIME_BY_EXTENSION: Record<string, string> = Object.freeze({
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -53,7 +53,7 @@ const IMAGE_MIME_BY_EXTENSION = Object.freeze({
  * @param {unknown} filePath - workspace-relative path.
  * @returns {string|null} image MIME type or null.
  */
-function imageMimeForPath(filePath) {
+function imageMimeForPath(filePath: unknown): string|null {
   if (typeof filePath !== 'string') return null;
   const slash = filePath.lastIndexOf('/');
   const base = slash === -1 ? filePath : filePath.slice(slash + 1);
@@ -70,7 +70,7 @@ function imageMimeForPath(filePath) {
  * @param {unknown} base64 - base64 payload from the Host.
  * @returns {string|null} data URL or null.
  */
-function buildImageDataUrl(mime, base64) {
+function buildImageDataUrl(mime: unknown, base64: unknown): string|null {
   if (typeof mime !== 'string' || typeof base64 !== 'string' || base64.length === 0) return null;
   return 'data:' + mime + ';base64,' + base64;
 }
@@ -82,7 +82,7 @@ function buildImageDataUrl(mime, base64) {
  * @param {unknown} svgText - SVG source.
  * @returns {string|null} data URL or null.
  */
-function buildSvgDataUrl(svgText) {
+function buildSvgDataUrl(svgText: unknown): string|null {
   if (typeof svgText !== 'string' || svgText.length === 0) return null;
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
 }
@@ -122,7 +122,7 @@ S.TABS = [
 // is present (see 99-face.js); the slot then hands the panel its own `t`. When
 // the service is absent the same dictionary is used with the page language.
 
-const DICT = {
+const DICT: Record<string, Record<string, string>> = {
   zh: {
     panel: '工作区',
     'tabs.label': '视图',
@@ -428,7 +428,7 @@ function localePref() {
 }
 
 /** @param {string} lang - language tag. @returns {boolean} true for Chinese. */
-function isChinese(lang) {
+function isChinese(lang: string): boolean {
   return typeof lang === 'string' && lang.toLowerCase().indexOf('zh') === 0;
 }
 
@@ -439,7 +439,7 @@ function isChinese(lang) {
  * @param {object} [params] - interpolation values.
  * @returns {string} translated text (the key when unknown).
  */
-function translateText(lang, key, params) {
+function translateText(lang: string, key: string, params: any): string {
   const table = isChinese(lang) ? DICT.zh : DICT.en;
   const dictionary = /** @type {Record<string, string>} */ (table);
   let template = dictionary[key];
@@ -458,7 +458,7 @@ function translateText(lang, key, params) {
  */
 S.useT = function useT() {
   const lang = localePref();
-  return useCallback(function (key, params) {
+  return useCallback(function (key: string, params?: any) {
     return translateText(lang, key, params);
   }, [lang]);
 };
@@ -472,7 +472,7 @@ S.localePref = localePref;
  * @param {object} [params] - interpolation values.
  * @returns {string} translated text.
  */
-S.translate = function translate(key, params) {
+S.translate = function translate(key: string, params?: any) {
   return translateText(localePref(), key, params);
 };
 
@@ -484,7 +484,7 @@ S.translate = function translate(key, params) {
  * @param {object} [params] - interpolation values.
  * @returns {string} translated text or the key.
  */
-function translateOrKey(translator, key, params) {
+function translateOrKey(translator: Function|any, key: string, params?: any): string {
   return typeof translator === 'function' ? translator(key, params) : key;
 }
 
@@ -496,7 +496,7 @@ S.tt = translateOrKey;
  * @param {number} bytes - byte count.
  * @returns {string} compact binary size (e.g. "12.4 KB"), "—" when unknown.
  */
-function formatBytes(bytes) {
+function formatBytes(bytes: number): string {
   const value = Number(bytes);
   if (!Number.isFinite(value) || value < 0) return '—';
   if (value < 1024) return value + ' B';
@@ -515,7 +515,7 @@ function formatBytes(bytes) {
  * @param {number|string} value - epoch ms or parseable date string.
  * @returns {string} locale-aware "YYYY/MM/DD HH:mm"-style timestamp or "—".
  */
-function formatDateTime(value) {
+function formatDateTime(value: number|string): string {
   const ms = typeof value === 'number' ? value : Date.parse(String(value));
   if (!Number.isFinite(ms)) return '—';
   const lang = localePref();
@@ -541,7 +541,7 @@ function formatDateTime(value) {
  * @param {number} value - integer.
  * @returns {string} grouped integer when Intl exists.
  */
-function formatCount(value) {
+function formatCount(value: number): string {
   const number = Number(value);
   if (!Number.isFinite(number)) return '0';
   const lang = localePref();
@@ -558,7 +558,7 @@ function formatCount(value) {
  * @param {number} max - upper bound.
  * @returns {number} clamped value.
  */
-function clampNumber(value, min, max) {
+function clampNumber(value: number, min: number, max: number): number {
   const number = Number(value);
   if (!Number.isFinite(number)) return min;
   if (number < min) return min;
@@ -569,7 +569,7 @@ function clampNumber(value, min, max) {
 // ─── storage ─────────────────────────────────────────────────────────────────
 
 /** @param {string} key - localStorage key. @returns {string|null} stored text. */
-function readStorage(key) {
+function readStorage(key: string): string|null {
   try {
     if (typeof window === 'undefined' || window === null) return null;
     const store = window.localStorage;
@@ -582,7 +582,7 @@ function readStorage(key) {
 }
 
 /** @param {string} key - localStorage key. @param {string|null} value - text or null. */
-function writeStorage(key, value) {
+function writeStorage(key: string, value: string|null) {
   try {
     if (typeof window === 'undefined' || window === null) return;
     const store = window.localStorage;
@@ -595,7 +595,7 @@ function writeStorage(key, value) {
 }
 
 /** @param {string} key - localStorage key. @returns {number|null} stored number. */
-function readStoredNumber(key) {
+function readStoredNumber(key: string): number|null {
   const raw = readStorage(key);
   if (raw === null) return null;
   const value = Number(raw);
@@ -603,7 +603,7 @@ function readStoredNumber(key) {
 }
 
 /** @param {string} key - localStorage key. @param {number} value - number to store. */
-function writeStoredNumber(key, value) {
+function writeStoredNumber(key: string, value: number) {
   if (typeof key !== 'string' || !Number.isFinite(value)) return;
   writeStorage(key, String(Math.round(value)));
 }
@@ -644,7 +644,7 @@ const STORAGE_THEME = 'dsh-workspace-ide:theme';
  * The four dark palettes additionally raise the scrollbar thumb so it stays
  * visible on their dark panel background.
  */
-const THEME_PALETTES = Object.freeze({
+const THEME_PALETTES: Record<string, Record<string, string>> = Object.freeze({
   'dark-plus': Object.freeze({
     // Syntax-highlighting token colours (`--ide-tok-*`) for this palette.
     '--ide-tok-keyword': '#569CD6',
@@ -923,7 +923,7 @@ S.THEMES = THEMES;
  * @param {unknown} id - candidate theme id.
  * @returns {boolean} true when it names one of the six palettes.
  */
-function isThemeId(id) {
+function isThemeId(id: unknown): boolean {
   if (typeof id !== 'string' || id.length === 0) return false;
   return THEME_DEFS.some(function (definition) {
     return definition[0] === id;
@@ -934,8 +934,8 @@ function isThemeId(id) {
  * @param {unknown} id - candidate theme id.
  * @returns {string} a valid theme id (`auto` for anything unknown).
  */
-function normalizeThemeId(id) {
-  return isThemeId(id) ? /** @type {string} */ (id) : 'auto';
+function normalizeThemeId(id: unknown): string {
+  return isThemeId(id) ? (id as string) : 'auto';
 }
 
 /**
@@ -951,7 +951,7 @@ function readTheme() {
  * @param {unknown} id - theme id.
  * @returns {string} the normalised id that was stored.
  */
-function writeTheme(id) {
+function writeTheme(id: unknown): string {
   const next = normalizeThemeId(id);
   writeStorage(STORAGE_THEME, next);
   return next;
@@ -963,7 +963,7 @@ function writeTheme(id) {
  * @param {unknown} id - theme id.
  * @returns {object} a fresh `--dsw-alias-*` -> colour map.
  */
-function themeVars(id) {
+function themeVars(id: unknown): any {
   const palette = /** @type {Record<string, Record<string, string>>} */ (THEME_PALETTES)[normalizeThemeId(id)];
   if (palette === null || palette === undefined) return {};
   return Object.assign({}, palette);
@@ -981,8 +981,9 @@ S.themeVars = themeVars;
 
 /** A failed Host request carrying the contract's error code. */
 class RequestFailure extends Error {
-  /** @param {string} code - stable failure code. @param {string} message - readable detail. */
-  constructor(code, message) {
+  code: string;
+
+  constructor(code: string, message: string) {
     super(message);
     this.name = 'RequestFailure';
     this.code = code;
@@ -995,10 +996,10 @@ class RequestFailure extends Error {
  * @param {Record<string, any>} [params] - query entries; null/undefined are skipped.
  * @returns {string} URL without a leading slash (the connection base is /api/).
  */
-function apiUrl(route, params) {
+function apiUrl(route: string, params: Record<string, any>): string {
   if (params === undefined || params === null) return route;
   /** @type {Array<string>} */
-  const parts = [];
+  const parts: any[] = [];
   Object.keys(params).forEach(function (key) {
     const value = params[key];
     if (value === undefined || value === null) return;
@@ -1017,12 +1018,11 @@ function apiUrl(route, params) {
  * @param {{method?: string, body?: object, signal?: AbortSignal}} [options] - request options.
  * @returns {Promise<object>} the payload (always with `ok === true`).
  */
-async function requestJson(url, options) {
+async function requestJson(url: string, options?: { method?: string, body?: any, signal?: AbortSignal }): Promise<object> {
   const settings = options === undefined || options === null ? {} : options;
-  /** @type {Record<string, string>} */
-  const headers = { accept: 'application/json' };
+  const headers: Record<string, string> = { accept: 'application/json' };
   /** @type {RequestInit} */
-  const init = {
+  const init: any = {
     method: typeof settings.method === 'string' ? settings.method : 'GET',
     headers: headers,
   };
@@ -1040,17 +1040,17 @@ async function requestJson(url, options) {
   try {
     response = await fetch(url, init);
   } catch (cause) {
-    const failure = /** @type {any} */ (cause);
+    const failure: any = cause;
     if (failure !== null && failure !== undefined && failure.name === 'AbortError') throw cause;
     const reason = failure !== null && failure !== undefined && typeof failure.message === 'string' ? failure.message : 'network error';
     throw new RequestFailure('network', reason);
   }
   /** @type {any} */
-  let payload = null;
+  let payload: any = null;
   try {
     payload = await response.json();
   } catch (cause) {
-    const failure = /** @type {any} */ (cause);
+    const failure: any = cause;
     if (failure !== null && failure !== undefined && failure.name === 'AbortError') throw cause;
     payload = null;
   }
@@ -1072,7 +1072,7 @@ async function requestJson(url, options) {
  * @param {unknown} cause - thrown value.
  * @returns {string} a message safe to render inline.
  */
-function errorText(cause) {
+function errorText(cause: unknown): string {
   if (cause === null || cause === undefined) return 'unknown error';
   if (typeof cause === 'string') return cause;
   if (cause instanceof Error && typeof cause.message === 'string' && cause.message.length > 0) return cause.message;
@@ -1087,7 +1087,7 @@ function errorText(cause) {
  * @param {string} stage - marker name (`apply`, `panel`, `tab`, …).
  * @param {unknown} [detail] - optional payload.
  */
-function ping(stage, detail) {
+function ping(stage: string, detail: unknown) {
   try {
     if (typeof fetch !== 'function') return;
     const body = JSON.stringify({ stage: stage, detail: detail === undefined ? null : detail });
@@ -1141,10 +1141,10 @@ function getCurrentSessionId() {
  * @param {string|null} sessionId - active session id.
  * @returns {string|null} workspace path, or null.
  */
-function preferredWorkspaceRoot(snapshot, sessionId) {
+function preferredWorkspaceRoot(snapshot: unknown, sessionId: string|null): string|null {
   if (typeof sessionId !== 'string' || sessionId.length === 0) return null;
   if (snapshot === null || typeof snapshot !== 'object') return null;
-  const record = /** @type {Record<string, any>} */ (snapshot);
+  const record: any = snapshot;
   const items = Array.isArray(record.items) ? record.items : [];
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
@@ -1177,7 +1177,7 @@ S.EDITOR_PADDING_TOP = EDITOR_PADDING_TOP;
 // Only DSH alias tokens, always with a fallback so a token rename degrades to a
 // readable colour instead of a transparent panel.
 
-const alias = /** @param {string} name @param {string} fallback @returns {string} */ function (name, fallback) {
+const alias = function (name: string, fallback: string): string {
   return 'var(--dsw-alias-' + name + ', ' + fallback + ')';
 };
 
@@ -1563,7 +1563,7 @@ const ST_CORE = {
  * `data-*` and ARIA props pass through so the smoke test can locate tabs.
  * @param {any} props - component props.
  */
-function ToolButton(props) {
+function ToolButton(props: any) {
   const [hover, setHover] = useState(false);
   const [focused, setFocused] = useState(false);
   const active = props.active === true;
@@ -1577,7 +1577,7 @@ function ToolButton(props) {
     focused && !active && !disabled ? ST_CORE.toolButtonFocus : null,
     props.style !== null && props.style !== undefined ? props.style : null,
   );
-  const buttonProps = {};
+  const buttonProps: any = {};
   Object.keys(props).forEach(function (key) {
     if (['title', 'ariaLabel', 'active', 'disabled', 'onClick', 'children', 'style', 'tabIndex'].indexOf(key) !== -1) return;
     /** @type {Record<string, any>} */ (buttonProps)[key] = /** @type {Record<string, any>} */ (props)[key];
@@ -1595,7 +1595,7 @@ function ToolButton(props) {
   // Only a keyboard-visible focus paints the ring: a pointer click may focus
   // the button in this runtime, and a persistent blue frame around a toolbar
   // glyph reads as a stray border.
-  buttonProps.onFocus = /** @param {any} event @returns {void} */ function (event) {
+  buttonProps.onFocus = function (event: any) {
     let visible = true;
     try {
       visible = event !== null && event !== undefined && event.target !== null && event.target !== undefined && typeof event.target.matches === 'function'
@@ -1614,7 +1614,7 @@ function ToolButton(props) {
  * Filled primary button (search / save).
  * @param {any} props - component props.
  */
-function PrimaryButton(props) {
+function PrimaryButton(props: any) {
   const [hover, setHover] = useState(false);
   const disabled = props.disabled === true;
   const style = Object.assign(
@@ -1644,9 +1644,9 @@ function PrimaryButton(props) {
  * Outlined neutral button (retry, dismiss).
  * @param {any} props - component props.
  */
-function GhostButton(props) {
+function GhostButton(props: any) {
   const [hover, setHover] = useState(false);
-  const buttonProps = {};
+  const buttonProps: any = {};
   Object.keys(props).forEach(function (key) {
     if (['title', 'ariaLabel', 'onClick', 'children', 'style'].indexOf(key) !== -1) return;
     /** @type {Record<string, any>} */ (buttonProps)[key] = /** @type {Record<string, any>} */ (props)[key];
@@ -1665,7 +1665,7 @@ function GhostButton(props) {
  * Small rounded chip.
  * @param {any} props - component props.
  */
-function Chip(props) {
+function Chip(props: any) {
   const tone = props.tone;
   const toneStyle =
     tone === 'brand' ? ST_CORE.chipBrand : tone === 'success' ? ST_CORE.chipSuccess : tone === 'warn' ? ST_CORE.chipWarn : tone === 'error' ? ST_CORE.chipError : null;
@@ -1681,7 +1681,7 @@ function Chip(props) {
  * Centered spinner + optional label.
  * @param {any} props - component props.
  */
-function LoadingIndicator(props) {
+function LoadingIndicator(props: any) {
   return h(
     'div',
     { style: ST_CORE.loading, role: 'status' },
@@ -1699,8 +1699,8 @@ function LoadingIndicator(props) {
  * Inline error card with a retry button.
  * @param {any} props - component props.
  */
-function InlineError(props) {
-  const t = typeof props.t === 'function' ? props.t : /** @param {string} key @returns {string} */ function (key) { return key; };
+function InlineError(props: any) {
+  const t = typeof props.t === 'function' ? props.t : function (key: string): string { return key; };
   return h(
     'div',
     { style: ST_CORE.errorBox, role: 'alert' },
@@ -1717,8 +1717,8 @@ function InlineError(props) {
  * Full-pane empty state: icon, title, body and an optional action.
  * @param {any} props - component props.
  */
-function EmptyState(props) {
-  const t = typeof props.t === 'function' ? props.t : /** @param {string} key @returns {string} */ function (key) { return key; };
+function EmptyState(props: any) {
+  const t = typeof props.t === 'function' ? props.t : function (key: string): string { return key; };
   const Icon = typeof props.icon === 'function' ? props.icon : PanelIcon;
   return h(
     'div',
@@ -1736,7 +1736,7 @@ function EmptyState(props) {
  * One-line notice bar (success / error / info).
  * @param {any} props - component props.
  */
-function NoticeBar(props) {
+function NoticeBar(props: any) {
   const kind = props.kind;
   const tone = kind === 'success' ? C.diffAdd : kind === 'error' ? C.error : C.textSecondary;
   return h(
@@ -1755,7 +1755,7 @@ function NoticeBar(props) {
  * double-click reset. Renders both children as-is.
  * @param {any} props - component props.
  */
-function SplitPane(props) {
+function SplitPane(props: any) {
   const min = Number.isFinite(props.minWidth) ? props.minWidth : SPLIT_MIN;
   const max = Number.isFinite(props.maxWidth) ? props.maxWidth : SPLIT_MAX;
   const initial = clampNumber(Number.isFinite(props.initialWidth) ? props.initialWidth : 300, min, max);
@@ -1766,7 +1766,7 @@ function SplitPane(props) {
   });
   const [dragging, setDragging] = useState(false);
   const [hoverHandle, setHoverHandle] = useState(false);
-  const startRef = useRef(/** @type {{x: number, width: number}|null} */ (null));
+  const startRef = useRef<any>(null);
   const latestRef = useRef(width);
   latestRef.current = width;
 
@@ -1776,7 +1776,7 @@ function SplitPane(props) {
     return undefined;
   }, [dragging, width, storageKey]);
 
-  const onPointerDown = useCallback(/** @param {any} event */ function (event) {
+  const onPointerDown = useCallback(function (event: any) {
     try {
       event.preventDefault();
     } catch (error) {
@@ -1791,7 +1791,7 @@ function SplitPane(props) {
   // relying on pointer capture support.
   useEffect(function () {
     if (!dragging) return undefined;
-    const onMove = /** @param {any} event */ function (event) {
+    const onMove = function (event: any) {
       const start = startRef.current;
       if (start === null || typeof event.clientX !== 'number') return;
       setWidth(clampNumber(start.width + event.clientX - start.x, min, max));
@@ -1850,7 +1850,7 @@ function SplitPane(props) {
 }
 
 /** @param {string} text - line text. @returns {string} clamped to 400 chars. */
-function clampLineText(text) {
+function clampLineText(text: string): string {
   if (typeof text !== 'string') return '';
   return text.length > 400 ? text.slice(0, 400) : text;
 }
@@ -1865,13 +1865,13 @@ function clampLineText(text) {
  * @param {number} length - match length in UTF-16 code units.
  * @returns {Array<{text: string, hit: boolean}>} ordered segments.
  */
-function splitMatch(text, column, length) {
+function splitMatch(text: string, column: number, length: number): any {
   const line = clampLineText(text);
   const offset = Number.isFinite(column) ? Math.floor(column) - 1 : -1;
   const size = Number.isFinite(length) ? Math.max(0, Math.floor(length)) : 0;
   if (size === 0 || offset < 0 || offset >= line.length) return [{ text: line, hit: false }];
   const end = Math.min(line.length, offset + size);
-  const segments = [];
+  const segments: any[] = [];
   if (offset > 0) segments.push({ text: line.slice(0, offset), hit: false });
   segments.push({ text: line.slice(offset, end), hit: true });
   if (end < line.length) segments.push({ text: line.slice(end), hit: false });

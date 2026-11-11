@@ -6,34 +6,36 @@
 // reuse the syntax highlighter from 07-highlight.js, and every colour comes from
 // the shared --dsw-alias-* tokens, so the preview follows the selected theme.
 
-/**
- * @typedef {Object} InlineNode
- * @property {string} type
- * @property {string} [text]
- * @property {Array<InlineNode>} [children]
- * @property {string} [url]
- * @property {string} [alt]
- */
-/**
- * @typedef {Object} ListItem
- * @property {Array<InlineNode>} inline
- * @property {boolean|null} [task]
- * @property {BlockNode|null} [nested]
- */
-/**
- * @typedef {Object} BlockNode
- * @property {string} type
- * @property {number} [depth]
- * @property {Array<InlineNode>} [inline]
- * @property {Array<BlockNode>} [blocks]
- * @property {string} [text]
- * @property {string} [lang]
- * @property {boolean} [ordered]
- * @property {Array<ListItem>} [items]
- * @property {Array<Array<InlineNode>>} [header]
- * @property {Array<string|null>} [align]
- * @property {Array<Array<Array<InlineNode>>>} [rows]
- */
+/** Inline markdown node. */
+interface InlineNode {
+  type: string;
+  text?: string;
+  children?: Array<InlineNode>;
+  url?: string;
+  alt?: string;
+}
+
+/** One list item (with optional task checkbox and nested block). */
+interface ListItem {
+  inline: Array<InlineNode>;
+  task?: boolean | null;
+  nested?: BlockNode | null;
+}
+
+/** Block markdown node. */
+interface BlockNode {
+  type: string;
+  depth?: number;
+  inline?: Array<InlineNode>;
+  blocks?: Array<BlockNode>;
+  text?: string;
+  lang?: string;
+  ordered?: boolean;
+  items?: Array<ListItem>;
+  header?: Array<Array<InlineNode>>;
+  align?: Array<string | null>;
+  rows?: Array<Array<Array<InlineNode>>>;
+}
 
 const MD_MAX_SOURCE_CHARS = 300 * 1024;
 const MD_HEADING_SIZES = [26, 21, 17.5, 15.5, 13.5, 13.5];
@@ -47,7 +49,7 @@ const MD_INLINE_ESCAPE = /[\\`*_{}[\]()#+\-.!>~|]/;
  * @param {unknown} raw - candidate URL.
  * @returns {string|null} safe URL or null.
  */
-function mdSafeUrl(raw) {
+function mdSafeUrl(raw: unknown): string|null {
   if (typeof raw !== 'string') return null;
   const url = raw.trim();
   if (url.length === 0) return null;
@@ -57,7 +59,7 @@ function mdSafeUrl(raw) {
   return url;
 }
 
-function mdPlainInline(nodes) {
+function mdPlainInline(nodes: any) {
   let out = '';
   for (let index = 0; index < nodes.length; index = index + 1) {
     const node = nodes[index];
@@ -74,7 +76,7 @@ function mdPlainInline(nodes) {
  * @param {number} start - index of `[`.
  * @returns {{label: string, url: string, end: number}|null} parsed target.
  */
-function mdParseLinkTarget(text, start) {
+function mdParseLinkTarget(text: string, start: number): any {
   const labelEnd = text.indexOf(']', start + 1);
   if (labelEnd === -1) return null;
   if (text.charAt(labelEnd + 1) !== '(') return null;
@@ -101,7 +103,7 @@ function mdParseLinkTarget(text, start) {
   return null;
 }
 
-function mdMatchDelimited(text, index, delimiters) {
+function mdMatchDelimited(text: any, index: any, delimiters: any) {
   for (let cursor = 0; cursor < delimiters.length; cursor = cursor + 1) {
     const delimiter = delimiters[cursor];
     if (text.indexOf(delimiter, index) !== index) continue;
@@ -120,7 +122,7 @@ function mdMatchDelimited(text, index, delimiters) {
  * @param {string} text - inline markdown.
  * @returns {Array<InlineNode>} inline nodes.
  */
-function parseMarkdownInline(text) {
+function parseMarkdownInline(text: string): Array<InlineNode> {
   const nodes: any[] = [];
   let buffer = '';
   let index = 0;
@@ -228,23 +230,23 @@ function parseMarkdownInline(text) {
   return nodes;
 }
 
-function mdSplitTableRow(line) {
+function mdSplitTableRow(line: any) {
   let text = line.trim();
   if (text.charAt(0) === '|') text = text.slice(1);
   if (text.charAt(text.length - 1) === '|') text = text.slice(0, text.length - 1);
-  return text.split('|').map(function (cell) { return cell.trim(); });
+  return text.split('|').map(function (cell: any) { return cell.trim(); });
 }
 
-function mdIsTableSeparator(line) {
+function mdIsTableSeparator(line: any) {
   return /^\s*\|?\s*:?-{1,}:?\s*(?:\|\s*:?-{1,}:?\s*)+\|?\s*$/.test(line);
 }
 
-function mdIsFenceClose(line, char, length) {
+function mdIsFenceClose(line: any, char: any, length: any) {
   const match = /^ {0,3}(`{3,}|~{3,})\s*$/.exec(line);
   return match !== null && match[1].charAt(0) === char && match[1].length >= length;
 }
 
-function mdIsBlockStart(line) {
+function mdIsBlockStart(line: any) {
   return (
     /^ {0,3}(?:#{1,6})\s+/.test(line) ||
     /^ {0,3}(?:`{3,}|~{3,})/.test(line) ||
@@ -261,7 +263,7 @@ function mdIsBlockStart(line) {
  * @param {string} source - markdown source.
  * @returns {Array<BlockNode>} block nodes.
  */
-function parseMarkdown(source) {
+function parseMarkdown(source: string): Array<BlockNode> {
   if (typeof source !== 'string' || source.length === 0) return [];
   if (source.length > MD_MAX_SOURCE_CHARS) {
     return [{ type: 'paragraph', inline: [{ type: 'text', text: source }] }];
@@ -313,7 +315,7 @@ function parseMarkdown(source) {
 
     if (line.includes('|') && index + 1 < lines.length && mdIsTableSeparator(lines[index + 1])) {
       const header = mdSplitTableRow(line).map(parseMarkdownInline);
-      const align = mdSplitTableRow(lines[index + 1]).map(function (cell) {
+      const align = mdSplitTableRow(lines[index + 1]).map(function (cell: any) {
         const value = cell.trim();
         if (/^:-+:$/.test(value)) return 'center';
         if (/^:-+$/.test(value)) return 'left';
@@ -377,7 +379,7 @@ function parseMarkdown(source) {
  * @param {number} startIndex - index of the first marker line.
  * @returns {{block: BlockNode, nextIndex: number}} parsed list.
  */
-function mdParseList(lines, startIndex) {
+function mdParseList(lines: Array<string>, startIndex: number): any {
   const first = /^(\s*)([-*+]|\d+[.)])\s+/.exec(lines[startIndex]);
   if (first === null) return { block: { type: 'list', ordered: false, items: [] }, nextIndex: startIndex };
   const baseIndent = first[1].length;
@@ -445,7 +447,7 @@ const MD_STYLE = {
     lineHeight: '1.75',
     overflowWrap: 'break-word',
   },
-  heading: function (depth) {
+  heading: function (depth: any) {
     return {
       margin: depth <= 2 ? '22px 0 10px' : '18px 0 8px',
       fontSize: String(MD_HEADING_SIZES[depth - 1]) + 'px',
@@ -503,7 +505,7 @@ const MD_STYLE = {
  * @param {string} keyPrefix - stable key prefix.
  * @returns {Array} React children.
  */
-function renderMarkdownInline(nodes, keyPrefix) {
+function renderMarkdownInline(nodes: Array<InlineNode>, keyPrefix: string): any[] {
   const out: any[] = [];
   for (let index = 0; index < nodes.length; index = index + 1) {
     const node = nodes[index];
@@ -555,7 +557,7 @@ function renderMarkdownInline(nodes, keyPrefix) {
   return out;
 }
 
-function renderMarkdownCode(block, key) {
+function renderMarkdownCode(block: any, key: any) {
   let lines: any = null;
   try {
     if (typeof S.highlightLines === 'function' && block.text.length <= MD_MAX_SOURCE_CHARS) {
@@ -590,7 +592,7 @@ function renderMarkdownCode(block, key) {
  * @param {string} keyPrefix - stable key prefix.
  * @returns {Array} React children.
  */
-function renderMarkdownBlocks(blocks, keyPrefix) {
+function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string): any[] {
   const out: any[] = [];
   for (let index = 0; index < blocks.length; index = index + 1) {
     const block = blocks[index];
@@ -681,8 +683,8 @@ function renderMarkdownBlocks(blocks, keyPrefix) {
 }
 
 /** Shallow helper so nested lists reuse the item renderer without duplication. */
-function renderMarkdownListItems(listBlock, keyPrefix) {
-  return listBlock.items.map(function (item, itemIndex) {
+function renderMarkdownListItems(listBlock: any, keyPrefix: any) {
+  return listBlock.items.map(function (item: any, itemIndex: any) {
     const itemKey = keyPrefix + '-' + String(itemIndex);
     return h(
       'li',
@@ -698,7 +700,7 @@ function renderMarkdownListItems(listBlock, keyPrefix) {
  * @param {unknown} source - markdown source.
  * @returns {Array} React children for the preview body.
  */
-function renderMarkdown(source) {
+function renderMarkdown(source: unknown): any[] {
   const text = typeof source === 'string' ? source : '';
   return renderMarkdownBlocks(parseMarkdown(text), 'md');
 }

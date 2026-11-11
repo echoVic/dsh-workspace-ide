@@ -8,14 +8,14 @@
  * parser tracks old/new line numbers so the viewer reads like an editor gutter.
  */
 
-/**
- * @typedef {Object} GitFileRow
- * @property {string} path
- * @property {string} [index]
- * @property {string} [worktree]
- * @property {string} [status]
- * @property {string} [from]
- */
+/** One git status row. */
+interface GitFileRow {
+  path: string;
+  index?: string;
+  worktree?: string;
+  status?: string;
+  from?: string;
+}
 
 const ST_GIT = {
   root: {
@@ -434,7 +434,7 @@ const ST_GIT = {
  * @param {string} line - raw line (no trailing newline).
  * @returns {'meta'|'hunk'|'add'|'del'|'ctx'|'empty'} kind.
  */
-function classifyDiffLine(line) {
+function classifyDiffLine(line: string): any {
   const text = typeof line === 'string' ? line : '';
   if (text.length === 0) return 'empty';
   if (text.indexOf('@@') === 0) return 'hunk';
@@ -465,11 +465,11 @@ function classifyDiffLine(line) {
  * @param {string} diff - raw diff text.
  * @returns {Array<{kind: string, oldNo: number|null, newNo: number|null, text: string}>} rows.
  */
-function parseDiffLines(diff) {
+function parseDiffLines(diff: string): any {
   const text = typeof diff === 'string' ? diff : '';
   if (text.length === 0) return [];
   const lines = text.split('\n');
-  const rows = [];
+  const rows: any[] = [];
   // Unified-diff hunk bodies are line-counted, not prefix-guessed: a deletion
   // whose content starts with "-- " renders as "--- …", which must stay a
   // deletion (e.g. SQL / Haskell / Lua comments) and must not be mistaken for a
@@ -531,7 +531,7 @@ function parseDiffLines(diff) {
 }
 
 /** @param {string} kind - diff line kind. @returns {object} text colour style. */
-function diffTextStyle(kind) {
+function diffTextStyle(kind: string): any {
   if (kind === 'add') return ST_GIT.diffAdd;
   if (kind === 'del') return ST_GIT.diffDel;
   if (kind === 'hunk') return ST_GIT.diffHunk;
@@ -543,7 +543,7 @@ function diffTextStyle(kind) {
  * Colour-coded unified diff viewer.
  * @param {{t: Function, diff: string, truncated?: boolean}} props - diff text + translator.
  */
-function DiffView(props) {
+function DiffView(props: any) {
   const t = typeof props.t === 'function' ? props.t : S.translate;
   const parsed = useMemo(function () {
     return parseDiffLines(props.diff);
@@ -566,7 +566,7 @@ function DiffView(props) {
     h(
       'div',
       { style: ST_GIT.diffPre, role: 'table', 'aria-label': t('git.diff.title') },
-      rows.map(function (row, index) {
+      rows.map(function (row: any, index: any) {
         return h(
           'div',
           {
@@ -588,7 +588,7 @@ function DiffView(props) {
 }
 
 /** @param {string} letter - porcelain status letter. @returns {object} colour style. */
-function statusLetterStyle(letter) {
+function statusLetterStyle(letter: string): any {
   if (letter === 'M') return { color: C.warnLabel };
   if (letter === 'A') return { color: C.diffAdd };
   if (letter === 'D') return { color: C.diffDel };
@@ -598,7 +598,7 @@ function statusLetterStyle(letter) {
 }
 
 /** One change row (letter + path). Pure. */
-function GitChangeRow(props) {
+function GitChangeRow(props: any) {
   const [hover, setHover] = useState(false);
   const change = props.change;
   const path = typeof change.path === 'string' ? change.path : '';
@@ -629,7 +629,7 @@ function GitChangeRow(props) {
 }
 
 /** One group of changes (staged / unstaged / untracked / conflicted). */
-function GitChangeGroup(props) {
+function GitChangeGroup(props: any) {
   const changes = props.changes;
   if (!Array.isArray(changes) || changes.length === 0) return null;
   return h(
@@ -654,7 +654,7 @@ function GitChangeGroup(props) {
 }
 
 /** One commit row. */
-function GitCommitRow(props) {
+function GitCommitRow(props: any) {
   const [hover, setHover] = useState(false);
   const commit = props.commit;
   return h(
@@ -675,7 +675,7 @@ function GitCommitRow(props) {
       { style: ST_GIT.historyMeta },
       h('span', { style: ST_GIT.hash }, typeof commit.short === 'string' ? commit.short : String(commit.hash).slice(0, 7)),
       Array.isArray(commit.refs) && commit.refs.length > 0
-        ? commit.refs.map(function (ref, index) {
+        ? commit.refs.map(function (ref: any, index: any) {
             return h('span', { key: 'ref-' + String(index), style: ST_GIT.refBadge }, ref);
           })
         : null,
@@ -690,9 +690,8 @@ function GitCommitRow(props) {
  * @param {Array<GitFileRow>} files - `{path, index, worktree, status, from}` rows.
  * @returns {{staged: Array, unstaged: Array, untracked: Array, conflicted: Array}} groups.
  */
-function groupChanges(files) {
-  /** @type {{staged: Array<{path: string, from: string|null, code: string, letter: string, staged: boolean}>, unstaged: Array<any>, untracked: Array<any>, conflicted: Array<any>}} */
-  const groups = { staged: [], unstaged: [], untracked: [], conflicted: [] };
+function groupChanges(files: Array<GitFileRow>): any {
+  const groups: any = { staged: [], unstaged: [], untracked: [], conflicted: [] };
   const list = Array.isArray(files) ? files : [];
   list.forEach(function (file) {
     if (file === null || file === undefined || typeof file.path !== 'string' || file.path.length === 0) return;
@@ -717,7 +716,7 @@ function groupChanges(files) {
 }
 
 /** Left list for the Changes view. */
-function GitChangesList(props) {
+function GitChangesList(props: any) {
   const t = props.t;
   const groups = props.groups;
   const total = groups.staged.length + groups.unstaged.length + groups.untracked.length + groups.conflicted.length;
@@ -736,7 +735,7 @@ function GitChangesList(props) {
 }
 
 /** Left list for the History view. */
-function GitHistoryList(props) {
+function GitHistoryList(props: any) {
   const t = props.t;
   const commits = Array.isArray(props.commits) ? props.commits : [];
   if (commits.length === 0) {
@@ -747,14 +746,14 @@ function GitHistoryList(props) {
     'div',
     { style: ST_GIT.listScroll },
     h('div', { style: ST_GIT.groupHeader }, h('span', null, t('git.history')), h('span', { style: ST_GIT.groupCount }, t('git.history.count', { count: commits.length }))),
-    commits.map(function (commit) {
+    commits.map(function (commit: any) {
       return h(GitCommitRow, { key: 'commit:' + commit.hash, t: t, commit: commit, active: commit.hash === activeHash, onSelect: props.onSelect });
     }),
   );
 }
 
 /** Header of the right-hand diff pane. */
-function GitDiffHeader(props) {
+function GitDiffHeader(props: any) {
   const t = props.t;
   const selection = props.selection;
   if (selection === null || selection === undefined) return null;
@@ -787,11 +786,11 @@ function GitDiffHeader(props) {
  * (the default workspace often is not a repository, so the surface must not read
  * like a broken feature).
  */
-function GitNotRepoState(props) {
+function GitNotRepoState(props: any) {
   const t = typeof props.t === 'function' ? props.t : S.translate;
   const root = typeof props.root === 'string' ? props.root : '';
   const list = Array.isArray(props.workspaces) ? props.workspaces : [];
-  const current = list.find(function (entry) {
+  const current = list.find(function (entry: any) {
     return entry !== null && entry !== undefined && entry.path === root;
   });
   const title =
@@ -799,7 +798,7 @@ function GitNotRepoState(props) {
       ? current.title
       : S.baseName(root) || root;
   const candidates = list
-    .filter(function (entry) {
+    .filter(function (entry: any) {
       return entry !== null && entry !== undefined && typeof entry.path === 'string' && entry.path.length > 0 && entry.path !== root && entry.git === true;
     })
     .slice(0, 5);
@@ -826,7 +825,7 @@ function GitNotRepoState(props) {
             h(
               'div',
               { style: ST_GIT.notRepoActions },
-              candidates.map(function (entry) {
+              candidates.map(function (entry: any) {
                 return h(
                   S.GhostButton,
                   {
@@ -850,12 +849,12 @@ function GitNotRepoState(props) {
 }
 
 /** The right-hand diff pane. */
-function GitDiffPane(props) {
+function GitDiffPane(props: any) {
   const t = props.t;
   const selection = props.selection;
   const diff = props.diff;
   /** @type {any} */
-  let body = null;
+  let body: any = null;
   if (selection === null || selection === undefined) {
     body = h(S.EmptyState, {
       t: t,
@@ -883,8 +882,8 @@ function GitDiffPane(props) {
 }
 
 /** Segmented Changes / History switch. */
-function GitSwitch(props) {
-  const [hover, setHover] = useState(/** @type {string|null} */ (null));
+function GitSwitch(props: any) {
+  const [hover, setHover] = useState<any>(null);
   const options = [
     { id: 'changes', label: props.t('git.changes') },
     { id: 'history', label: props.t('git.history') },
@@ -914,7 +913,7 @@ function GitSwitch(props) {
 }
 
 /** Header: branch + ahead/behind + summary + view switch + refresh. */
-function GitHeader(props) {
+function GitHeader(props: any) {
   const t = props.t;
   const status = props.status;
   const repo = status !== null && status !== undefined && status.repo === true;
@@ -949,22 +948,22 @@ function GitHeader(props) {
  * The Git tab.
  * @param {{t: Function, root: string, reloadToken?: number, onOpenFile?: Function, workspaces?: Array<any>, onSelectWorkspace?: Function}} props - slot props.
  */
-function GitView(props) {
+function GitView(props: any) {
   const fallbackT = S.useT();
   const t = props !== null && props !== undefined && typeof props.t === 'function' ? props.t : fallbackT;
   const root = props.root;
 
-  const [status, setStatus] = useState(/** @type {any} */ (null));
-  const [log, setLog] = useState(/** @type {any} */ (null));
+  const [status, setStatus] = useState<any>(null);
+  const [log, setLog] = useState<any>(null);
   const [load, setLoad] = useState({ status: 'loading', error: null });
   const [view, setView] = useState('changes');
-  const [selection, setSelection] = useState(/** @type {string|null} */ (null));
+  const [selection, setSelection] = useState<any>(null);
   const [diff, setDiff] = useState({ status: 'idle', payload: null, error: null });
   const [version, setVersion] = useState(0);
 
   const diffRequestRef = useRef(0);
-  const lastDiffRef = useRef(/** @type {{params: any, selection: any}|null} */ (null));
-  const abortRef = useRef(/** @type {AbortController|null} */ (null));
+  const lastDiffRef = useRef<any>(null);
+  const abortRef = useRef<any>(null);
 
   useEffect(function () {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -1003,18 +1002,18 @@ function GitView(props) {
     };
   }, [root, props.reloadToken, version]);
 
-  const loadDiff = useCallback(function (params, nextSelection) {
+  const loadDiff = useCallback(function (params: any, nextSelection: any) {
     const requestId = diffRequestRef.current + 1;
     diffRequestRef.current = requestId;
     lastDiffRef.current = { params: params, selection: nextSelection };
     setSelection(nextSelection);
     setDiff({ status: 'loading', payload: null, error: null });
     S.requestJson(S.apiUrl(ROUTES.git, Object.assign({ root: root, kind: 'diff' }, params)))
-      .then(function (payload) {
+      .then(function (payload: any) {
         if (diffRequestRef.current !== requestId) return;
         setDiff({ status: 'loaded', payload: payload, error: null });
       })
-      .catch(function (cause) {
+      .catch(function (cause: any) {
         if (diffRequestRef.current !== requestId) return;
         if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
         setDiff({ status: 'error', payload: null, error: cause });
@@ -1027,13 +1026,13 @@ function GitView(props) {
     loadDiff(last.params, last.selection);
   }, [loadDiff]);
 
-  const selectChange = useCallback(function (change) {
-    const params = { path: change.path };
+  const selectChange = useCallback(function (change: any) {
+    const params: any = { path: change.path };
     if (change.staged === true) params.staged = '1';
     loadDiff(params, { kind: 'change', change: change });
   }, [loadDiff]);
 
-  const selectCommit = useCallback(function (commit) {
+  const selectCommit = useCallback(function (commit: any) {
     loadDiff({ commit: commit.hash }, { kind: 'commit', commit: commit });
   }, [loadDiff]);
 
@@ -1050,7 +1049,7 @@ function GitView(props) {
   const commits = log !== null && log !== undefined && Array.isArray(log.commits) ? log.commits : [];
 
   /** @type {any} */
-  let content = null;
+  let content: any = null;
   if (load.status === 'loading') {
     content = h(S.LoadingIndicator, { t: t, label: t('git.loading') });
   } else if (load.status === 'error') {
@@ -1087,7 +1086,7 @@ function GitView(props) {
       status: status,
       view: view,
       totalChanges: totalChanges,
-      onChangeView: function (next) { if (next === 'changes' || next === 'history') setView(next); },
+      onChangeView: function (next: any) { if (next === 'changes' || next === 'history') setView(next); },
       onRefresh: refresh,
     }),
     h('div', { style: ST_GIT.body }, content),

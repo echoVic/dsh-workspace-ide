@@ -3,13 +3,6 @@
   "compilerOptions": {
     "noImplicitAny": true
   },
-  "include": [
-    "src/client/00-core.js",
-    "src/client/05-icons.ts",
-    "types/**/*.d.ts"
-  ],
-  "exclude": [
-    "lib/client.js",
-    "node_modules"
-  ]
+  "include": ["src/client/**/*.ts", "src/client/**/*.tsx", "types/**/*.d.ts"],
+  "exclude": ["lib/client.js", "node_modules", "build"]
 }

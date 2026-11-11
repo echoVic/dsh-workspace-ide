@@ -34,7 +34,7 @@ const HIGHLIGHT_KINDS = Object.freeze(
 );
 
 /** Aliases the Host language chip may carry -> canonical language id. */
-const HIGHLIGHT_LANGUAGES = Object.freeze({
+const HIGHLIGHT_LANGUAGES: Record<string, string> = Object.freeze({
   javascript: 'javascript',
   js: 'javascript',
   mjs: 'javascript',
@@ -103,68 +103,69 @@ const HIGHLIGHT_LANGUAGES = Object.freeze({
 // ─── character helpers ──────────────────────────────────────────────────────
 
 /** @param {number} code - UTF-16 code unit. @returns {boolean} ASCII digit. */
-function isDigitCode(code) {
+function isDigitCode(code: number): boolean {
   return code >= 48 && code <= 57;
 }
 
 /** @param {number} code - UTF-16 code unit. @returns {boolean} hex digit. */
-function isHexCode(code) {
+function isHexCode(code: number): boolean {
   return (code >= 48 && code <= 57) || (code >= 65 && code <= 70) || (code >= 97 && code <= 102);
 }
 
 /** Identifier start: ASCII letters, `_`, `$` and any non-ASCII character. */
-function isIdentStartCode(code) {
+function isIdentStartCode(code: any) {
   return (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || code === 95 || code === 36 || code > 127;
 }
 
 /** Identifier continuation: identifier start plus digits. */
-function isIdentPartCode(code) {
+function isIdentPartCode(code: any) {
   return isIdentStartCode(code) || isDigitCode(code);
 }
 
 /** Attribute name continuation inside a markup tag. */
-function isAttrPartCode(code) {
+function isAttrPartCode(code: any) {
   return isIdentPartCode(code) || code === 45 || code === 58 || code === 46 || code === 64;
 }
 
-/**
- * @typedef {Object} LanguageConfig
- * @property {Record<string, boolean>} keywords
- * @property {Record<string, boolean>} constants
- * @property {Record<string, boolean>} types
- * @property {Record<string, boolean>} functions
- * @property {ReadonlyArray<string>} lineComments
- * @property {ReadonlyArray<{open: string, close: string}>} blockComments
- * @property {ReadonlyArray<{open: string, close: string, escape: boolean, multiline: boolean, kind: string}>} stringDefs
- * @property {boolean} propertyLookahead
- * @property {boolean} propertyLookaheadEquals
- * @property {boolean} propertyAfterStrings
- * @property {boolean} caseInsensitive
- * @property {boolean} hexColor
- * @property {boolean} atRules
- * @property {boolean} customProperty
- * @property {string} variablePrefix
- * @property {boolean} sectionBrackets
- * @property {boolean} [markup]
- */
-/**
- * @typedef {Object} ScanState
- * @property {string|null} blockEnd
- * @property {string|null} stringEnd
- * @property {string} stringKind
- * @property {boolean} inTag
- * @property {string|null} fence
- * @property {LanguageConfig|null} fenceConfig
- * @property {boolean} fenceMarkup
- * @property {ScanState|null} fenceState
- */
+/** Per-language tokenizer configuration. */
+interface LanguageConfig {
+  keywords: Record<string, boolean>;
+  constants: Record<string, boolean>;
+  types: Record<string, boolean>;
+  functions: Record<string, boolean>;
+  lineComments: ReadonlyArray<string>;
+  blockComments: ReadonlyArray<{ open: string; close: string }>;
+  stringDefs: ReadonlyArray<{ open: string; close: string; escape: boolean; multiline: boolean; kind: string }>;
+  propertyLookahead: boolean;
+  propertyLookaheadEquals: boolean;
+  propertyAfterStrings: boolean;
+  caseInsensitive: boolean;
+  hexColor: boolean;
+  atRules: boolean;
+  customProperty: boolean;
+  variablePrefix: string;
+  sectionBrackets: boolean;
+  markup?: boolean;
+}
+
+/** One line's incremental scanner state. */
+interface ScanState {
+  blockEnd: string | null;
+  stringEnd: string | null;
+  stringKind: string;
+  inTag: boolean;
+  fence: string | null;
+  fenceConfig: LanguageConfig | null;
+  fenceMarkup: boolean;
+  fenceState: ScanState | null;
+}
 
 /**
  * @param {string} line - source line.
  * @param {number} index - start position.
  * @returns {number} index of the first non-space/tab character at/after index.
  */
-function skipSpaces(line, index) {
+function skipSpaces(line: string, index: number): number {
   let cursor = index;
   while (cursor < line.length) {
     const code = line.charCodeAt(cursor);
@@ -179,8 +180,8 @@ function skipSpaces(line, index) {
  * @param {string} literal - words separated by spaces.
  * @returns {Record<string, boolean>} `word -> true`.
  */
-function words(literal) {
-  const table = {};
+function words(literal: string): Record<string, boolean> {
+  const table: Record<string, boolean> = {};
   const parts = literal.split(' ');
   for (let index = 0; index < parts.length; index = index + 1) {
     if (parts[index].length > 0) table[parts[index]] = true;
@@ -203,12 +204,12 @@ const CODE_PUNCTUATION = '(){}[];,';
 const CODE_OPERATOR_CHARS = '+-*/%=!<>&|^~?:.@#$';
 
 /** Shorthand for one block-comment pair. */
-function block(open, close) {
+function block(open: any, close: any) {
   return Object.freeze({ open: open, close: close });
 }
 
 /** Shorthand for one string literal flavour. */
-function literal(open?, close?, escape?, multiline?, kind?) {
+function literal(open?: any, close?: any, escape?: any, multiline?: any, kind?: any) {
   return Object.freeze({
     open: open,
     close: close,
@@ -248,7 +249,7 @@ const COMMENT_SLASH = Object.freeze([block('/*', '*/')]);
  * @param {Partial<LanguageConfig>} overrides - config fields.
  * @returns {LanguageConfig} a complete scanner config.
  */
-function makeConfig(overrides) {
+function makeConfig(overrides: any): LanguageConfig {
   return Object.freeze(
     Object.assign(
       {
@@ -303,7 +304,7 @@ const TS_TYPES = words(
 /** Config for html/xml/vue/svelte: a dedicated tag/attribute scanner. */
 const MARKUP_CONFIG = Object.freeze({ markup: true });
 
-const LANGUAGE_CONFIGS = Object.freeze({
+const LANGUAGE_CONFIGS: Record<string, any> = Object.freeze({
   javascript: makeConfig({
     keywords: JS_KEYWORDS,
     types: JS_TYPES,
@@ -626,7 +627,7 @@ const LANGUAGE_CONFIGS = Object.freeze({
  * @param {string} code - source text.
  * @returns {Array<Array<Array<string>>>} one plain segment per non-empty line.
  */
-function plainHighlightLines(code) {
+function plainHighlightLines(code: string): Array<Array<Array<string>>> {
   const lines = code.split('\n');
   const out = new Array(lines.length);
   for (let index = 0; index < lines.length; index = index + 1) {
@@ -640,7 +641,7 @@ function plainHighlightLines(code) {
  * @param {unknown} language - language chip value.
  * @returns {string} one of the canonical ids, `text` when unknown.
  */
-function normalizeLanguage(language) {
+function normalizeLanguage(language: unknown): string {
   if (typeof language !== 'string') return 'text';
   const key = language.trim().toLowerCase().replace(/^\./, '');
   const mapped = HIGHLIGHT_LANGUAGES[key];
@@ -677,7 +678,7 @@ function createScanState() {
  * @param {LanguageConfig} config - language config.
  * @returns {string} segment kind.
  */
-function classifyWord(word, line, after, config) {
+function classifyWord(word: string, line: string, after: number, config: LanguageConfig): string {
   const key = config.caseInsensitive === true ? word.toLowerCase() : word;
   if (config.keywords[key] === true) return 'keyword';
   if (config.constants[key] === true) return 'constant';
@@ -702,7 +703,7 @@ function classifyWord(word, line, after, config) {
  * @param {(kind: string, text: string) => void} push - segment sink.
  * @returns {number} index just past the literal.
  */
-function scanNumber(line, start, push) {
+function scanNumber(line: string, start: number, push: any): number {
   const length = line.length;
   let index = start;
   const first = line.charAt(index);
@@ -760,11 +761,11 @@ function scanNumber(line, start, push) {
  * @param {LanguageConfig} config - language config.
  * @returns {Array<Array<string>>} `[kind, text]` segments.
  */
-function scanCodeLine(line, state, config) {
+function scanCodeLine(line: string, state: ScanState, config: LanguageConfig): Array<Array<string>> {
   const segments: any[] = [];
   let lastKind = null;
 
-  function push(kind, text) {
+  function push(kind: any, text: any) {
     if (text.length === 0) return;
     const last = segments.length > 0 ? segments[segments.length - 1] : null;
     if (last !== null && last[0] === kind) last[1] = last[1] + text;
@@ -1031,7 +1032,7 @@ function scanCodeLine(line, state, config) {
  * @param {(kind: string, text: string) => void} push - segment sink.
  * @returns {number} index to continue scanning at.
  */
-function scanTagBody(line, start, state, push) {
+function scanTagBody(line: string, start: number, state: ScanState, push: any): number {
   const length = line.length;
   let index = start;
   while (index < length) {
@@ -1101,9 +1102,9 @@ function scanTagBody(line, start, state, push) {
  * @param {ScanState} state - mutable cross-line state.
  * @returns {Array<Array<string>>} segments.
  */
-function scanMarkupLine(line, state) {
+function scanMarkupLine(line: string, state: ScanState): Array<Array<string>> {
   const segments: any[] = [];
-  function push(kind, text) {
+  function push(kind: any, text: any) {
     if (text.length === 0) return;
     const last = segments.length > 0 ? segments[segments.length - 1] : null;
     if (last !== null && last[0] === kind) last[1] = last[1] + text;
@@ -1226,7 +1227,7 @@ function scanMarkupLine(line, state) {
  * @param {number} start - first index to classify.
  * @param {(kind: string, text: string) => void} push - segment sink.
  */
-function scanMarkdownInline(line, start, push) {
+function scanMarkdownInline(line: string, start: number, push: any) {
   const length = line.length;
   let index = start;
   while (index < length) {
@@ -1317,9 +1318,9 @@ function scanMarkdownInline(line, start, push) {
  * @param {ScanState} state - mutable fence state.
  * @returns {Array<Array<string>>} segments.
  */
-function scanMarkdownLine(line, state) {
+function scanMarkdownLine(line: string, state: ScanState): Array<Array<string>> {
   const segments: any[] = [];
-  function push(kind, text) {
+  function push(kind: any, text: any) {
     if (text.length === 0) return;
     const last = segments.length > 0 ? segments[segments.length - 1] : null;
     if (last !== null && last[0] === kind) last[1] = last[1] + text;
@@ -1406,7 +1407,7 @@ function scanMarkdownLine(line, state) {
  * @param {unknown} language - Host language chip / alias.
  * @returns {Array<Array<Array<string>>>} per-line `[kind, text]` segments.
  */
-function highlightLines(code, language) {
+function highlightLines(code: unknown, language: unknown): Array<Array<Array<string>>> {
   if (typeof code !== 'string' || code.length === 0) return [];
   const id = normalizeLanguage(language);
   const config = LANGUAGE_CONFIGS[id];
@@ -1429,7 +1430,7 @@ S.HIGHLIGHT_KINDS = HIGHLIGHT_KINDS;
 S.HIGHLIGHT_LANGUAGES = HIGHLIGHT_LANGUAGES;
 S.normalizeHighlightLanguage = normalizeLanguage;
 S.highlightLines = highlightLines;
-S.highlightColor = function highlightColor(kind) {
+S.highlightColor = function highlightColor(kind: any) {
   return typeof S.SYN === 'object' && S.SYN !== null && typeof S.SYN[kind] === 'string' ? S.SYN[kind] : 'inherit';
 };
 
@@ -1442,7 +1443,7 @@ S.highlightColor = function highlightColor(kind) {
  * single-line token; `block` is `[open, close]` for languages whose only
  * comment form is a block (CSS, HTML, Markdown, ...).
  */
-const LANGUAGE_COMMENTS = Object.freeze({
+const LANGUAGE_COMMENTS: Record<string, { line?: string, block?: Array<string> }> = Object.freeze({
   javascript: { line: '//' },
   jsx: { line: '//' },
   typescript: { line: '//' },
@@ -1480,27 +1481,27 @@ const LANGUAGE_COMMENTS = Object.freeze({
  * @param {unknown} language - Host language id or alias.
  * @returns {{line?: string, block?: Array<string>}|null} comment spec.
  */
-function commentTokens(language) {
+function commentTokens(language: unknown): any {
   const id = normalizeLanguage(language);
   const spec = LANGUAGE_COMMENTS[id];
   return spec === undefined ? null : spec;
 }
 
-function isBlankLine(line) {
+function isBlankLine(line: any) {
   return line.replace(/[ \t]/g, '').length === 0;
 }
 
-function leadingWhitespaceLength(line) {
+function leadingWhitespaceLength(line: any) {
   const match = /^[ \t]*/.exec(line);
   return match === null ? 0 : match[0].length;
 }
 
-function clampOffset(value, length) {
+function clampOffset(value: any, length: any) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(length, Math.floor(value)));
 }
 
-function mapToggledOffset(offset, lines) {
+function mapToggledOffset(offset: any, lines: any) {
   const total = lines.length;
   if (total === 0) return offset;
   for (let index = 0; index < total; index = index + 1) {
@@ -1519,7 +1520,7 @@ function mapToggledOffset(offset, lines) {
   return last.newStart + last.newText.length;
 }
 
-function buildLineRecords(regionStart, text, region) {
+function buildLineRecords(regionStart: any, text: any, region: any) {
   const sourceLines = region.split('\n');
   const lines: any[] = [];
   let oldStart = regionStart;
@@ -1531,7 +1532,7 @@ function buildLineRecords(regionStart, text, region) {
   return lines;
 }
 
-function joinLineRecords(lines) {
+function joinLineRecords(lines: any) {
   let text = '';
   for (let index = 0; index < lines.length; index = index + 1) {
     if (index > 0) text = text + '\n';
@@ -1541,7 +1542,7 @@ function joinLineRecords(lines) {
   return text;
 }
 
-function toggleLineToken(text, start, end, spec) {
+function toggleLineToken(text: any, start: any, end: any, spec: any) {
   const token = spec.line;
   if (typeof token !== 'string' || token.length === 0) return null;
 
@@ -1585,7 +1586,7 @@ function toggleLineToken(text, start, end, spec) {
   };
 }
 
-function toggleBlockToken(text, start, end, spec) {
+function toggleBlockToken(text: any, start: any, end: any, spec: any) {
   const block = spec.block;
   if (!Array.isArray(block) || block.length !== 2) return null;
   const open = block[0];
@@ -1667,7 +1668,7 @@ function toggleBlockToken(text, start, end, spec) {
  * @param {unknown} language - Host language chip / alias.
  * @returns {{text: string, selectionStart: number, selectionEnd: number, changed: boolean}} result.
  */
-function toggleLineComments(text, start, end, language) {
+function toggleLineComments(text: string, start: number, end: number, language: unknown): any {
   const source = typeof text === 'string' ? text : '';
   const safeStart = clampOffset(start, source.length);
   const safeEnd = Math.max(safeStart, clampOffset(end, source.length));

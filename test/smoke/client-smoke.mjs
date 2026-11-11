@@ -34,7 +34,7 @@ const PROJECT = path.resolve(HERE, '..', '..');
 const ARTIFACT = path.join(PROJECT, 'lib', 'client.js');
 const SOURCE_DIR = path.join(PROJECT, 'src', 'client');
 const BUILD_SCRIPT = path.join(PROJECT, 'scripts', 'build-client.mjs');
-const SOURCES = ['00-core.js', '07-highlight.ts', '08-markdown.ts', '10-shell.js', '20-files.js', '30-search.ts', '40-git.js', '99-face.js'];
+const SOURCES = ['00-core.ts', '07-highlight.ts', '08-markdown.ts', '10-shell.ts', '20-files.ts', '30-search.ts', '40-git.ts', '99-face.ts'];
 
 /** @type {any} */
 let activeReact = null;
@@ -527,8 +527,9 @@ function run() {
 
   // Every literal t('…') key in the sources must exist in the dictionary, and no
   // visible Chinese may be hardcoded outside the dictionary literal.
-  const coreSource = readFileSync(path.join(SOURCE_DIR, '00-core.js'), 'utf8');
-  const dictStart = coreSource.indexOf('const DICT = {');
+  const coreSource = readFileSync(path.join(SOURCE_DIR, '00-core.ts'), 'utf8');
+  const dictMatch = /const DICT(?:: [^=]+)? = \{/.exec(coreSource);
+  const dictStart = dictMatch === null ? -1 : dictMatch.index;
   const dictEnd = coreSource.indexOf('\n};', dictStart) + 3;
   assert.ok(dictStart > 0 && dictEnd > dictStart, 'the dictionary literal must be locatable');
   const withoutDict = coreSource.slice(0, dictStart) + coreSource.slice(dictEnd);
@@ -818,7 +819,7 @@ function run() {
 
   const viewerRender = renderTree(T.FileViewer({
     t: keyTranslator,
-    path: 'src/client/00-core.js',
+    path: 'src/client/00-core.ts',
     value: 'const a = 1;\nconst b = 2;\n',
     lineCount: 2,
     language: 'js',
@@ -1122,7 +1123,7 @@ function run() {
   assert.equal(noCandidateRender.texts.includes('git.notRepo.body'), true, 'the generic hint is shown instead');
   ok('GitNotRepoState: names the root, retries, offers up to 5 git workspaces');
 
-  const shellSource = readFileSync(path.join(SOURCE_DIR, '10-shell.js'), 'utf8');
+  const shellSource = readFileSync(path.join(SOURCE_DIR, '10-shell.ts'), 'utf8');
   assert.ok(/GitView[\s\S]{0,700}?workspaces:\s*workspaces/.test(shellSource), 'Shell must pass the workspace list to GitView');
   assert.ok(/GitView[\s\S]{0,700}?onSelectWorkspace:\s*selectRoot/.test(shellSource), 'Shell must pass onSelectWorkspace to GitView');
   ok('Shell wires workspaces + onSelectWorkspace into GitView');

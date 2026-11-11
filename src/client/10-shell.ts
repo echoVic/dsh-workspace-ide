@@ -301,7 +301,7 @@ const ST_SHELL = {
 };
 
 /** @param {string} path - absolute path. @returns {string} last path segment. */
-function baseName(path) {
+function baseName(path: string): string {
   if (typeof path !== 'string' || path.length === 0) return '';
   const trimmed = path.replace(/[\\/]+$/, '');
   const index = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
@@ -337,7 +337,7 @@ function readRootSelection() {
  * @param {string} root - workspace path.
  * @param {string|null} sessionId - session currently viewed.
  */
-function writeRootSelection(root, sessionId) {
+function writeRootSelection(root: string, sessionId: string|null) {
   if (typeof root !== 'string' || root.length === 0) return;
   writeStorage(STORAGE_ROOT, JSON.stringify({ root: root, sessionId: typeof sessionId === 'string' ? sessionId : null }));
 }
@@ -354,9 +354,9 @@ function writeRootSelection(root, sessionId) {
  * @param {string|null} sessionPreferred - workspace owning the viewed session.
  * @returns {string|null} selected root path.
  */
-function pickRoot(list, current, sessionPreferred) {
+function pickRoot(list: any, current: string|null, sessionPreferred: string|null): string|null {
   if (!Array.isArray(list) || list.length === 0) return null;
-  const has = function (path) {
+  const has = function (path: any) {
     if (typeof path !== 'string' || path.length === 0) return false;
     return list.some(function (entry) {
       return entry !== null && entry !== undefined && entry.path === path;
@@ -376,10 +376,10 @@ function pickRoot(list, current, sessionPreferred) {
 }
 
 /** Normalise the Host's workspace payload into the shape the picker renders. */
-function normalizeWorkspaces(payload) {
+function normalizeWorkspaces(payload: any) {
   const raw = payload !== null && payload !== undefined && Array.isArray(payload.workspaces) ? payload.workspaces : [];
-  const list = [];
-  raw.forEach(function (entry) {
+  const list: any[] = [];
+  raw.forEach(function (entry: any) {
     if (entry === null || entry === undefined || typeof entry.path !== 'string' || entry.path.length === 0) return;
     list.push({
       id: typeof entry.id === 'string' ? entry.id : entry.path,
@@ -401,7 +401,7 @@ function normalizeWorkspaces(payload) {
  * @param {{id: string, label: string|null}} entry - theme entry.
  * @returns {string} the name to render.
  */
-function themeName(translator, entry) {
+function themeName(translator: Function|any, entry: any): string {
   if (entry === null || entry === undefined) return '';
   if (entry.id === 'auto') return translateOrKey(translator, 'theme.auto');
   return typeof entry.label === 'string' && entry.label.length > 0 ? entry.label : String(entry.id);
@@ -415,7 +415,7 @@ function themeName(translator, entry) {
  * @param {{palette: object|null}|null|undefined} entry - theme entry.
  * @returns {{base: string, link: string}} CSS colour values.
  */
-function themeSwatches(entry) {
+function themeSwatches(entry: any) {
   const palette = entry !== null && entry !== undefined && entry.palette !== null && entry.palette !== undefined ? entry.palette : null;
   if (palette === null) return { base: C.base, link: C.accent };
   return {
@@ -434,13 +434,13 @@ function themeSwatches(entry) {
  * an option applies + persists it through `onSelectTheme` and returns focus to
  * the trigger.
  */
-function ThemePicker(props) {
+function ThemePicker(props: any) {
   const t = typeof props.t === 'function' ? props.t : S.translate;
   const activeTheme = typeof props.theme === 'string' ? props.theme : 'auto';
   const [open, setOpen] = useState(false);
-  const [hot, setHot] = useState(/** @type {string|null} */ (null));
-  const wrapRef = useRef(/** @type {HTMLElement|null} */ (null));
-  const optionRefs = useRef(/** @type {Array<HTMLElement|null>} */ ([]));
+  const [hot, setHot] = useState<any>(null);
+  const wrapRef = useRef<any>(null);
+  const optionRefs = useRef<any[]>([]);
   optionRefs.current = [];
 
   /** Focus the trigger button again (the wrapper's first button is the trigger). */
@@ -451,7 +451,7 @@ function ThemePicker(props) {
     if (trigger !== null && trigger !== undefined && typeof trigger.focus === 'function') trigger.focus();
   }, []);
 
-  const closeMenu = useCallback(function (refocus) {
+  const closeMenu = useCallback(function (refocus: any) {
     setOpen(false);
     setHot(null);
     if (refocus === true) focusTrigger();
@@ -461,13 +461,13 @@ function ThemePicker(props) {
   // the panel keeps working even when focus sits on a non-focusable child).
   useEffect(function () {
     if (!open) return undefined;
-    const onPointerDown = function (event) {
+    const onPointerDown = function (event: any) {
       const wrapper = wrapRef.current;
       const target = event !== null && event !== undefined ? event.target : null;
       if (wrapper !== null && wrapper !== undefined && typeof wrapper.contains === 'function' && target !== null && target !== undefined && wrapper.contains(target)) return;
       setOpen(false);
     };
-    const onKeyDown = function (event) {
+    const onKeyDown = function (event: any) {
       if (event === null || event === undefined || event.key !== 'Escape') return;
       if (typeof event.preventDefault === 'function') event.preventDefault();
       closeMenu(true);
@@ -506,7 +506,7 @@ function ThemePicker(props) {
   }, [open, activeTheme]);
 
   /** Move focus between option buttons: relative delta or 'first'/'last'. */
-  function focusOption(position) {
+  function focusOption(position: any) {
     const nodes = optionRefs.current;
     if (!Array.isArray(nodes) || nodes.length === 0) return;
     const current = typeof document !== 'undefined' && document !== null ? document.activeElement : null;
@@ -526,7 +526,7 @@ function ThemePicker(props) {
     if (node !== null && node !== undefined && typeof node.focus === 'function') node.focus();
   }
 
-  const onMenuKeyDown = function (event) {
+  const onMenuKeyDown = function (event: any) {
     if (event === null || event === undefined) return;
     const key = event.key;
     if (key !== 'ArrowDown' && key !== 'ArrowUp' && key !== 'Home' && key !== 'End') return;
@@ -538,13 +538,13 @@ function ThemePicker(props) {
 
   // Refocus the trigger only for keyboard-driven closes: a pointer selection
   // must not leave a focus ring around the palette glyph.
-  const chooseTheme = function (id, event) {
+  const chooseTheme = function (id: any, event: any) {
     if (typeof props.onSelectTheme === 'function') props.onSelectTheme(id);
     const keyboard = event !== null && event !== undefined && event.detail === 0;
     closeMenu(keyboard);
   };
 
-  const rows = S.THEMES.map(function (entry, index) {
+  const rows = S.THEMES.map(function (entry: any, index: any) {
     const selected = entry.id === activeTheme;
     const swatches = themeSwatches(entry);
     return h(
@@ -642,14 +642,14 @@ function ThemePicker(props) {
  * the right, plus the colour-theme picker at the far right. Icons only (no
  * labels) with aria-label + title, exactly like the reference rail.
  */
-function ShellToolbar(props) {
+function ShellToolbar(props: any) {
   const t = props.t;
   const workspaces = Array.isArray(props.workspaces) ? props.workspaces : [];
   const tab = props.tab;
   const busy = props.loading === true;
   const [pickerFocused, setPickerFocused] = useState(false);
 
-  const tabs = S.TABS.map(function (entry) {
+  const tabs = S.TABS.map(function (entry: any) {
     const Icon = S.Icons[entry.icon];
     const active = tab === entry.id;
     return h(
@@ -670,7 +670,7 @@ function ShellToolbar(props) {
     );
   });
 
-  const current = workspaces.find(function (entry) {
+  const current = workspaces.find(function (entry: any) {
     return entry.path === props.root;
   });
 
@@ -709,11 +709,11 @@ function ShellToolbar(props) {
               onFocus: function () { setPickerFocused(true); },
               onBlur: function () { setPickerFocused(false); },
               onChange: function (event) {
-                const value = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? event.target.value : '';
+                const value = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? (event.target as any).value : '';
                 if (typeof props.onSelectRoot === 'function') props.onSelectRoot(value);
               },
             }),
-            workspaces.map(function (entry) {
+            workspaces.map(function (entry: any) {
               return h(
                 'option',
                 { key: entry.path, value: entry.path, title: entry.path },
@@ -748,7 +748,7 @@ function ShellToolbar(props) {
  * @param {{t?: Function, preferredRoot?: string|null}} props - slot props: the locale
  *   translator when present plus the workspace owning the session the app views (if reported).
  */
-function Shell(props) {
+function Shell(props: any) {
   const fallbackT = S.useT();
   const t = props !== null && props !== undefined && typeof props.t === 'function' ? props.t : fallbackT;
 
@@ -757,18 +757,18 @@ function Shell(props) {
     // Persisted colour theme; `auto` (no overrides) is the default.
     return S.readTheme();
   });
-  const [workspaces, setWorkspaces] = useState(/** @type {Array<any>} */ ([]));
-  const [root, setRoot] = useState(/** @type {string|null} */ (null));
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [root, setRoot] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [rootError, setRootError] = useState(/** @type {any} */ (null));
+  const [rootError, setRootError] = useState<any>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [openRequest, setOpenRequest] = useState(/** @type {{path?: string, line?: number, token?: number}|null} */ (null));
+  const [openRequest, setOpenRequest] = useState<any>(null);
 
-  const abortRef = useRef(/** @type {AbortController|null} */ (null));
+  const abortRef = useRef<any>(null);
   const requestRef = useRef(0);
   const openTokenRef = useRef(0);
-  const workspacesRef = useRef(/** @type {Array<any>} */ ([]));
-  const preferredRootRef = useRef(/** @type {string|null} */ (null));
+  const workspacesRef = useRef<any[]>([]);
+  const preferredRootRef = useRef<any>(null);
   preferredRootRef.current = typeof props.preferredRoot === 'string' && props.preferredRoot.length > 0 ? props.preferredRoot : null;
 
   const loadWorkspaces = useCallback(function () {
@@ -786,17 +786,17 @@ function Shell(props) {
     setLoading(true);
     setRootError(null);
     S.requestJson(ROUTES.workspaces, { signal: controller === null ? undefined : controller.signal })
-      .then(function (payload) {
+      .then(function (payload: any) {
         if (requestRef.current !== requestId) return;
         const list = normalizeWorkspaces(payload);
         workspacesRef.current = list;
         setWorkspaces(list);
-        setRoot(function (current) {
+        setRoot(function (current: any) {
           return pickRoot(list, current, preferredRootRef.current);
         });
         setLoading(false);
       })
-      .catch(function (cause) {
+      .catch(function (cause: any) {
         if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
         if (requestRef.current !== requestId) return;
         setRootError(cause);
@@ -823,7 +823,7 @@ function Shell(props) {
     if (preferredRootValue.length === 0) return undefined;
     const list = workspacesRef.current;
     if (!Array.isArray(list) || !list.some(function (entry) { return entry !== null && entry !== undefined && entry.path === preferredRootValue; })) return undefined;
-    setRoot(function (current) {
+    setRoot(function (current: any) {
       if (current === preferredRootValue) return current;
       const stored = readRootSelection();
       const sessionId = S.getCurrentSessionId();
@@ -843,14 +843,14 @@ function Shell(props) {
     return undefined;
   }, [tab]);
 
-  const selectRoot = useCallback(function (next) {
+  const selectRoot = useCallback(function (next: any) {
     if (typeof next !== 'string' || next.length === 0) return;
     setRoot(next);
     writeRootSelection(next, S.getCurrentSessionId());
     setOpenRequest(null);
   }, []);
 
-  const selectTab = useCallback(function (next) {
+  const selectTab = useCallback(function (next: any) {
     if (next !== 'files' && next !== 'search' && next !== 'git') return;
     setTab(next);
   }, []);
@@ -860,14 +860,14 @@ function Shell(props) {
     loadWorkspaces();
   }, [loadWorkspaces]);
 
-  const selectTheme = useCallback(function (next) {
+  const selectTheme = useCallback(function (next: any) {
     // Persist first, then re-render the panel root with the override table.
     const stored = S.writeTheme(next);
     setTheme(stored);
     S.ping('theme', stored);
   }, []);
 
-  const openFile = useCallback(function (path, line) {
+  const openFile = useCallback(function (path: any, line: any) {
     openTokenRef.current = openTokenRef.current + 1;
     setTab('files');
     setOpenRequest({
@@ -878,7 +878,7 @@ function Shell(props) {
   }, []);
 
   /** @type {any} */
-  let body = null;
+  let body: any = null;
   if (root === null) {
     if (rootError !== null) {
       body = h(S.InlineError, {
@@ -956,19 +956,19 @@ function Shell(props) {
  * Catches any render failure of the panel so the slot never blanks; the retry
  * button remounts the children under a fresh key.
  */
-class PanelBoundary extends React.Component {
-  constructor(props) {
+class PanelBoundary extends React.Component<any, any> {
+  constructor(props: any) {
     super(props);
     this.state = { error: null, attempt: 0 };
     this.retry = this.retry.bind(this);
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: any) {
     return { error: error };
   }
 
   retry() {
-    this.setState(function (state) {
+    this.setState(function (state: any) {
       return { error: null, attempt: (state !== null && state !== undefined && Number.isFinite(state.attempt) ? state.attempt : 0) + 1 };
     });
   }
