@@ -178,7 +178,8 @@ element alias; `types/dsh-services.d.ts` declares the optional Host context/serv
 There is still no client bundler, no build step for the Host and no runtime dependency —
 `npm ci` installs `typescript`, `@types/node` and `@types/react` into devDependencies only.
 
-The client half is mid-migration to TypeScript: `05-icons.ts` is the pilot fragment. TS
+The client half is mid-migration to TypeScript: `05-icons.ts`, `07-highlight.ts`,
+`08-markdown.ts` and `30-search.ts` are converted so far. TS
 sources are script-style fragments compiled by `tsc` into `build/client-parts/` (never
 shipped, git-ignored) and concatenated with the plain-JS fragments — still no bundler, and
 `lib/client.js` keeps its exact loader contract.

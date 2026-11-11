@@ -23,7 +23,7 @@ import vm from 'node:vm';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, '..', '..');
 const ARTIFACT = path.join(PROJECT, 'lib', 'client.js');
-const SOURCE_FILES = ['00-core.js', '10-shell.js', '20-files.js', '30-search.js', '40-git.js', '99-face.js'];
+const SOURCE_FILES = ['00-core.js', '10-shell.js', '20-files.js', '30-search.ts', '40-git.js', '99-face.js'];
 
 // ─── fake React ──────────────────────────────────────────────────────────────
 

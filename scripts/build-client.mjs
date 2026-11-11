@@ -40,11 +40,11 @@ const BUILD_DIR = path.join(PROJECT, 'build', 'client-parts');
 const SOURCES = [
   '00-core.js',
   '05-icons.ts',
-  '07-highlight.js',
-  '08-markdown.js',
+  '07-highlight.ts',
+  '08-markdown.ts',
   '10-shell.js',
   '20-files.js',
-  '30-search.js',
+  '30-search.ts',
   '40-git.js',
   '99-face.js',
 ];

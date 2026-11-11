@@ -121,7 +121,7 @@ function mdMatchDelimited(text, index, delimiters) {
  * @returns {Array<InlineNode>} inline nodes.
  */
 function parseMarkdownInline(text) {
-  const nodes = [];
+  const nodes: any[] = [];
   let buffer = '';
   let index = 0;
   const flush = function () {
@@ -268,7 +268,7 @@ function parseMarkdown(source) {
   }
   const text = source.replace(/\r\n?/g, '\n');
   const lines = text.split('\n');
-  const blocks = [];
+  const blocks: any[] = [];
   let index = 0;
 
   while (index < lines.length) {
@@ -290,7 +290,7 @@ function parseMarkdown(source) {
       const char = fence[1].charAt(0);
       const length = fence[1].length;
       const info = fence[2].trim().split(/\s+/)[0];
-      const codeLines = [];
+      const codeLines: any[] = [];
       index += 1;
       while (index < lines.length && mdIsFenceClose(lines[index], char, length) === false) {
         codeLines.push(lines[index]);
@@ -302,7 +302,7 @@ function parseMarkdown(source) {
     }
 
     if (/^ {0,3}>/.test(line)) {
-      const quoteLines = [];
+      const quoteLines: any[] = [];
       while (index < lines.length && /^ {0,3}>/.test(lines[index])) {
         quoteLines.push(lines[index].replace(/^ {0,3}>\s?/, ''));
         index += 1;
@@ -321,7 +321,7 @@ function parseMarkdown(source) {
         return null;
       });
       index += 2;
-      const rows = [];
+      const rows: any[] = [];
       while (index < lines.length) {
         const rowLine = lines[index];
         if (/^\s*$/.test(rowLine) || rowLine.includes('|') === false) break;
@@ -346,7 +346,7 @@ function parseMarkdown(source) {
       continue;
     }
 
-    const paragraphLines = [];
+    const paragraphLines: any[] = [];
     let setext = 0;
     while (index < lines.length && /^\s*$/.test(lines[index]) === false) {
       if (paragraphLines.length > 0 && /^ {0,3}=+\s*$/.test(lines[index])) {
@@ -382,7 +382,7 @@ function mdParseList(lines, startIndex) {
   if (first === null) return { block: { type: 'list', ordered: false, items: [] }, nextIndex: startIndex };
   const baseIndent = first[1].length;
   const ordered = /^\d/.test(first[2]);
-  const items = [];
+  const items: any[] = [];
   let index = startIndex;
 
   while (index < lines.length) {
@@ -393,16 +393,14 @@ function mdParseList(lines, startIndex) {
     if (indent > baseIndent + 1) break;
 
     let itemText = marker[3];
-    /** @type {boolean|null} */
-    let task = null;
+    let task: boolean | null = null;
     const taskMatch = /^\[([ xX])\]\s*(.*)$/.exec(itemText);
     if (taskMatch !== null) {
       task = taskMatch[1].toLowerCase() === 'x';
       itemText = taskMatch[2];
     }
     const bodyLines = [itemText];
-    /** @type {BlockNode|null} */
-    let nested = null;
+    let nested: any = null;
     index += 1;
     while (index < lines.length) {
       const next = lines[index];
@@ -506,7 +504,7 @@ const MD_STYLE = {
  * @returns {Array} React children.
  */
 function renderMarkdownInline(nodes, keyPrefix) {
-  const out = [];
+  const out: any[] = [];
   for (let index = 0; index < nodes.length; index = index + 1) {
     const node = nodes[index];
     const key = keyPrefix + '-' + String(index);
@@ -558,8 +556,7 @@ function renderMarkdownInline(nodes, keyPrefix) {
 }
 
 function renderMarkdownCode(block, key) {
-  /** @type {Array<Array<Array<string>>>|null} */
-  let lines = null;
+  let lines: any = null;
   try {
     if (typeof S.highlightLines === 'function' && block.text.length <= MD_MAX_SOURCE_CHARS) {
       lines = S.highlightLines(block.text, block.lang);
@@ -570,7 +567,7 @@ function renderMarkdownCode(block, key) {
   if (lines === null) {
     return h('pre', { key: key, style: MD_STYLE.codeBlock }, h('code', null, block.text));
   }
-  const children = [];
+  const children: any[] = [];
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex = lineIndex + 1) {
     const segments = lines[lineIndex];
     for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex = segmentIndex + 1) {
@@ -594,7 +591,7 @@ function renderMarkdownCode(block, key) {
  * @returns {Array} React children.
  */
 function renderMarkdownBlocks(blocks, keyPrefix) {
-  const out = [];
+  const out: any[] = [];
   for (let index = 0; index < blocks.length; index = index + 1) {
     const block = blocks[index];
     const key = keyPrefix + '-' + String(index);
@@ -617,7 +614,7 @@ function renderMarkdownBlocks(blocks, keyPrefix) {
     if (block.type === 'list') {
       const items = (block.items || []).map(function (item, itemIndex) {
         const itemKey = key + '-i' + String(itemIndex);
-        const children = [];
+        const children: any[] = [];
         if (item.task !== null && item.task !== undefined) {
           children.push(
             h('input', {

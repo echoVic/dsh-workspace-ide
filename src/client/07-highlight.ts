@@ -208,7 +208,7 @@ function block(open, close) {
 }
 
 /** Shorthand for one string literal flavour. */
-function literal(open, close, escape, multiline, kind) {
+function literal(open?, close?, escape?, multiline?, kind?) {
   return Object.freeze({
     open: open,
     close: close,
@@ -761,7 +761,7 @@ function scanNumber(line, start, push) {
  * @returns {Array<Array<string>>} `[kind, text]` segments.
  */
 function scanCodeLine(line, state, config) {
-  const segments = [];
+  const segments: any[] = [];
   let lastKind = null;
 
   function push(kind, text) {
@@ -991,8 +991,7 @@ function scanCodeLine(line, state, config) {
     }
 
     // Operators (longest match wins), then punctuation, then bare plain text.
-    /** @type {string|null} */
-    let operator = null;
+    let operator: string | null = null;
     for (let slot = 0; slot < CODE_OPERATORS.length; slot = slot + 1) {
       if (line.startsWith(CODE_OPERATORS[slot], index)) {
         operator = CODE_OPERATORS[slot];
@@ -1103,7 +1102,7 @@ function scanTagBody(line, start, state, push) {
  * @returns {Array<Array<string>>} segments.
  */
 function scanMarkupLine(line, state) {
-  const segments = [];
+  const segments: any[] = [];
   function push(kind, text) {
     if (text.length === 0) return;
     const last = segments.length > 0 ? segments[segments.length - 1] : null;
@@ -1319,7 +1318,7 @@ function scanMarkdownInline(line, start, push) {
  * @returns {Array<Array<string>>} segments.
  */
 function scanMarkdownLine(line, state) {
-  const segments = [];
+  const segments: any[] = [];
   function push(kind, text) {
     if (text.length === 0) return;
     const last = segments.length > 0 ? segments[segments.length - 1] : null;
@@ -1522,7 +1521,7 @@ function mapToggledOffset(offset, lines) {
 
 function buildLineRecords(regionStart, text, region) {
   const sourceLines = region.split('\n');
-  const lines = [];
+  const lines: any[] = [];
   let oldStart = regionStart;
   for (let index = 0; index < sourceLines.length; index = index + 1) {
     const oldText = sourceLines[index];

@@ -34,7 +34,7 @@ const PROJECT = path.resolve(HERE, '..', '..');
 const ARTIFACT = path.join(PROJECT, 'lib', 'client.js');
 const SOURCE_DIR = path.join(PROJECT, 'src', 'client');
 const BUILD_SCRIPT = path.join(PROJECT, 'scripts', 'build-client.mjs');
-const SOURCES = ['00-core.js', '07-highlight.js', '08-markdown.js', '10-shell.js', '20-files.js', '30-search.js', '40-git.js', '99-face.js'];
+const SOURCES = ['00-core.js', '07-highlight.ts', '08-markdown.ts', '10-shell.js', '20-files.js', '30-search.ts', '40-git.js', '99-face.js'];
 
 /** @type {any} */
 let activeReact = null;
@@ -743,7 +743,7 @@ function run() {
     assert.equal(matches === null ? 0 : matches.length, 6, 'six palettes override --ide-tok-' + kind);
   });
   assert.equal(/innerHTML|dangerouslySetInnerHTML|outerHTML|document\.write/.test(source), false, 'the bundled client has no HTML/JS sinks');
-  assert.equal(/innerHTML|dangerouslySetInnerHTML/.test(readFileSync(path.join(SOURCE_DIR, '07-highlight.js'), 'utf8')), false, 'the highlighter only returns data');
+  assert.equal(/innerHTML|dangerouslySetInnerHTML/.test(readFileSync(path.join(SOURCE_DIR, '07-highlight.ts'), 'utf8')), false, 'the highlighter only returns data');
   ok('SYN -> --ide-tok-* -> --shiki-token-* chain; 6 palettes x 15 token colours; auto inherits DSH; no innerHTML');
 
   section('comment toggle (Cmd/Ctrl+/)');
