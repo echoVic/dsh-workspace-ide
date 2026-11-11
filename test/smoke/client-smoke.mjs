@@ -981,6 +981,60 @@ function run() {
   assert.equal(mdSourceRender.hosts.filter(function (host) { return host.props['data-md-preview'] === '1'; }).length, 0, 'source mode renders no preview');
   ok('markdown preview: block/inline parser, syntax-highlighted fences, table/quote/list, safe links, source/preview toggle');
 
+  section('images and SVG preview');
+  assert.equal(typeof T.imageMimeForPath, 'function', 'S.imageMimeForPath must be exported');
+  assert.equal(T.imageMimeForPath('public/logo.svg'), 'image/svg+xml', 'svg detected');
+  assert.equal(T.imageMimeForPath('a/b/photo.PNG'), 'image/png', 'extension matching is case-insensitive');
+  assert.equal(T.imageMimeForPath('a/photo.jpeg'), 'image/jpeg', 'jpeg detected');
+  assert.equal(T.imageMimeForPath('notes.txt'), null, 'text is not an image');
+  assert.equal(T.imageMimeForPath('Makefile'), null, 'dotless names are not images');
+  assert.equal(T.buildImageDataUrl('image/png', 'iVBORw0KGgo='), 'data:image/png;base64,iVBORw0KGgo=', 'raster data URL');
+  assert.equal(T.buildImageDataUrl(null, 'x'), null, 'missing MIME yields no data URL');
+  const svgUrl = T.buildSvgDataUrl('<svg xmlns="http://www.w3.org/2000/svg"><rect width="8" height="8"/></svg>');
+  assert.equal(svgUrl.indexOf('data:image/svg+xml;charset=utf-8,') === 0, true, 'SVG data URL prefix');
+  assert.equal(decodeURIComponent(svgUrl.slice(svgUrl.indexOf(',') + 1)).indexOf('<svg') !== -1, true, 'SVG source survives the data URL');
+
+  const imageRender = renderTree(T.ImageViewer({
+    t: keyTranslator,
+    path: 'public/logo.png',
+    src: 'data:image/png;base64,iVBORw0KGgo=',
+    mime: 'image/png',
+    size: 1234,
+    mtimeMs: 1700000000000,
+    dimensions: { width: 640, height: 480 },
+    onDimensions: function () {},
+  }));
+  const imageTags = findHost(imageRender, 'img');
+  assert.equal(imageTags.length, 1, 'ImageViewer renders one img');
+  assert.equal(imageTags[0].props.src, 'data:image/png;base64,iVBORw0KGgo=', 'img uses the data URL');
+  assert.equal(imageRender.texts.includes('files.image.badge'), true, 'image badge comes from the dictionary');
+  assert.equal(imageRender.texts.includes('files.image.dimensions[width=640,height=480]'), true, 'natural dimensions are shown');
+
+  const svgProps = Object.assign({}, plainViewerProps, {
+    path: 'public/logo.svg',
+    value: '<svg xmlns="http://www.w3.org/2000/svg"><rect width="8" height="8"/></svg>',
+    lineCount: 1,
+    language: 'xml',
+    isSvg: true,
+    svgMode: 'image',
+    svgDataUrl: svgUrl,
+    dimensions: null,
+  });
+  const svgRender = renderTree(T.FileViewer(svgProps));
+  const svgImages = svgRender.hosts.filter(function (host) { return host.props['data-svg-image'] === '1'; });
+  assert.equal(svgImages.length, 1, 'SVG image mode renders the img');
+  assert.equal(svgImages[0].props.src, svgUrl, 'SVG img uses the source data URL');
+  const svgModes = svgRender.hosts
+    .filter(function (host) { return host.type === 'button' && host.props['data-svg-mode'] !== undefined; })
+    .map(function (button) { return button.props['data-svg-mode']; });
+  assert.deepEqual(svgModes, ['image', 'source'], 'SVG files expose the image/source toggle');
+  assert.equal(findHost(svgRender, 'textarea').length, 0, 'image mode renders no editor');
+  assert.equal(svgRender.texts.includes('files.svg.shortcut'), true, 'status bar advertises the toggle shortcut');
+  const svgSourceRender = renderTree(T.FileViewer(Object.assign({}, svgProps, { svgMode: 'source' })));
+  assert.equal(findHost(svgSourceRender, 'textarea').length, 1, 'source mode keeps the editable textarea');
+  assert.equal(svgSourceRender.hosts.filter(function (host) { return host.props['data-svg-image'] === '1'; }).length, 0, 'source mode renders no image');
+  ok('images: mime detection, data URLs, ImageViewer, SVG image/source toggle');
+
   const searchData = {
     files: [
       { path: 'src/a.js', matches: [{ line: 7, column: 5, length: 3, text: 'foo bar baz' }] },

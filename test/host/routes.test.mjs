@@ -1,5 +1,5 @@
 /**
- * Route wiring tests: the seven exact Fetch routes, disposal inside
+ * Route wiring tests: the eight exact Fetch routes, disposal inside
  * `ctx.effect`, the workspaces projection (including `live` and `git`), the ping
  * verification channel, and the "handler never throws" guarantee.
  */
@@ -58,14 +58,15 @@ describe('plugin module face', () => {
     assert.equal(typeof pluginApply, 'function');
   });
 
-  it('apply registers all seven routes through ctx.effect', () => {
+  it('apply registers all eight routes through ctx.effect', () => {
     const fake = fakePluginContext();
     pluginApply(fake.ctx);
-    assert.equal(fake.routes.length, 7);
-    assert.equal(fake.effects.length, 7);
+    assert.equal(fake.routes.length, 8);
+    assert.equal(fake.effects.length, 8);
     assert.deepEqual(fake.routes.map((route) => route.path).sort(), [
       `${ROUTE_PREFIX}file`,
       `${ROUTE_PREFIX}git`,
+      `${ROUTE_PREFIX}image`,
       `${ROUTE_PREFIX}list`,
       `${ROUTE_PREFIX}ping`,
       `${ROUTE_PREFIX}save`,
@@ -83,11 +84,12 @@ describe('plugin module face', () => {
 
 describe('route table', () => {
   it('declares the contracted paths, methods and body mode', () => {
-    assert.equal(ROUTE_DEFINITIONS.length, 7);
+    assert.equal(ROUTE_DEFINITIONS.length, 8);
     const expected = new Map([
       ['workspaces', ['GET']],
       ['list', ['GET']],
       ['file', ['GET']],
+      ['image', ['GET']],
       ['search', ['GET']],
       ['git', ['GET']],
       ['save', ['POST']],
@@ -112,8 +114,8 @@ describe('route table', () => {
   it('the registered disposer removes the route', () => {
     const fake = fakePluginContext();
     registerRoutes(fake.ctx);
-    assert.equal(fake.routes.length, 7);
-    assert.equal(fake.disposers.length, 7);
+    assert.equal(fake.routes.length, 8);
+    assert.equal(fake.disposers.length, 8);
     for (const dispose of fake.disposers) dispose();
     assert.equal(fake.routes.length, 0);
   });

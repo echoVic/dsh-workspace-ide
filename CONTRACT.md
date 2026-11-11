@@ -135,7 +135,16 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
    java, c/cpp/h, sh, yml/yaml, txt, …; default `text`).
    Directories → `bad-request`. Missing file → `not-found`.
 
-4. `GET /api/dsh-workspace-ide.search?root=&q=&regex=0|1&case=0|1&whole=0|1&include=&exclude=&maxFiles=&maxMatches=&maxFileBytes=`
+4. `GET /api/dsh-workspace-ide.image?root=&path=`
+   → `{"ok":true,"root","path","absolutePath","size","mtimeMs","mime","base64"}`.
+   Raster/SVG image bytes for the viewer, base64-encoded (JSON envelope keeps the route
+   uniform). Cap 8 MiB — larger files answer 413 `too-large` instead of a truncated image.
+   The MIME type is verified from the leading bytes (PNG/JPEG/GIF/WebP/BMP/ICO/AVIF magic
+   numbers; SVG text only when the extension is `.svg` and the payload starts with `<svg`
+   or an XML prolog). A file whose bytes do not match any supported image answers 415
+   `unsupported-image`. Same path safety and directory/missing behaviour as `file`.
+
+5. `GET /api/dsh-workspace-ide.search?root=&q=&regex=0|1&case=0|1&whole=0|1&include=&exclude=&maxFiles=&maxMatches=&maxFileBytes=`
    → `{"ok":true,"root","query",{options},"files":[{"path","matches":[{"line","column",
    "length","text"}]}],"totalMatches","scannedFiles","scannedBytes","truncated","elapsedMs"}`.
    - `q` required, non-empty; `regex` compiles `q` as a RegExp (invalid regex → bad-request).
@@ -150,7 +159,7 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
      length; `text` is the line trimmed to ≤ 400 chars (trailing `\r`/`\n` removed).
    - Results ordered by path, then line. Never throw on unreadable files (skip them).
 
-5. `GET /api/dsh-workspace-ide.git?root=&kind=&…`
+6. `GET /api/dsh-workspace-ide.git?root=&kind=&…`
    - `kind=status` → `{"ok":true,"repo":true,"root","branch","upstream","ahead","behind",
      "clean","files":[{"path","index","worktree","status"}],"counts":{"staged","unstaged",
      "untracked","conflicted"}}`. Use `git status --porcelain=v1 -z --branch
@@ -173,12 +182,12 @@ defensively (`ctx.get('…')`) — a missing service must degrade, never throw a
      `{"ok":false,"error":{"code":"git-failed","message":…}}` or `repo:false` for
      "not a git repository"; never crash the Host.
 
-6. `POST /api/dsh-workspace-ide.save` — body JSON `{"root","path","content"}` (≤ 4 MiB).
+7. `POST /api/dsh-workspace-ide.save` — body JSON `{"root","path","content"}` (≤ 4 MiB).
    Overwrite an existing regular text file only (do not create new files/dirs). Same path
    safety as above. → `{"ok":true,"path","size","mtimeMs"}`. Missing file → `not-found`.
    Use a temp file + rename in the same directory for atomicity.
 
-7. `POST /api/dsh-workspace-ide.ping` — body JSON `{"stage","detail"}` (bodies above
+8. `POST /api/dsh-workspace-ide.ping` — body JSON `{"stage","detail"}` (bodies above
    64 KiB are ignored rather than parsed; `stage`/`detail` are truncated).
    Append `{"at":ISO,"stage","detail","pid"}` as one line to
    `${process.env.DSH_HOME ?? join(homedir(), '.dsh')}/workspace-ide/status.jsonl`
@@ -428,8 +437,15 @@ the top-left corner — see that package's README.)
     with the gutter). Files > 400 KB open read-only (pre, no textarea). Binary → notice.
   - Markdown/HTML just shown as text (this is a code viewer).
   - Keyboard: Ctrl/Cmd+S saves; Escape cancels dirty state (reload from disk);
-    Cmd/Ctrl+Shift+V toggles the Markdown preview; Cmd/Ctrl+/ toggles comments via
+    Cmd/Ctrl+Shift+V toggles the Markdown preview (Markdown files) or the image/source
+    view (SVG files); Cmd/Ctrl+/ toggles comments via
     `S.toggleLineComments(text, start, end, language)`.
+  - Images: raster paths (`S.imageMimeForPath` → png/jpg/jpeg/gif/webp/bmp/ico/avif) are
+    fetched through `api/dsh-workspace-ide.image`, converted to a `data:` URL and rendered
+    by `S.ImageViewer` (breadcrumb header, checkerboard canvas surface, natural dimensions
+    in the status bar). SVG is fetched as text like any other file and previewed from the
+    current draft via a data URL; its header gets a `图片 / 源码` segmented control and the
+    usual editor (and save path) stays available in source mode.
     Line comments use each language's token (`//`, `#`, `--`, `;`), block-only languages
     (CSS/HTML/XML/Markdown/Vue/Svelte) wrap and unwrap `/* */` / `<!-- -->`. The pure
     function returns `{text, selectionStart, selectionEnd, changed}`; the editor applies

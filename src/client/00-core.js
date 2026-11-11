@@ -28,11 +28,64 @@ const ROUTES = Object.freeze({
   workspaces: 'api/dsh-workspace-ide.workspaces',
   list: 'api/dsh-workspace-ide.list',
   file: 'api/dsh-workspace-ide.file',
+  image: 'api/dsh-workspace-ide.image',
   search: 'api/dsh-workspace-ide.search',
   git: 'api/dsh-workspace-ide.git',
   save: 'api/dsh-workspace-ide.save',
   ping: 'api/dsh-workspace-ide.ping',
 });
+/** Image extensions the Files tab can render. SVG keeps a source/preview toggle. */
+const IMAGE_MIME_BY_EXTENSION = Object.freeze({
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.jpe': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
+  '.ico': 'image/x-icon',
+  '.avif': 'image/avif',
+  '.svg': 'image/svg+xml',
+});
+
+/**
+ * MIME type implied by a workspace path's extension, or null for non-images.
+ * @param {unknown} filePath - workspace-relative path.
+ * @returns {string|null} image MIME type or null.
+ */
+function imageMimeForPath(filePath) {
+  if (typeof filePath !== 'string') return null;
+  const slash = filePath.lastIndexOf('/');
+  const base = slash === -1 ? filePath : filePath.slice(slash + 1);
+  const dot = base.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const extension = base.slice(dot).toLowerCase();
+  return Object.hasOwn(IMAGE_MIME_BY_EXTENSION, extension) ? IMAGE_MIME_BY_EXTENSION[extension] : null;
+}
+
+/**
+ * Build the `data:` URL a raster image viewer renders.
+ * @param {unknown} mime - verified MIME type from the Host.
+ * @param {unknown} base64 - base64 payload from the Host.
+ * @returns {string|null} data URL or null.
+ */
+function buildImageDataUrl(mime, base64) {
+  if (typeof mime !== 'string' || typeof base64 !== 'string' || base64.length === 0) return null;
+  return 'data:' + mime + ';base64,' + base64;
+}
+
+/**
+ * Build the data URL for an SVG preview from its current source text. Using
+ * `encodeURIComponent` (not base64) keeps UTF-8 SVG text readable and avoids a
+ * btoa pass over the whole document.
+ * @param {unknown} svgText - SVG source.
+ * @returns {string|null} data URL or null.
+ */
+function buildSvgDataUrl(svgText) {
+  if (typeof svgText !== 'string' || svgText.length === 0) return null;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+}
+
 /** Where the shell remembers the chosen workspace root across reloads. */
 const STORAGE_ROOT = 'dsh-workspace-ide:root';
 /** Persisted store the DSH workspace UI writes the currently viewed session to. */
@@ -124,6 +177,15 @@ const DICT = {
     'files.md.mode': 'Markdown 显示方式',
     'files.md.shortcut': '⌘⇧V 预览',
     'files.md.toggleHint': '在源码与 Markdown 预览之间切换（Cmd/Ctrl + Shift + V）',
+    'files.image.badge': '图片',
+    'files.image.preview': '图片预览',
+    'files.image.dimensions': '{width} × {height}',
+    'files.image.error.title': '无法显示图片',
+    'files.svg.preview': '图片',
+    'files.svg.source': '源码',
+    'files.svg.mode': 'SVG 显示方式',
+    'files.svg.shortcut': '⌘⇧V 源码/图片',
+    'files.svg.toggleHint': '在图片预览与源码之间切换（Cmd/Ctrl + Shift + V）',
     'files.commentHint': '注释/取消注释当前行或选中的行（Cmd 或 Ctrl + /）',
     'files.caret': '行 {line}，列 {column}',
     'files.lines': '{count} 行',
@@ -253,6 +315,15 @@ const DICT = {
     'files.md.mode': 'Markdown view',
     'files.md.shortcut': '⌘⇧V preview',
     'files.md.toggleHint': 'Toggle between source and rendered Markdown (Cmd/Ctrl + Shift + V)',
+    'files.image.badge': 'Image',
+    'files.image.preview': 'Image preview',
+    'files.image.dimensions': '{width} × {height}',
+    'files.image.error.title': 'Image cannot be displayed',
+    'files.svg.preview': 'Image',
+    'files.svg.source': 'Source',
+    'files.svg.mode': 'SVG view',
+    'files.svg.shortcut': '⌘⇧V source/image',
+    'files.svg.toggleHint': 'Toggle between image preview and SVG source (Cmd/Ctrl + Shift + V)',
     'files.commentHint': 'Comment or uncomment the current line or selection (Cmd/Ctrl + /)',
     'files.caret': 'Ln {line}, Col {column}',
     'files.lines': '{count} lines',
@@ -1077,6 +1148,10 @@ S.formatDateTime = formatDateTime;
 S.formatCount = formatCount;
 S.clamp = clampNumber;
 S.MAX_EDITABLE_BYTES = MAX_EDITABLE_BYTES;
+S.IMAGE_MIME_BY_EXTENSION = IMAGE_MIME_BY_EXTENSION;
+S.imageMimeForPath = imageMimeForPath;
+S.buildImageDataUrl = buildImageDataUrl;
+S.buildSvgDataUrl = buildSvgDataUrl;
 S.MAX_DIFF_LINES = MAX_DIFF_LINES;
 S.MAX_SYNTAX_SEGMENTS = MAX_SYNTAX_SEGMENTS;
 S.EDITOR_LINE_HEIGHT = EDITOR_LINE_HEIGHT;

@@ -811,7 +811,7 @@ describe('ping verification channel', () => {
 });
 
 describe('route table, registration and common HTTP behaviour', () => {
-  it('exposes exactly the seven contracted Fetch routes', () => {
+  it('exposes exactly the eight contracted Fetch routes', () => {
     const app = makeApp();
     assert.deepEqual(
       app.map((route) => [route.name, route.path, route.methods.join(','), route.requestBody]),
@@ -819,6 +819,7 @@ describe('route table, registration and common HTTP behaviour', () => {
         ['workspaces', '/api/dsh-workspace-ide.workspaces', 'GET', 'buffered'],
         ['list', '/api/dsh-workspace-ide.list', 'GET', 'buffered'],
         ['file', '/api/dsh-workspace-ide.file', 'GET', 'buffered'],
+        ['image', '/api/dsh-workspace-ide.image', 'GET', 'buffered'],
         ['search', '/api/dsh-workspace-ide.search', 'GET', 'buffered'],
         ['git', '/api/dsh-workspace-ide.git', 'GET', 'buffered'],
         ['save', '/api/dsh-workspace-ide.save', 'POST', 'buffered'],
@@ -852,8 +853,8 @@ describe('route table, registration and common HTTP behaviour', () => {
     };
     const { registerRoutes } = await import('../../lib/host/routes.js');
     registerRoutes(ctx);
-    assert.equal(registered.length, 7);
-    assert.equal(disposed.length, 7);
+    assert.equal(registered.length, 8);
+    assert.equal(disposed.length, 8);
     assert.ok(disposed.every((entry) => typeof entry.label === 'string' && entry.label.includes('dsh-workspace-ide')));
 
     const withoutConnection = { get() { return undefined; } };

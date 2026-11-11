@@ -53,6 +53,25 @@ const ST_FILES = {
     background: C.layer2,
     color: C.text,
   },
+  imageScroll: {
+    flex: '1 1 auto',
+    minHeight: 0,
+    overflow: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    background: C.base,
+    backgroundImage:
+      'repeating-conic-gradient(' + C.layer1 + ' 0% 25%, ' + C.base + ' 0% 50%)',
+    backgroundSize: '20px 20px',
+  },
+  image: {
+    maxWidth: '100%',
+    maxHeight: '100%',
+    objectFit: 'contain',
+    background: C.base,
+  },
   treePane: {
     display: 'flex',
     flexDirection: 'column',
@@ -616,6 +635,62 @@ function TreeDirRows(props) {
   return rows;
 }
 
+/**
+ * Raster image pane: breadcrumb header, a centred preview over a checkerboard
+ * surface, and a status bar with the natural dimensions once the image loads.
+ * @param {{t: Function, path: string, src: string, mime: string, size: number, mtimeMs: number|null, dimensions: object|null, onDimensions: Function}} props - viewer props.
+ */
+function ImageViewer(props) {
+  const t = props.t;
+  const segments = typeof props.path === 'string' && props.path.length > 0 ? props.path.split('/') : [];
+  const dimensions = props.dimensions !== null && props.dimensions !== undefined ? props.dimensions : null;
+  const size = Number.isFinite(props.size) ? props.size : 0;
+  const onImageLoad = function (event) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    if (target === null || target === undefined) return;
+    if (typeof props.onDimensions !== 'function') return;
+    if (!Number.isFinite(target.naturalWidth) || !Number.isFinite(target.naturalHeight)) return;
+    props.onDimensions({ width: target.naturalWidth, height: target.naturalHeight });
+  };
+  return h(
+    'div',
+    { style: ST_FILES.viewer },
+    h(
+      'div',
+      { style: ST_FILES.viewerHeader },
+      h(
+        'div',
+        { style: ST_FILES.breadcrumb, title: props.path },
+        segments.map(function (segment, index) {
+          return h(
+            'span',
+            { key: 'crumb-' + String(index), style: { display: 'inline-flex', alignItems: 'center', minWidth: 0 } },
+            index === 0 ? null : h('span', { style: ST_FILES.crumbSep }, '›'),
+            h('span', { style: index === segments.length - 1 ? ST_FILES.crumbLast : ST_FILES.crumb }, segment),
+          );
+        }),
+      ),
+      h('span', { style: { flex: '1 1 auto' } }),
+      h(S.Chip, { title: typeof props.mime === 'string' ? props.mime : '' }, t('files.image.badge')),
+      h('span', { style: ST_FILES.meta }, S.formatBytes(size)),
+      props.mtimeMs ? h('span', { style: ST_FILES.meta }, t('files.modifiedAt', { time: S.formatDateTime(props.mtimeMs) })) : null,
+    ),
+    h(
+      'div',
+      { style: ST_FILES.imageScroll },
+      props.src ? h('img', { src: props.src, alt: props.path, style: ST_FILES.image, 'data-image-preview': '1', onLoad: onImageLoad }) : null,
+    ),
+    h(
+      'div',
+      { style: ST_FILES.statusBar },
+      h('span', null, t('files.image.preview')),
+      h('span', { style: { flex: '1 1 auto' } }),
+      dimensions !== null ? h('span', null, t('files.image.dimensions', { width: String(dimensions.width), height: String(dimensions.height) })) : null,
+      h('span', null, S.formatBytes(size)),
+    ),
+  );
+}
+
 /** The code viewer pane: header, gutter + textarea (or read-only pre), status bar. */
 function FileViewer(props) {
   const t = props.t;
@@ -624,6 +699,17 @@ function FileViewer(props) {
   const isMarkdown = props.language === 'markdown';
   const markdownMode = props.markdownMode === 'preview' ? 'preview' : 'source';
   const previewMode = isMarkdown && markdownMode === 'preview';
+  const isSvg = props.isSvg === true;
+  const svgMode = props.svgMode === 'source' ? 'source' : 'image';
+  const svgImageMode = isSvg && svgMode === 'image';
+  const dimensions = props.dimensions !== null && props.dimensions !== undefined ? props.dimensions : null;
+  const onImageLoad = function (event) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    if (target === null || target === undefined) return;
+    if (typeof props.onDimensions !== 'function') return;
+    if (!Number.isFinite(target.naturalWidth) || !Number.isFinite(target.naturalHeight)) return;
+    props.onDimensions({ width: target.naturalWidth, height: target.naturalHeight });
+  };
   const saving = props.saving === true;
   const segments = typeof props.path === 'string' && props.path.length > 0 ? props.path.split('/') : [];
   const numbersText = useMemo(
@@ -743,6 +829,30 @@ function FileViewer(props) {
             }),
           )
         : null,
+      isSvg
+        ? h(
+            'div',
+            { style: ST_FILES.mdToggle, role: 'tablist', 'aria-label': t('files.svg.mode') },
+            ['image', 'source'].map(function (mode) {
+              const active = svgMode === mode;
+              return h(
+                'button',
+                {
+                  key: mode,
+                  type: 'button',
+                  role: 'tab',
+                  'data-svg-mode': mode,
+                  'aria-selected': active ? 'true' : 'false',
+                  style: Object.assign({}, ST_FILES.mdToggleButton, active ? ST_FILES.mdToggleActive : null),
+                  onClick: function () {
+                    if (typeof props.onSvgMode === 'function') props.onSvgMode(mode);
+                  },
+                },
+                t(mode === 'image' ? 'files.svg.preview' : 'files.svg.source'),
+              );
+            }),
+          )
+        : null,
       props.language ? h(S.Chip, { title: t('files.language', { language: props.language }) }, props.language) : null,
       h('span', { style: ST_FILES.meta }, S.formatBytes(props.size)),
       props.mtimeMs ? h('span', { style: ST_FILES.meta }, t('files.modifiedAt', { time: S.formatDateTime(props.mtimeMs) })) : null,
@@ -769,7 +879,15 @@ function FileViewer(props) {
     props.tooBig
       ? h(S.NoticeBar, { t: t, kind: 'info', text: t('files.readonly.big', { limit: '400 KB' }) })
       : null,
-    previewMode
+    svgImageMode
+      ? h(
+          'div',
+          { style: ST_FILES.imageScroll, tabIndex: 0, onKeyDown: props.onKeyDown, 'data-svg-preview': '1' },
+          props.svgDataUrl
+            ? h('img', { src: props.svgDataUrl, alt: props.path, style: ST_FILES.image, 'data-svg-image': '1', onLoad: onImageLoad })
+            : null,
+        )
+      : previewMode
       ? h(
           'div',
           {
@@ -846,13 +964,19 @@ function FileViewer(props) {
     h(
       'div',
       { style: ST_FILES.statusBar },
-      previewMode
+      svgImageMode
+        ? h('span', null, t('files.svg.preview'))
+        : previewMode
         ? h('span', null, t('files.md.preview'))
         : h('span', null, t('files.caret', { line: props.caret.line, column: props.caret.column })),
       h('span', { style: { flex: '1 1 auto' } }),
+      svgImageMode && dimensions !== null
+        ? h('span', null, t('files.image.dimensions', { width: String(dimensions.width), height: String(dimensions.height) }))
+        : null,
       dirty ? h('span', { style: ST_FILES.statusHint }, t('files.dirtyHint')) : null,
       isMarkdown ? h('span', { title: t('files.md.toggleHint') }, t('files.md.shortcut')) : null,
-      readOnly ? null : h('span', { title: t('files.commentHint') }, t('files.commentShortcut')),
+      isSvg ? h('span', { title: t('files.svg.toggleHint') }, t('files.svg.shortcut')) : null,
+      readOnly || svgImageMode ? null : h('span', { title: t('files.commentHint') }, t('files.commentShortcut')),
       h('span', null, t('files.lines', { count: S.formatCount(props.lineCount) })),
       h('span', null, t('files.encoding')),
       readOnly ? h('span', null, t('files.readonly')) : null,
@@ -879,6 +1003,9 @@ function FilesView(props) {
   const [caret, setCaret] = useState({ line: 1, column: 1 });
   const [pendingLine, setPendingLine] = useState(null);
   const [markdownMode, setMarkdownMode] = useState('source');
+  const [svgMode, setSvgMode] = useState('image');
+  const [image, setImage] = useState({ status: 'idle', data: null, error: null });
+  const [dimensions, setDimensions] = useState(null);
 
   const textareaRef = useRef(null);
   const gutterRef = useRef(null);
@@ -996,7 +1123,27 @@ function FilesView(props) {
     setSaving(false);
     showNotice(null);
     setPendingLine(null);
+    setMarkdownMode('source');
+    setSvgMode('image');
+    setDimensions(null);
+    setImage({ status: 'idle', data: null, error: null });
     setCaret({ line: 1, column: 1 });
+    const imageMime = typeof S.imageMimeForPath === 'function' ? S.imageMimeForPath(path) : null;
+    if (imageMime !== null && imageMime !== 'image/svg+xml') {
+      setFile({ status: 'idle', data: null, error: null });
+      setImage({ status: 'loading', data: null, error: null });
+      S.requestJson(S.apiUrl(ROUTES.image, { root: root, path: path }))
+        .then(function (payload) {
+          if (fileRequestRef.current !== requestId || genRef.current !== gen) return;
+          setImage({ status: 'loaded', data: payload, error: null });
+        })
+        .catch(function (cause) {
+          if (fileRequestRef.current !== requestId || genRef.current !== gen) return;
+          if (cause !== null && cause !== undefined && cause.name === 'AbortError') return;
+          setImage({ status: 'error', data: null, error: cause });
+        });
+      return;
+    }
     S.requestJson(S.apiUrl(ROUTES.file, { root: root, path: path }))
       .then(function (payload) {
         if (fileRequestRef.current !== requestId || genRef.current !== gen) return;
@@ -1025,6 +1172,15 @@ function FilesView(props) {
   const language = data !== null && typeof data.language === 'string' ? data.language : null;
   const mtimeMs = data !== null && Number.isFinite(data.mtimeMs) ? data.mtimeMs : null;
   const lineCount = data !== null ? countLines(draft) : 0;
+  const imageData = image !== null && image !== undefined && image.status === 'loaded' ? image.data : null;
+  const imageSrc = imageData !== null && typeof S.buildImageDataUrl === 'function' ? S.buildImageDataUrl(imageData.mime, imageData.base64) : null;
+  const isSvg = selected !== null && typeof S.imageMimeForPath === 'function' && S.imageMimeForPath(selected) === 'image/svg+xml';
+  const svgDataUrl = useMemo(
+    function () {
+      return isSvg && typeof S.buildSvgDataUrl === 'function' ? S.buildSvgDataUrl(draft) : null;
+    },
+    [draft, isSvg],
+  );
 
   const save = useCallback(function () {
     if (selected === null || file.status !== 'loaded' || saving === true) return;
@@ -1194,9 +1350,10 @@ function FilesView(props) {
         return;
       }
     }
-    if (meta && event.shiftKey === true && (key === 'v' || key === 'V') && language === 'markdown') {
+    if (meta && event.shiftKey === true && (key === 'v' || key === 'V') && (language === 'markdown' || isSvg)) {
       event.preventDefault();
-      setMarkdownMode(function (previous) { return previous === 'preview' ? 'source' : 'preview'; });
+      if (language === 'markdown') setMarkdownMode(function (previous) { return previous === 'preview' ? 'source' : 'preview'; });
+      else setSvgMode(function (previous) { return previous === 'image' ? 'source' : 'image'; });
       return;
     }
     if (meta && (key === 's' || key === 'S')) {
@@ -1284,7 +1441,27 @@ function FilesView(props) {
   );
 
   let viewer = null;
-  if (selected === null) {
+  if (image.status === 'loading') {
+    viewer = h(S.LoadingIndicator, { t: t, label: t('files.loading') });
+  } else if (image.status === 'error') {
+    viewer = h(S.InlineError, {
+      t: t,
+      title: t('files.image.error.title'),
+      message: S.errorText(image.error),
+      onRetry: reloadSelected,
+    });
+  } else if (imageData !== null && imageSrc !== null) {
+    viewer = h(S.ImageViewer, {
+      t: t,
+      path: selected,
+      src: imageSrc,
+      mime: imageData.mime,
+      size: imageData.size,
+      mtimeMs: imageData.mtimeMs,
+      dimensions: dimensions,
+      onDimensions: setDimensions,
+    });
+  } else if (selected === null) {
     viewer = h(S.EmptyState, {
       t: t,
       icon: S.Icons.Files,
@@ -1325,6 +1502,12 @@ function FilesView(props) {
       caret: caret,
       markdownMode: markdownMode,
       onMarkdownMode: setMarkdownMode,
+      isSvg: isSvg,
+      svgMode: svgMode,
+      onSvgMode: setSvgMode,
+      svgDataUrl: svgDataUrl,
+      dimensions: dimensions,
+      onDimensions: setDimensions,
       textareaRef: textareaRef,
       gutterRef: gutterRef,
       onChange: onChange,
@@ -1351,6 +1534,7 @@ function FilesView(props) {
 
 S.FilesView = FilesView;
 S.FileViewer = FileViewer;
+S.ImageViewer = ImageViewer;
 S.FileTreeRow = FileTreeRow;
 S.TreeDirRows = TreeDirRows;
 S.countLines = countLines;

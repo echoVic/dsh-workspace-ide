@@ -13,7 +13,9 @@ downloaded once from unpkg into /tmp.
     python3 scripts/screenshots/build-screenshots.py
 """
 
+import base64
 import difflib
+import io
 import json
 import os
 import subprocess
@@ -439,11 +441,59 @@ dist/
 coverage/
 """
 
-LOGO_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <circle cx="16" cy="16" r="14" fill="#2f6bff" opacity="0.16" />
-  <path d="M9 21l7-12 7 12" stroke="#2f6bff" stroke-width="2.4" fill="none" />
+LOGO_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e3a8a" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#a78bfa" />
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" rx="56" fill="url(#bg)" />
+  <circle cx="160" cy="160" r="86" fill="none" stroke="url(#accent)" stroke-width="10" opacity="0.85" />
+  <path d="M110 206 L152 140 L186 178 L218 112" fill="none" stroke="#e2e8f0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="218" cy="112" r="13" fill="#60a5fa" />
 </svg>
 """
+HERO_PNG = None
+
+
+def make_hero_png():
+    """Generate a small mock dashboard PNG for the image-preview screenshot."""
+    from PIL import Image, ImageDraw
+
+    width, height = 720, 420
+    image = Image.new('RGB', (width, height), (15, 23, 42))
+    draw = ImageDraw.Draw(image)
+    for y in range(height):
+        t = y / height
+        draw.line([(0, y), (width, y)], fill=(int(15 + 20 * t), int(23 + 44 * t), int(42 + 70 * t)))
+    for x in range(0, width, 40):
+        draw.line([(x, 0), (x, height)], fill=(30, 45, 75))
+    for y in range(0, height, 40):
+        draw.line([(0, y), (width, y)], fill=(30, 45, 75))
+    values = [0.36, 0.52, 0.44, 0.7, 0.58, 0.8, 0.92]
+    bar_width, gap, left = 54, 26, 70
+    points = []
+    for index, value in enumerate(values):
+        x = left + index * (bar_width + gap)
+        bar_height = int(250 * value)
+        draw.rounded_rectangle([x, height - 72 - bar_height, x + bar_width, height - 72], radius=10, fill=(59, 130, 246))
+        points.append((x + bar_width // 2, height - 72 - bar_height - 22))
+    draw.line(points, fill=(167, 139, 250), width=4, joint='curve')
+    for point in points:
+        draw.ellipse([point[0] - 6, point[1] - 6, point[0] + 6, point[1] + 6], fill=(226, 232, 240))
+    draw.rounded_rectangle([24, 20, 320, 66], radius=10, fill=(30, 41, 59))
+    draw.text((40, 36), 'Aurora - weekly metrics', fill=(226, 232, 240))
+    buffer = io.BytesIO()
+    image.save(buffer, 'PNG')
+    return buffer.getvalue()
+
+
+HERO_PNG = make_hero_png()
 
 FILES = {
     'src/app.tsx': {'content': APP_TSX, 'language': 'tsx'},
@@ -497,7 +547,10 @@ ENTRIES = {
         entry('changelog.md', 'docs/changelog.md', 'file', file_size('docs/changelog.md')),
         entry('theming.md', 'docs/theming.md', 'file', file_size('docs/theming.md')),
     ],
-    'public': [entry('logo.svg', 'public/logo.svg', 'file', file_size('public/logo.svg'))],
+    'public': [
+        entry('hero.png', 'public/hero.png', 'file', len(HERO_PNG)),
+        entry('logo.svg', 'public/logo.svg', 'file', file_size('public/logo.svg')),
+    ],
     'src': [
         entry('components', 'src/components', 'dir', 0),
         entry('api.ts', 'src/api.ts', 'file', file_size('src/api.ts')),
@@ -631,6 +684,13 @@ def mock_data(git_empty: bool):
         'files': {path: {'content': meta['content'], 'language': meta['language'], 'size': file_size(path)}
                   for path, meta in FILES.items()},
         'search': search_results(),
+        'images': {
+            'public/hero.png': {
+                'mime': 'image/png',
+                'size': len(HERO_PNG),
+                'base64': base64.b64encode(HERO_PNG).decode('ascii'),
+            },
+        },
         'git': {k: git_payload(k) for k in ('status', 'log', 'diff', 'branches')},
         'gitEmpty': git_empty,
     }
@@ -697,7 +757,7 @@ DRIVER = r'''
   var MOCK = __MOCK__;
   var THEME_BY_SHOT = {
     files: 'light-plus', search: 'light-plus', git: 'one-dark-pro',
-    'theme-dark': 'one-dark-pro', 'theme-light': 'light-plus', themes: 'light-plus', 'git-empty': 'light-plus', markdown: 'light-plus'
+    'theme-dark': 'one-dark-pro', 'theme-light': 'light-plus', themes: 'light-plus', 'git-empty': 'light-plus', markdown: 'light-plus', image: 'light-plus', svg: 'light-plus'
   };
   var DARK_CHROME = ['git', 'theme-dark'];
   if (DARK_CHROME.indexOf(SHOT) !== -1) document.body.setAttribute('data-chrome', 'dark');
@@ -749,6 +809,15 @@ DRIVER = r'''
       content: meta.content, language: meta.language
     };
   }
+  function mockImage(path) {
+    var image = MOCK.images[path];
+    if (!image) return { ok: false, error: { code: 'unsupported-image', message: 'no mock image ' + path } };
+    return {
+      ok: true, root: MOCK.workspaces[0].path, path: path,
+      absolutePath: MOCK.workspaces[0].path + '/' + path,
+      size: image.size, mtimeMs: 1762401000000, mime: image.mime, base64: image.base64
+    };
+  }
   function mockGit(query) {
     if (MOCK.gitEmpty) return { ok: true, repo: false };
     var kind = query.get('kind') || 'status';
@@ -766,6 +835,7 @@ DRIVER = r'''
         entries: MOCK.entries[query.get('path') || ''] || [], truncated: false
       });
       case 'file': return ok(mockFile(query.get('path') || ''));
+      case 'image': return ok(mockImage(query.get('path') || ''));
       case 'search': return ok(MOCK.search);
       case 'git': return ok(mockGit(query));
       case 'save': return ok({ ok: true, path: query.get('path') || '', size: 1, mtimeMs: 1762401000000 });
@@ -874,6 +944,16 @@ DRIVER = r'''
         .then(function () { return waitFor(function () { return q('[data-md-preview]'); }); })
         .then(function () { return sleep(400); });
     },
+    image: function () {
+      return openFile('public/hero.png')
+        .then(function () { return waitFor(function () { return q('[data-image-preview]'); }); })
+        .then(function () { return sleep(400); });
+    },
+    svg: function () {
+      return openFile('public/logo.svg')
+        .then(function () { return waitFor(function () { return q('[data-svg-image]'); }); })
+        .then(function () { return sleep(400); });
+    },
     'git-empty': function () { return openGitEmpty(); }
   };
 
@@ -896,6 +976,8 @@ SHOTS = [
     ('theme-light', 'screenshot-theme-light.png'),
     ('themes', 'screenshot-themes.png'),
     ('markdown', 'screenshot-markdown.png'),
+    ('image', 'screenshot-image.png'),
+    ('svg', 'screenshot-svg.png'),
     ('git-empty', 'screenshot-git-empty.png'),
 ]
 

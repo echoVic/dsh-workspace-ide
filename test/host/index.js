@@ -13,6 +13,7 @@ import './respond.test.mjs';
 import './paths.test.mjs';
 import './list.test.mjs';
 import './file.test.mjs';
+import './image.test.mjs';
 import './search.test.mjs';
 import './git.test.mjs';
 import './routes.test.mjs';
