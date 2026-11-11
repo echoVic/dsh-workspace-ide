@@ -617,6 +617,13 @@ function run() {
   assert.deepEqual(T.toggleBookmarkLine([5, 2], 3), [2, 3, 5], 'bookmark toggle inserts sorted');
   assert.deepEqual(T.toggleBookmarkLine([2, 3, 5], 3), [2, 5], 'bookmark toggle removes an existing line');
   assert.deepEqual(T.toggleBookmarkLine([2], 0), [2], 'invalid bookmark lines are ignored');
+  const indentedBlock = T.indentLines('a\nb\nc', 1, 3, false);
+  assert.equal(indentedBlock.text, '  a\n  b\nc', 'Tab indents every selected line');
+  assert.deepEqual([indentedBlock.selectionStart, indentedBlock.selectionEnd], [3, 5], 'the selection follows the indent');
+  const dedentedBlock = T.indentLines('  a\n  b', 0, 7, true);
+  assert.equal(dedentedBlock.text, 'a\nb', 'Shift+Tab outdents every selected line');
+  assert.deepEqual([dedentedBlock.selectionStart, dedentedBlock.selectionEnd], [0, 5], 'the selection follows the outdent');
+  assert.equal(T.indentLines('a', 0, 1, true), null, 'outdenting an unindented line is a no-op');
   assert.deepEqual(T.flattenBookmarks({ 'b.ts': [2], 'a.ts': [3, 1] }), [
     { path: 'a.ts', line: 1 }, { path: 'a.ts', line: 3 }, { path: 'b.ts', line: 2 },
   ], 'bookmark palette rows are sorted by path and line');

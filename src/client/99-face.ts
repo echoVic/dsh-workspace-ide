@@ -171,6 +171,7 @@ S.face = {
       joinLinesEdit: S.joinLinesEdit,
       toggleBookmarkLine: S.toggleBookmarkLine,
       flattenBookmarks: S.flattenBookmarks,
+      indentLines: S.indentLines,
       bracketMatch: S.bracketMatch,
       autoPairEdit: S.autoPairEdit,
       smartIndentEdit: S.smartIndentEdit,

@@ -1440,6 +1440,45 @@ function joinLinesEdit(text: any, start: number, end: number): any {
 S.toggleCaseEdit = toggleCaseEdit;
 S.joinLinesEdit = joinLinesEdit;
 
+/**
+ * Indent / outdent every line touched by the selection (Tab / Shift+Tab).
+ * @param text - current text.
+ * @param start - selection start.
+ * @param end - selection end.
+ * @param dedent - true removes up to two leading spaces/tabs per line.
+ * @returns the edit, or null when nothing changes.
+ */
+function indentLines(text: any, start: number, end: number, dedent: boolean): any {
+  if (typeof text !== 'string') return null;
+  const range = selectionLineRange(text, start, end);
+  const block = text.slice(range.lineStart, range.lineEnd);
+  const lines = block.split('\n');
+  const shifts: number[] = [];
+  const nextLines = lines.map(function (lineText: string) {
+    if (dedent === true) {
+      const match = /^[ \t]{1,2}/.exec(lineText);
+      const removed = match === null ? 0 : match[0].length;
+      shifts.push(-removed);
+      return lineText.slice(removed);
+    }
+    const added = lineText.length > 0 ? 2 : 0;
+    shifts.push(added);
+    return added === 0 ? lineText : '  ' + lineText;
+  });
+  const nextBlock = nextLines.join('\n');
+  if (nextBlock === block) return null;
+  const next = text.slice(0, range.lineStart) + nextBlock + text.slice(range.lineEnd);
+  const firstShift = shifts.length > 0 ? shifts[0] : 0;
+  const lastShift = shifts.length > 0 ? shifts[shifts.length - 1] : 0;
+  return {
+    text: next,
+    selectionStart: Math.max(range.lineStart, range.from + firstShift),
+    selectionEnd: Math.max(range.lineStart, range.to + lastShift),
+  };
+}
+
+S.indentLines = indentLines;
+
 /** Sorted bookmark line numbers for one file after toggling `line`. */
 function toggleBookmarkLine(lines: any, line: any): number[] {
   const list: number[] = Array.isArray(lines)
@@ -2730,6 +2769,7 @@ function FilesView(props: any) {
   const quickInputRef = useRef<any>(null);
   const quickFilesRef = useRef<string[] | null>(null);
   const tabStateRef = useRef<Record<string, any>>({});
+  const closedTabsRef = useRef<Array<{ path: string, snapshot: any }>>([]);
 
   // Success / info notices fade after a moment; error notices stay until the
   // next action so a failed save is never missed.
@@ -2968,6 +3008,11 @@ function FilesView(props: any) {
       setClosingTab(path);
       return;
     }
+    const closedSnapshot = tabStateRef.current[path] !== undefined
+      ? tabStateRef.current[path]
+      : (path === selected ? { file: file, draft: draft, caret: caret, markdownMode: markdownMode, svgMode: svgMode, image: image, dimensions: dimensions } : null);
+    closedTabsRef.current.push({ path: path, snapshot: closedSnapshot });
+    if (closedTabsRef.current.length > 20) closedTabsRef.current.shift();
     const remaining = tabs.filter(function (item: string) { return item !== path; });
     delete tabStateRef.current[path];
     setTabs(remaining);
@@ -3226,6 +3271,19 @@ function FilesView(props: any) {
     }
     openPath(entry.path, Number.isFinite(entry.line) ? entry.line : 1);
   }, [selected, openPath]);
+
+  const reopenClosedTab = useCallback(function () {
+    const entry = closedTabsRef.current.pop();
+    if (entry === null || entry === undefined) return;
+    snapshotActiveTab();
+    if (entry.snapshot !== null && entry.snapshot !== undefined) tabStateRef.current[entry.path] = entry.snapshot;
+    setTabs(function (previous: string[]) { return previous.indexOf(entry.path) === -1 ? previous.concat([entry.path]) : previous; });
+    if (entry.snapshot !== null && entry.snapshot !== undefined) {
+      restoreTabSnapshot(entry.path, null);
+      return;
+    }
+    loadFile(entry.path, null);
+  }, [selected, file, draft, caret, markdownMode, svgMode, image, dimensions, loadFile]);
 
   const openQuickPath = useCallback(function (filePath: any) {
     if (typeof filePath !== 'string' || filePath.length === 0) return;
@@ -3548,9 +3606,14 @@ function FilesView(props: any) {
       if (textarea === null || textarea === undefined) return previous;
       const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : 0;
       const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
-      if (end <= start || end - start > 200) return previous;
       const value = typeof textarea.value === 'string' ? textarea.value : draft;
-      return value.slice(start, end);
+      if (end > start && end - start <= 200) return value.slice(start, end);
+      let left = start;
+      while (left > 0 && /[A-Za-z0-9_$]/.test(value.charAt(left - 1))) left = left - 1;
+      let right = start;
+      while (right < value.length && /[A-Za-z0-9_$]/.test(value.charAt(right))) right = right + 1;
+      if (right > left && right - left <= 100) return value.slice(left, right);
+      return previous;
     });
   }, [draft]);
 
@@ -3670,7 +3733,7 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom, recentOpen, openRecent, closeRecent, bookmarksOpen, openBookmarks, closeBookmarks, toggleBookmark]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom, recentOpen, openRecent, closeRecent, bookmarksOpen, openBookmarks, closeBookmarks, toggleBookmark, reopenClosedTab]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
@@ -3807,7 +3870,12 @@ function FilesView(props: any) {
           }
           return;
         }
-        if (meta && event.shiftKey === true && (key === 'u' || key === 'U')) {
+        if (meta && event.shiftKey === true && (key === 't' || key === 'T')) {
+      event.preventDefault();
+      reopenClosedTab();
+      return;
+    }
+    if (meta && event.shiftKey === true && (key === 'u' || key === 'U')) {
           event.preventDefault();
           applyEditorResult(typeof S.toggleCaseEdit === 'function' ? S.toggleCaseEdit(editValue, editStart, editEnd) : null);
           return;
@@ -3918,31 +3986,7 @@ function FilesView(props: any) {
         const value = typeof textarea.value === 'string' ? textarea.value : draft;
         const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : 0;
         const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        let lineEnd = value.indexOf('\n', end);
-        if (lineEnd === -1) lineEnd = value.length;
-        const block = value.slice(lineStart, lineEnd);
-        const updated = block.split('\n').map(function (lineText: string) { return lineText.replace(/^ {1,2}/, ''); }).join('\n');
-        if (updated !== block) {
-          const next = value.slice(0, lineStart) + updated + value.slice(lineEnd);
-          const removed = block.length - updated.length;
-          setDraft(next);
-          try {
-            setTimeout(function () {
-              const current = textareaRef.current;
-              if (current === null || current === undefined) return;
-              try {
-                const nextStart = Math.max(lineStart, start - 2);
-                current.focus();
-                current.setSelectionRange(nextStart, Math.max(nextStart, end - removed));
-              } catch (error) {
-                /* selection is a nicety */
-              }
-            }, 0);
-          } catch (error) {
-            /* no timer */
-          }
-        }
+        applyEditorResult(typeof S.indentLines === 'function' ? S.indentLines(value, start, end, true) : null);
         return;
       }
     }
@@ -3974,23 +4018,16 @@ function FilesView(props: any) {
       const textarea = textareaRef.current;
       if (textarea === null || textarea === undefined) return;
       event.preventDefault();
-      const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : draft.length;
-      const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
       const value = typeof textarea.value === 'string' ? textarea.value : draft;
-      const nextValue = value.slice(0, start) + '  ' + value.slice(end);
-      setDraft(nextValue);
-      setCaret(caretFromIndex(nextValue, start + 2));
-      try {
-        setTimeout(function () {
-          try {
-            textarea.setSelectionRange(start + 2, start + 2);
-          } catch (error) {
-            /* ignore */
-          }
-        }, 0);
-      } catch (error) {
-        /* no timer */
+      const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : value.length;
+      const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
+      if (end > start) {
+        applyEditorResult(typeof S.indentLines === 'function' ? S.indentLines(value, start, end, false) : null);
+        return;
       }
+      const nextValue = value.slice(0, start) + '  ' + value.slice(end);
+      applyEditorResult({ text: nextValue, selectionStart: start + 2, selectionEnd: start + 2 });
+      return;
     }
   }, [dirty, draft, save, discard]);
 
