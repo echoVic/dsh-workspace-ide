@@ -470,7 +470,8 @@ the top-left corner — see that package's README.)
     paints every match behind the transparent textarea (accent fill for the current hit),
     follows the same scroll transform in both wrap modes, and the current match is
     selected/scrolled without stealing focus from the bar. Empty query / invalid regex
-    answer no matches instead of throwing.
+    answer no matches instead of throwing; an invalid regex shows a red error label, and
+    F3 / Shift+F3 walk matches while the bar is open.
   - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
     encoding, a clickable soft-wrap state and the read-only lock.
   - Multi-tab editor: every opened file becomes a tab above the viewer (file glyph,

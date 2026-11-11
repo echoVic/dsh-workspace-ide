@@ -1112,6 +1112,10 @@ function run() {
     onSave: function () {}, onDismissNotice: function () {},
   };
   const plainViewer = renderTree(T.FileViewer(plainViewerProps));
+  const invalidFindRender = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, {
+    findOpen: true, findQuery: '(', findRegex: true, findInvalidRegex: true, findMatches: [], findCurrent: 0,
+  })));
+  assert.equal(invalidFindRender.texts.includes('find.invalidRegex'), true, 'an invalid regex shows the error label instead of "no results"');
   assert.equal(plainViewer.hosts.filter(function (host) { return host.props['data-ide-highlight'] === 'layer'; }).length, 0, 'plain text renders no syntax layer');
   assert.equal(findHost(plainViewer, 'textarea')[0].props.style.color, T.C.text, 'plain text keeps the normal text colour');
   const readOnlySyntax = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, {

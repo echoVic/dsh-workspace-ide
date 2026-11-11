@@ -1612,7 +1612,13 @@ function TabStrip(props: any) {
           title: path,
           style: Object.assign({}, ST_FILES.tab, active ? ST_FILES.tabActive : null),
           onMouseDown: function (event: any) {
-            if (event !== null && event !== undefined && typeof event.preventDefault === 'function') event.preventDefault();
+            if (event !== null && event !== undefined) {
+              if (typeof event.preventDefault === 'function') event.preventDefault();
+              if (event.button === 1 && typeof props.onClose === 'function') {
+                props.onClose(path);
+                return;
+              }
+            }
             if (typeof props.onSelect === 'function') props.onSelect(path);
           },
         },
@@ -1661,6 +1667,7 @@ function FileViewer(props: any) {
   const findReplacement = typeof props.findReplacement === 'string' ? props.findReplacement : '';
   const findMatches: FindRange[] = Array.isArray(props.findMatches) ? props.findMatches : [];
   const findCurrent = Number.isFinite(props.findCurrent) ? Math.max(0, Math.floor(props.findCurrent)) : 0;
+  const findInvalidRegex = props.findInvalidRegex === true;
   const findCase = props.findCase === true;
   const findWhole = props.findWhole === true;
   const findRegex = props.findRegex === true;
@@ -2095,12 +2102,14 @@ function FileViewer(props: any) {
             }),
             h(
               'span',
-              { style: ST_FILES.findCount },
+              { style: findInvalidRegex ? ST_FILES.findError : ST_FILES.findCount },
               findQuery.length === 0
                 ? ''
-                : findMatches.length === 0
-                  ? t('find.noMatches')
-                  : t('find.count', { current: String(findCurrent + 1), total: String(findMatches.length) }),
+                : findInvalidRegex
+                  ? t('find.invalidRegex')
+                  : findMatches.length === 0
+                    ? t('find.noMatches')
+                    : t('find.count', { current: String(findCurrent + 1), total: String(findMatches.length) }),
             ),
             h(
               S.ToolButton,
@@ -3032,6 +3041,19 @@ function FilesView(props: any) {
     [findOpen, findQuery, findCase, findWhole, findRegex, draft],
   );
 
+  const findRegexInvalid = useMemo(
+    function () {
+      if (findOpen === false || findRegex === false || findQuery.length === 0) return false;
+      try {
+        new RegExp(findQuery);
+        return false;
+      } catch (error) {
+        return true;
+      }
+    },
+    [findOpen, findRegex, findQuery],
+  );
+
   /** Select one match in the textarea without taking focus away from the bar. */
   function selectFindMatch(match: any) {
     const textarea = textareaRef.current;
@@ -3193,7 +3215,7 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
@@ -3257,6 +3279,11 @@ function FilesView(props: any) {
     if (key === 'Escape' && gotoOpen === true) {
       event.preventDefault();
       closeGoto();
+      return;
+    }
+    if (findOpen === true && key === 'F3') {
+      event.preventDefault();
+      nextFind(event.shiftKey === true ? -1 : 1);
       return;
     }
     if (readOnly === false && file.status === 'loaded' && meta === false && event.altKey !== true) {
@@ -3582,6 +3609,7 @@ function FilesView(props: any) {
       findCase: findCase,
       findWhole: findWhole,
       findRegex: findRegex,
+      findInvalidRegex: findRegexInvalid,
       onFindChange: changeFind,
       onFindReplacementChange: changeReplacement,
       onFindOption: toggleFindOption,
