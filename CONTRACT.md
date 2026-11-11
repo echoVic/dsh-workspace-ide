@@ -516,13 +516,16 @@ placeholders, empty states, errors, buttons, notices) must be in the dictionary.
 
 - Plain JavaScript stays the source of truth; TypeScript is a **dev-only checker**
   (`allowJs + checkJs + noEmit`). No bundler, no emitted JS, no runtime dependency.
-- Two gates, both must exit 0 in CI after `npm ci`:
+- Three gates, all must exit 0 in CI after `npm ci`:
   1. `npm run typecheck` — `strict: true` over `lib/`, `src/client/`, `scripts/` and `test/`;
   2. `npm run typecheck:host` — `lib/` additionally under `noImplicitAny`
-     (`tsconfig.host.json`).
-- Remaining `noImplicitAny` work is staged: `src/client` (252 diagnostics) and the test
-  suites (311). Extend the same pattern (scoped tsconfig + npm script + CI step) when the
-  client half and tests are typed; do not flip it globally before then.
+     (`tsconfig.host.json`);
+  3. `npm run typecheck:client` — client core + icon modules (`00-core`, `05-icons`)
+     additionally under `noImplicitAny` (`tsconfig.client.json`).
+- Remaining `noImplicitAny` work is staged: the other client modules (216 diagnostics:
+  highlight 65, files 40, shell 34, git 32, markdown 22, search 16, face 7) and the test
+  suites (311). Extend `tsconfig.client.json`'s include list module by module, and add a
+  test config last; do not flip `noImplicitAny` globally before then.
 - `types/client-globals.d.ts` declares the factory-scope globals that
   `scripts/build-client.mjs` injects (`React`, `h` typed as `React.createElement`, the five
   hooks, the shared `S` namespace) so `src/client/*.js` is checked as one scope.

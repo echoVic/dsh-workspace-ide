@@ -131,7 +131,7 @@ const ICON_STROKE_ACTIVE = 2.25;
  */
 function renderLucide(name, props, options) {
   const conf = options !== null && typeof options === 'object' ? options : {};
-  const nodes = LUCIDE_ICONS[name];
+  const nodes = /** @type {Record<string, any>} */ (LUCIDE_ICONS)[name];
   const size = iconSize(props, conf.defaultSize);
   const active = iconActive(props);
   const filled = conf.fill === true;
@@ -154,7 +154,7 @@ function renderLucide(name, props, options) {
       focusable: false,
       style: { display: 'block', flex: '0 0 auto' },
     },
-    (nodes !== undefined && nodes !== null ? nodes : []).map(function (node, index) {
+    (nodes !== undefined && nodes !== null ? nodes : []).map(/** @param {any} node @param {number} index */ function (node, index) {
       const tag = String(node[0]);
       const attrs = /** @type {Record<string, any>} */ (node[1]);
       return h(tag, Object.assign({ key: tag + '-' + String(index) }, attrs));
@@ -219,10 +219,13 @@ const PaletteIcon = makeIcon('palette');
 /** Applied-theme marker in the theme popover. */
 const CheckIcon = makeIcon('check');
 
-/** Indeterminate spinner (SMIL, so no stylesheet is needed). */
+/**
+ * Indeterminate spinner (SMIL, so no stylesheet is needed).
+ * @param {any} props - owner props `{size, active}`.
+ */
 function SpinnerIcon(props) {
   const size = iconSize(props, 14);
-  const nodes = LUCIDE_ICONS['loader-circle'];
+  const nodes = /** @type {Record<string, any>} */ (LUCIDE_ICONS)['loader-circle'];
   return h(
     'svg',
     {
@@ -241,7 +244,7 @@ function SpinnerIcon(props) {
     h(
       'g',
       null,
-      (nodes !== undefined && nodes !== null ? nodes : []).map(function (node, index) {
+      (nodes !== undefined && nodes !== null ? nodes : []).map(/** @param {any} node @param {number} index */ function (node, index) {
         const tag = String(node[0]);
         const attrs = /** @type {Record<string, any>} */ (node[1]);
         return h(tag, Object.assign({ key: 'arc-' + String(index) }, attrs));

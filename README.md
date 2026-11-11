@@ -160,6 +160,7 @@ plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/d
 npm ci                                 # dev-only tooling: TypeScript type checker
 npm run typecheck                      # tsc --checkJs, strict, over lib/ + src/client + scripts + tests (no emit)
 npm run typecheck:host                 # lib/ additionally under noImplicitAny (see tsconfig.host.json)
+npm run typecheck:client               # client core + icon modules under noImplicitAny (tsconfig.client.json)
 node scripts/build-client.mjs          # rebuild lib/client.js from src/client/*.js
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
@@ -189,6 +190,7 @@ lib/host/                filesystem / search / git route implementation
 lib/client.js            built browser module (committed)
 tsconfig.json            dev-only type checker config (allowJs + checkJs, strict, no emit)
 tsconfig.host.json       Host-only config adding noImplicitAny
+tsconfig.client.json     client core+icons config adding noImplicitAny
 types/                   ambient declarations: client factory scope + Host context/services
 src/client/              browser sources: core, icons (vendored Lucide), highlighter,
                          shell, files, search, git, module face

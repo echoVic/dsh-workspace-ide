@@ -60,7 +60,8 @@ function imageMimeForPath(filePath) {
   const dot = base.lastIndexOf('.');
   if (dot <= 0) return null;
   const extension = base.slice(dot).toLowerCase();
-  return Object.hasOwn(IMAGE_MIME_BY_EXTENSION, extension) ? IMAGE_MIME_BY_EXTENSION[extension] : null;
+  const table = /** @type {Record<string, string>} */ (IMAGE_MIME_BY_EXTENSION);
+  return Object.hasOwn(table, extension) ? table[extension] : null;
 }
 
 /**
@@ -440,12 +441,14 @@ function isChinese(lang) {
  */
 function translateText(lang, key, params) {
   const table = isChinese(lang) ? DICT.zh : DICT.en;
-  let template = table[key];
-  if (typeof template !== 'string') template = DICT.en[key];
+  const dictionary = /** @type {Record<string, string>} */ (table);
+  let template = dictionary[key];
+  if (typeof template !== 'string') template = /** @type {Record<string, string>} */ (DICT.en)[key];
   if (typeof template !== 'string') return key;
   if (params === undefined || params === null) return template;
   return template.replace(/\{(\w+)\}/g, function (match, name) {
-    return Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match;
+    const values = /** @type {Record<string, any>} */ (params);
+  return Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : match;
   });
 }
 
@@ -911,7 +914,7 @@ const THEME_DEFS = Object.freeze([
 const THEMES = [
   { id: 'auto', label: null, palette: null },
   ...THEME_DEFS.map(function (definition) {
-    return { id: definition[0], label: definition[1], palette: THEME_PALETTES[definition[0]] };
+    return { id: definition[0], label: definition[1], palette: /** @type {Record<string, Record<string, string>>} */ (THEME_PALETTES)[definition[0]] };
   }),
 ];
 S.THEMES = THEMES;
@@ -961,7 +964,7 @@ function writeTheme(id) {
  * @returns {object} a fresh `--dsw-alias-*` -> colour map.
  */
 function themeVars(id) {
-  const palette = THEME_PALETTES[normalizeThemeId(id)];
+  const palette = /** @type {Record<string, Record<string, string>>} */ (THEME_PALETTES)[normalizeThemeId(id)];
   if (palette === null || palette === undefined) return {};
   return Object.assign({}, palette);
 }
@@ -978,6 +981,7 @@ S.themeVars = themeVars;
 
 /** A failed Host request carrying the contract's error code. */
 class RequestFailure extends Error {
+  /** @param {string} code - stable failure code. @param {string} message - readable detail. */
   constructor(code, message) {
     super(message);
     this.name = 'RequestFailure';
@@ -988,11 +992,12 @@ class RequestFailure extends Error {
 /**
  * Build a browser-relative route URL with an encoded query string.
  * @param {string} route - value from ROUTES.
- * @param {object} [params] - query entries; null/undefined are skipped.
+ * @param {Record<string, any>} [params] - query entries; null/undefined are skipped.
  * @returns {string} URL without a leading slash (the connection base is /api/).
  */
 function apiUrl(route, params) {
   if (params === undefined || params === null) return route;
+  /** @type {Array<string>} */
   const parts = [];
   Object.keys(params).forEach(function (key) {
     const value = params[key];
@@ -1014,14 +1019,17 @@ function apiUrl(route, params) {
  */
 async function requestJson(url, options) {
   const settings = options === undefined || options === null ? {} : options;
+  /** @type {Record<string, string>} */
+  const headers = { accept: 'application/json' };
+  /** @type {RequestInit} */
   const init = {
     method: typeof settings.method === 'string' ? settings.method : 'GET',
-    headers: { accept: 'application/json' },
+    headers: headers,
   };
   if (settings.signal !== undefined && settings.signal !== null) init.signal = settings.signal;
   if (settings.body !== undefined && settings.body !== null) {
     init.method = 'POST';
-    init.headers['content-type'] = 'application/json';
+    headers['content-type'] = 'application/json';
     try {
       init.body = JSON.stringify(settings.body);
     } catch (cause) {
@@ -1169,7 +1177,7 @@ S.EDITOR_PADDING_TOP = EDITOR_PADDING_TOP;
 // Only DSH alias tokens, always with a fallback so a token rename degrades to a
 // readable colour instead of a transparent panel.
 
-const alias = function (name, fallback) {
+const alias = /** @param {string} name @param {string} fallback @returns {string} */ function (name, fallback) {
   return 'var(--dsw-alias-' + name + ', ' + fallback + ')';
 };
 
@@ -1553,6 +1561,7 @@ const ST_CORE = {
 /**
  * Icon/square button with hover + active + disabled states (inline styles only).
  * `data-*` and ARIA props pass through so the smoke test can locate tabs.
+ * @param {any} props - component props.
  */
 function ToolButton(props) {
   const [hover, setHover] = useState(false);
@@ -1571,7 +1580,7 @@ function ToolButton(props) {
   const buttonProps = {};
   Object.keys(props).forEach(function (key) {
     if (['title', 'ariaLabel', 'active', 'disabled', 'onClick', 'children', 'style', 'tabIndex'].indexOf(key) !== -1) return;
-    buttonProps[key] = props[key];
+    /** @type {Record<string, any>} */ (buttonProps)[key] = /** @type {Record<string, any>} */ (props)[key];
   });
   buttonProps.type = 'button';
   buttonProps.disabled = disabled;
@@ -1586,7 +1595,7 @@ function ToolButton(props) {
   // Only a keyboard-visible focus paints the ring: a pointer click may focus
   // the button in this runtime, and a persistent blue frame around a toolbar
   // glyph reads as a stray border.
-  buttonProps.onFocus = function (event) {
+  buttonProps.onFocus = /** @param {any} event @returns {void} */ function (event) {
     let visible = true;
     try {
       visible = event !== null && event !== undefined && event.target !== null && event.target !== undefined && typeof event.target.matches === 'function'
@@ -1601,7 +1610,10 @@ function ToolButton(props) {
   return h('button', buttonProps, props.children);
 }
 
-/** Filled primary button (search / save). */
+/**
+ * Filled primary button (search / save).
+ * @param {any} props - component props.
+ */
 function PrimaryButton(props) {
   const [hover, setHover] = useState(false);
   const disabled = props.disabled === true;
@@ -1628,13 +1640,16 @@ function PrimaryButton(props) {
   );
 }
 
-/** Outlined neutral button (retry, dismiss). */
+/**
+ * Outlined neutral button (retry, dismiss).
+ * @param {any} props - component props.
+ */
 function GhostButton(props) {
   const [hover, setHover] = useState(false);
   const buttonProps = {};
   Object.keys(props).forEach(function (key) {
     if (['title', 'ariaLabel', 'onClick', 'children', 'style'].indexOf(key) !== -1) return;
-    buttonProps[key] = props[key];
+    /** @type {Record<string, any>} */ (buttonProps)[key] = /** @type {Record<string, any>} */ (props)[key];
   });
   buttonProps.type = 'button';
   if (typeof props.title === 'string') buttonProps.title = props.title;
@@ -1646,7 +1661,10 @@ function GhostButton(props) {
   return h('button', buttonProps, props.children);
 }
 
-/** Small rounded chip. */
+/**
+ * Small rounded chip.
+ * @param {any} props - component props.
+ */
 function Chip(props) {
   const tone = props.tone;
   const toneStyle =
@@ -1659,7 +1677,10 @@ function Chip(props) {
   );
 }
 
-/** Centered spinner + optional label. */
+/**
+ * Centered spinner + optional label.
+ * @param {any} props - component props.
+ */
 function LoadingIndicator(props) {
   return h(
     'div',
@@ -1674,9 +1695,12 @@ function LoadingIndicator(props) {
   );
 }
 
-/** Inline error card with a retry button. */
+/**
+ * Inline error card with a retry button.
+ * @param {any} props - component props.
+ */
 function InlineError(props) {
-  const t = typeof props.t === 'function' ? props.t : function (key) { return key; };
+  const t = typeof props.t === 'function' ? props.t : /** @param {string} key @returns {string} */ function (key) { return key; };
   return h(
     'div',
     { style: ST_CORE.errorBox, role: 'alert' },
@@ -1689,9 +1713,12 @@ function InlineError(props) {
   );
 }
 
-/** Full-pane empty state: icon, title, body and an optional action. */
+/**
+ * Full-pane empty state: icon, title, body and an optional action.
+ * @param {any} props - component props.
+ */
 function EmptyState(props) {
-  const t = typeof props.t === 'function' ? props.t : function (key) { return key; };
+  const t = typeof props.t === 'function' ? props.t : /** @param {string} key @returns {string} */ function (key) { return key; };
   const Icon = typeof props.icon === 'function' ? props.icon : PanelIcon;
   return h(
     'div',
@@ -1705,7 +1732,10 @@ function EmptyState(props) {
   );
 }
 
-/** One-line notice bar (success / error / info). */
+/**
+ * One-line notice bar (success / error / info).
+ * @param {any} props - component props.
+ */
 function NoticeBar(props) {
   const kind = props.kind;
   const tone = kind === 'success' ? C.diffAdd : kind === 'error' ? C.error : C.textSecondary;
@@ -1723,6 +1753,7 @@ function NoticeBar(props) {
  * Resizable two-pane split used by the Files tree and the Git change list.
  * Left width is persisted per `storageKey`; the handle supports pointer drag and
  * double-click reset. Renders both children as-is.
+ * @param {any} props - component props.
  */
 function SplitPane(props) {
   const min = Number.isFinite(props.minWidth) ? props.minWidth : SPLIT_MIN;
@@ -1745,7 +1776,7 @@ function SplitPane(props) {
     return undefined;
   }, [dragging, width, storageKey]);
 
-  const onPointerDown = useCallback(function (event) {
+  const onPointerDown = useCallback(/** @param {any} event */ function (event) {
     try {
       event.preventDefault();
     } catch (error) {
@@ -1760,7 +1791,7 @@ function SplitPane(props) {
   // relying on pointer capture support.
   useEffect(function () {
     if (!dragging) return undefined;
-    const onMove = function (event) {
+    const onMove = /** @param {any} event */ function (event) {
       const start = startRef.current;
       if (start === null || typeof event.clientX !== 'number') return;
       setWidth(clampNumber(start.width + event.clientX - start.x, min, max));
