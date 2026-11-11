@@ -34,7 +34,7 @@ const PROJECT = path.resolve(HERE, '..', '..');
 const ARTIFACT = path.join(PROJECT, 'lib', 'client.js');
 const SOURCE_DIR = path.join(PROJECT, 'src', 'client');
 const BUILD_SCRIPT = path.join(PROJECT, 'scripts', 'build-client.mjs');
-const SOURCES = ['00-core.js', '07-highlight.js', '10-shell.js', '20-files.js', '30-search.js', '40-git.js', '99-face.js'];
+const SOURCES = ['00-core.js', '07-highlight.js', '08-markdown.js', '10-shell.js', '20-files.js', '30-search.js', '40-git.js', '99-face.js'];
 
 let activeReact = null;
 
@@ -898,6 +898,88 @@ function run() {
     'the read-only pre colours its tokens',
   );
   ok('FileViewer: plain language skips the layer; read-only code highlights inside the pre');
+
+  section('markdown preview');
+  assert.equal(typeof T.parseMarkdown, 'function', 'S.parseMarkdown must be exported');
+  assert.equal(typeof T.renderMarkdown, 'function', 'S.renderMarkdown must be exported');
+  const mdFixture = [
+    '# Title',
+    '',
+    'Some **bold** text with `code` and a [link](https://example.com).',
+    '',
+    '- one',
+    '- two',
+    '',
+    '```js',
+    'const answer = 42;',
+    '```',
+    '',
+    '> quoted',
+    '',
+    '| a | b |',
+    '| --- | --- |',
+    '| 1 | 2 |',
+    '',
+    '---',
+  ].join('\n');
+  const mdBlocks = T.parseMarkdown(mdFixture);
+  assert.deepEqual(
+    mdBlocks.map(function (block) { return block.type; }),
+    ['heading', 'paragraph', 'list', 'code', 'blockquote', 'table', 'hr'],
+    'block parser: heading, paragraph, list, fence, quote, table, rule',
+  );
+  assert.equal(mdBlocks[0].depth, 1, 'ATX heading depth');
+  assert.equal(mdBlocks[2].items.length, 2, 'two list items');
+  assert.equal(mdBlocks[2].ordered, false, 'bullet list is unordered');
+  assert.equal(mdBlocks[3].lang, 'js', 'fence info string is the language');
+  assert.equal(mdBlocks[3].text, 'const answer = 42;', 'fence body is captured verbatim');
+  assert.equal(mdBlocks[4].blocks[0].type, 'paragraph', 'blockquote parses nested blocks');
+  assert.equal(mdBlocks[5].header.length, 2, 'table header cells');
+  assert.equal(mdBlocks[5].rows.length, 1, 'table body rows');
+  const mdInline = T.parseMarkdownInline('a **b** `c` [d](https://e) ~~f~~');
+  assert.deepEqual(
+    mdInline.map(function (node) { return node.type; }),
+    ['text', 'strong', 'text', 'code', 'text', 'link', 'text', 'del'],
+    'inline parser: strong, code, link, strikethrough',
+  );
+
+  const mdProps = Object.assign({}, plainViewerProps, {
+    path: 'README.md',
+    value: mdFixture,
+    lineCount: mdFixture.split('\n').length,
+    language: 'markdown',
+    markdownMode: 'preview',
+  });
+  const mdRender = renderTree(T.FileViewer(mdProps));
+  assert.equal(mdRender.hosts.filter(function (host) { return host.props['data-md-preview'] === '1'; }).length, 1, 'preview container is marked');
+  assert.equal(findHost(mdRender, 'h1').length, 1, 'heading renders as h1');
+  ['p', 'ul', 'li', 'pre', 'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'hr'].forEach(function (tag) {
+    assert.equal(findHost(mdRender, tag).length >= 1, true, 'preview renders <' + tag + '>');
+  });
+  const mdTokenSpans = mdRender.hosts.filter(function (host) {
+    return host.type === 'span' && host.props.style !== undefined
+      && typeof host.props.style.color === 'string' && host.props.style.color.indexOf('--ide-tok-') !== -1;
+  });
+  assert.equal(mdTokenSpans.length >= 2, true, 'code fences inside the preview are syntax-highlighted');
+  const mdLinks = findHost(mdRender, 'a');
+  assert.equal(mdLinks.length, 1, 'safe link renders an anchor');
+  assert.equal(mdLinks[0].props.href, 'https://example.com', 'anchor keeps the safe href');
+  assert.equal(mdLinks[0].props.rel, 'noreferrer noopener', 'external links are isolated');
+  const unsafeRender = renderTree(T.FileViewer(Object.assign({}, mdProps, { value: '[x](javascript:alert(1))' })));
+  assert.equal(findHost(unsafeRender, 'a').length, 0, 'javascript: URLs never become anchors');
+
+  const mdSourceRender = renderTree(T.FileViewer(Object.assign({}, mdProps, { markdownMode: 'source' })));
+  const mdToggleButtons = mdSourceRender.hosts.filter(function (host) {
+    return host.type === 'button' && host.props['data-md-mode'] !== undefined;
+  });
+  assert.deepEqual(
+    mdToggleButtons.map(function (button) { return button.props['data-md-mode']; }),
+    ['source', 'preview'],
+    'Markdown files expose the source/preview toggle',
+  );
+  assert.equal(findHost(mdSourceRender, 'textarea').length, 1, 'source mode keeps the editable textarea');
+  assert.equal(mdSourceRender.hosts.filter(function (host) { return host.props['data-md-preview'] === '1'; }).length, 0, 'source mode renders no preview');
+  ok('markdown preview: block/inline parser, syntax-highlighted fences, table/quote/list, safe links, source/preview toggle');
 
   const searchData = {
     files: [

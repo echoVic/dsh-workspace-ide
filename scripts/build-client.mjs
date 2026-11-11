@@ -31,6 +31,7 @@ const SOURCES = [
   '00-core.js',
   '05-icons.js',
   '07-highlight.js',
+  '08-markdown.js',
   '10-shell.js',
   '20-files.js',
   '30-search.js',

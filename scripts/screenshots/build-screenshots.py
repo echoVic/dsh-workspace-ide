@@ -291,6 +291,9 @@ README_MD = """# Aurora
 A product analytics dashboard for the design team. Three token modes
 (`light`, `midtone`, `dark`) share one semantic palette.
 
+> **Tip** — the dashboard runs fully on mock metrics, so `pnpm dev` works
+> offline and without a backend.
+
 ## Getting started
 
 ```bash
@@ -310,11 +313,23 @@ Colours are **never** written inline. Components consume `ThemeTokens` from
 | `bg` | `#ffffff` | `#0f1115` |
 | `accent` | `#2f6bff` | `#5b8cff` |
 
+```ts
+const tokens = createTheme('midtone');
+<Chart tokens={tokens} metric={metric} range={14} />;
+```
+
 - `createTheme(mode)` returns the full token object
 - `useMemo` keeps the object stable per mode
 - Charts read `tokens.grid` for the baseline
 
-See [docs/theming.md](docs/theming.md) for the token contract.
+## Design notes
+
+1. Start from the surface ramp, then layer accents on top.
+2. Check contrast for every token pair before merging.
+   - Use the snapshot tests in `tests/theme.test.ts`
+   - Dark mode is the stricter baseline
+
+See [docs/theming.md](docs/theming.md) ~~(draft)~~ for the full token contract.
 """
 
 STYLES_CSS = """/* Aurora tokens are injected at runtime; this file keeps layout only. */
@@ -682,7 +697,7 @@ DRIVER = r'''
   var MOCK = __MOCK__;
   var THEME_BY_SHOT = {
     files: 'light-plus', search: 'light-plus', git: 'one-dark-pro',
-    'theme-dark': 'one-dark-pro', 'theme-light': 'light-plus', themes: 'light-plus', 'git-empty': 'light-plus'
+    'theme-dark': 'one-dark-pro', 'theme-light': 'light-plus', themes: 'light-plus', 'git-empty': 'light-plus', markdown: 'light-plus'
   };
   var DARK_CHROME = ['git', 'theme-dark'];
   if (DARK_CHROME.indexOf(SHOT) !== -1) document.body.setAttribute('data-chrome', 'dark');
@@ -852,6 +867,13 @@ DRIVER = r'''
     'theme-dark': function () { return openFile('src/theme.ts'); },
     'theme-light': function () { return openFile('src/components/Chart.tsx'); },
     themes: function () { return openFile('src/app.tsx').then(openThemePicker); },
+    markdown: function () {
+      return openFile('README.md')
+        .then(function () { return waitFor(function () { return q('[data-md-mode="preview"]'); }); })
+        .then(function () { return click(q('[data-md-mode="preview"]')); })
+        .then(function () { return waitFor(function () { return q('[data-md-preview]'); }); })
+        .then(function () { return sleep(400); });
+    },
     'git-empty': function () { return openGitEmpty(); }
   };
 
@@ -873,6 +895,7 @@ SHOTS = [
     ('theme-dark', 'screenshot-theme-dark.png'),
     ('theme-light', 'screenshot-theme-light.png'),
     ('themes', 'screenshot-themes.png'),
+    ('markdown', 'screenshot-markdown.png'),
     ('git-empty', 'screenshot-git-empty.png'),
 ]
 

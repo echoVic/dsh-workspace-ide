@@ -29,6 +29,30 @@ function detectEol(text) {
 }
 
 const ST_FILES = {
+  mdToggle: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 2,
+    padding: 2,
+    borderRadius: 6,
+    background: C.platform,
+    flex: '0 0 auto',
+  },
+  mdToggleButton: {
+    border: 'none',
+    background: 'transparent',
+    color: C.textSecondary,
+    fontFamily: S.FONT_UI,
+    fontSize: 11.5,
+    lineHeight: '20px',
+    padding: '0 9px',
+    borderRadius: 4,
+    cursor: 'pointer',
+  },
+  mdToggleActive: {
+    background: C.layer2,
+    color: C.text,
+  },
   treePane: {
     display: 'flex',
     flexDirection: 'column',
@@ -597,6 +621,9 @@ function FileViewer(props) {
   const t = props.t;
   const readOnly = props.readOnly === true;
   const dirty = props.dirty === true;
+  const isMarkdown = props.language === 'markdown';
+  const markdownMode = props.markdownMode === 'preview' ? 'preview' : 'source';
+  const previewMode = isMarkdown && markdownMode === 'preview';
   const saving = props.saving === true;
   const segments = typeof props.path === 'string' && props.path.length > 0 ? props.path.split('/') : [];
   const numbersText = useMemo(
@@ -692,6 +719,30 @@ function FileViewer(props) {
       h('span', { style: { flex: '1 1 auto' } }),
       dirty ? h('span', { style: ST_FILES.dirtyBadge }, h(S.Icons.Dot, { size: 9 }), t('files.modified')) : null,
       readOnly ? h(S.Chip, { tone: 'warn', icon: S.Icons.Lock, title: t('files.saveUnavailable') }, t('files.readonly')) : null,
+      isMarkdown
+        ? h(
+            'div',
+            { style: ST_FILES.mdToggle, role: 'tablist', 'aria-label': t('files.md.mode') },
+            ['source', 'preview'].map(function (mode) {
+              const active = markdownMode === mode;
+              return h(
+                'button',
+                {
+                  key: mode,
+                  type: 'button',
+                  role: 'tab',
+                  'data-md-mode': mode,
+                  'aria-selected': active ? 'true' : 'false',
+                  style: Object.assign({}, ST_FILES.mdToggleButton, active ? ST_FILES.mdToggleActive : null),
+                  onClick: function () {
+                    if (typeof props.onMarkdownMode === 'function') props.onMarkdownMode(mode);
+                  },
+                },
+                t(mode === 'source' ? 'files.md.source' : 'files.md.preview'),
+              );
+            }),
+          )
+        : null,
       props.language ? h(S.Chip, { title: t('files.language', { language: props.language }) }, props.language) : null,
       h('span', { style: ST_FILES.meta }, S.formatBytes(props.size)),
       props.mtimeMs ? h('span', { style: ST_FILES.meta }, t('files.modifiedAt', { time: S.formatDateTime(props.mtimeMs) })) : null,
@@ -718,7 +769,22 @@ function FileViewer(props) {
     props.tooBig
       ? h(S.NoticeBar, { t: t, kind: 'info', text: t('files.readonly.big', { limit: '400 KB' }) })
       : null,
-    readOnly
+    previewMode
+      ? h(
+          'div',
+          {
+            style: S.MD_STYLE.scroll,
+            tabIndex: 0,
+            'data-md-preview': '1',
+            onKeyDown: props.onKeyDown,
+          },
+          h(
+            'div',
+            { style: S.MD_STYLE.inner },
+            typeof S.renderMarkdown === 'function' ? S.renderMarkdown(props.value) : null,
+          ),
+        )
+      : readOnly
       ? h(
           'div',
           { style: ST_FILES.readOnlyScroll },
@@ -780,9 +846,12 @@ function FileViewer(props) {
     h(
       'div',
       { style: ST_FILES.statusBar },
-      h('span', null, t('files.caret', { line: props.caret.line, column: props.caret.column })),
+      previewMode
+        ? h('span', null, t('files.md.preview'))
+        : h('span', null, t('files.caret', { line: props.caret.line, column: props.caret.column })),
       h('span', { style: { flex: '1 1 auto' } }),
       dirty ? h('span', { style: ST_FILES.statusHint }, t('files.dirtyHint')) : null,
+      isMarkdown ? h('span', { title: t('files.md.toggleHint') }, t('files.md.shortcut')) : null,
       readOnly ? null : h('span', { title: t('files.commentHint') }, t('files.commentShortcut')),
       h('span', null, t('files.lines', { count: S.formatCount(props.lineCount) })),
       h('span', null, t('files.encoding')),
@@ -809,6 +878,7 @@ function FilesView(props) {
   const [notice, setNotice] = useState(null);
   const [caret, setCaret] = useState({ line: 1, column: 1 });
   const [pendingLine, setPendingLine] = useState(null);
+  const [markdownMode, setMarkdownMode] = useState('source');
 
   const textareaRef = useRef(null);
   const gutterRef = useRef(null);
@@ -891,6 +961,7 @@ function FilesView(props) {
     setSaving(false);
     setNotice(null);
     setPendingLine(null);
+    setMarkdownMode('source');
     setCaret({ line: 1, column: 1 });
     loadDir('', gen);
     return function () {
@@ -1123,6 +1194,11 @@ function FilesView(props) {
         return;
       }
     }
+    if (meta && event.shiftKey === true && (key === 'v' || key === 'V') && language === 'markdown') {
+      event.preventDefault();
+      setMarkdownMode(function (previous) { return previous === 'preview' ? 'source' : 'preview'; });
+      return;
+    }
     if (meta && (key === 's' || key === 'S')) {
       event.preventDefault();
       save();
@@ -1247,6 +1323,8 @@ function FilesView(props) {
       truncated: truncated,
       notice: notice,
       caret: caret,
+      markdownMode: markdownMode,
+      onMarkdownMode: setMarkdownMode,
       textareaRef: textareaRef,
       gutterRef: gutterRef,
       onChange: onChange,

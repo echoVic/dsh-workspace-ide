@@ -10,7 +10,7 @@ workspace, search it, and read its git state without leaving the conversation.
 
 | Surface | What it does |
 |---|---|
-| **Files** | Lazy directory tree for the whole workspace, resizable split, line-numbered **syntax-highlighted** code viewer, inline editing with `Ctrl/Cmd+S` save and `Cmd/Ctrl+/` comment toggling, large-file/binary guards |
+| **Files** | Lazy directory tree for the whole workspace, resizable split, line-numbered **syntax-highlighted** code viewer, inline editing with `Ctrl/Cmd+S` save and `Cmd/Ctrl+/` comment toggling, rendered **Markdown preview** with source toggle, large-file/binary guards |
 | **Search** | Full-text workspace search with case / regex / whole-word toggles and an include filter; hits are grouped per file, highlighted, and jump straight to the matching line in the viewer |
 | **Git** | Current branch with ahead/behind, staged / unstaged / untracked / conflicted groups with colourised unified diffs, and a commit history with per-commit diffs; a non-git workspace lists other git workspaces for one-click switching |
 
@@ -68,6 +68,17 @@ line or every selected line (the per-language token table covers `//`, `#`, `--`
 `/* */` / `<!-- -->` block wrapping for CSS, HTML, XML, Markdown, Vue and Svelte), and the
 toggle is reversible, indent-preserving and leaves blank lines untouched.
 
+### Markdown preview
+
+`.md` files switch between editable source and a rendered preview from the file header, or
+with `Cmd/Ctrl+Shift+V`. The preview is built from React elements — never injected HTML — and
+covers headings, fenced code blocks (highlighted by the same engine, in the selected theme),
+ordered/unordered and task lists, blockquotes, GFM tables, links, images and rules;
+`javascript:`/`data:` URLs are dropped. It renders the current draft, so unsaved edits
+preview immediately, and read-only/oversized Markdown files still preview.
+
+![Markdown preview with source toggle](docs/screenshot-markdown.png)
+
 ![Files: syntax-highlighted editor](docs/screenshot-files.png)
 
 The panel opens from the left rail (**工作区 / Workspace**, next to *Plugins*, *Scheduled
@@ -103,7 +114,7 @@ Or install straight from GitHub instead of a local checkout:
 ```text
 plugin_manager { action: "install_bundle", target: "echoVic/dsh-workspace-ide" }
 # or pin a release tarball:
-plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v0.1.1.tar.gz" }
+plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v0.2.0.tar.gz" }
 ```
 
 ## How it works
@@ -137,7 +148,7 @@ node scripts/build-client.mjs          # rebuild lib/client.js from src/client/*
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
 node --test test/host/                      # Host route unit tests (node:test, 107)
-node test/smoke/client-smoke.mjs            # headless client module/face smoke test (37 checks)
+node test/smoke/client-smoke.mjs            # headless client module/face smoke test (38 checks)
 node --test test/review/*.test.mjs          # independent adversarial + contract suites (78)
 python3 scripts/screenshots/build-screenshots.py   # rebuild docs/ screenshots (mock data)
 ```
@@ -158,7 +169,7 @@ THIRD_PARTY_NOTICES.md   icon license attribution
 licenses/                full third-party license texts
 scripts/build-client.mjs  concatenating build + staleness check
 test/host/               node:test suites (107 tests)
-test/smoke/              headless client-module smoke test (37 checks)
+test/smoke/              headless client-module smoke test (38 checks)
 test/review/             independent adversarial + client-contract suites (78 tests)
 docs/                    screenshots
 ```
