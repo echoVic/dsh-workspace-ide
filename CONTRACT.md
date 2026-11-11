@@ -482,6 +482,8 @@ the top-left corner — see that package's README.)
     without a network round-trip, so unsaved drafts and carets survive tab switches.
     Closing a dirty tab first shows an inline confirmation bar (Close Anyway /
     Cancel); the workspace root change resets the tab set.
+  - Recent Locations (`Cmd/Ctrl+Shift+E`): the navigation history as a filterable
+    palette (`path:line` rows); Enter jumps back to that location, Esc closes.
   - Go to Symbol (`Cmd/Ctrl+Shift+O`, or the list button in the editor toolbar): a
     centered palette fed by `S.extractSymbols` (regex-based functions/classes/types/
     constants/methods, Markdown headings, JSON keys) over the current draft; Up/Down +
@@ -505,8 +507,10 @@ the top-left corner — see that package's README.)
     and indent guides render behind the text in the same character grid (guides are
     hidden in soft-wrap/read-only/preview modes where visual lines no longer match).
   - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+D duplicates the current line / selected
-    lines; Alt+Shift+Up/Down move them; Ctrl/Cmd+= / Ctrl/Cmd+- zoom the editor
-    (Ctrl/Cmd+0 resets); Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
+    lines; Alt+Shift+Up/Down move them; Ctrl/Cmd+Shift+U toggles the selection's
+    case; Ctrl/Cmd+Shift+J joins the next line; Ctrl/Cmd+Shift+E opens Recent
+    Locations; Ctrl/Cmd+= / Ctrl/Cmd+- zoom the editor (Ctrl/Cmd+0 resets);
+    Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
     the active tab; Ctrl/Cmd+P opens
     Quick Open; Ctrl/Cmd+Alt+Left/Right walk
     the navigation history; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;

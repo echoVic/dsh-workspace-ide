@@ -1345,6 +1345,51 @@ S.duplicateLines = duplicateLines;
 S.moveLines = moveLines;
 
 /**
+ * Toggle the case of the selected text (JetBrains Ctrl+Shift+U): if the
+ * selection contains uppercase it folds to lowercase, otherwise it folds to
+ * uppercase. No selection is a no-op.
+ * @param text - current text.
+ * @param start - selection start.
+ * @param end - selection end.
+ * @returns the edit, or null when nothing is selected.
+ */
+function toggleCaseEdit(text: any, start: number, end: number): any {
+  if (typeof text !== 'string') return null;
+  const from = clampEditOffset(text, start);
+  const to = Math.max(from, clampEditOffset(text, end));
+  if (to === from) return null;
+  const selection = text.slice(from, to);
+  const next = /[A-Z]/.test(selection) ? selection.toLowerCase() : selection.toUpperCase();
+  return { text: text.slice(0, from) + next + text.slice(to), selectionStart: from, selectionEnd: to };
+}
+
+/**
+ * Join the current line with the next one (JetBrains Ctrl+Shift+J): trailing
+ * spaces of the first line and leading spaces of the next are collapsed into a
+ * single space. The last line is a no-op.
+ * @param text - current text.
+ * @param start - selection start.
+ * @param end - selection end.
+ * @returns the edit, or null at the buffer edge.
+ */
+function joinLinesEdit(text: any, start: number, end: number): any {
+  if (typeof text !== 'string') return null;
+  const range = selectionLineRange(text, start, end);
+  if (range.lineEnd >= text.length) return null;
+  const nextNewline = text.indexOf('\n', range.lineEnd + 1);
+  const nextLineEnd = nextNewline === -1 ? text.length : nextNewline;
+  const first = text.slice(range.lineStart, range.lineEnd).replace(/[ \t]+$/, '');
+  const second = text.slice(range.lineEnd + 1, nextLineEnd).replace(/^[ \t]+/, '');
+  const joined = first + (first.length > 0 && second.length > 0 ? ' ' : '') + second;
+  const next = text.slice(0, range.lineStart) + joined + text.slice(nextLineEnd);
+  const caret = range.lineStart + (first.length > 0 ? first.length : joined.length);
+  return { text: next, selectionStart: caret, selectionEnd: caret };
+}
+
+S.toggleCaseEdit = toggleCaseEdit;
+S.joinLinesEdit = joinLinesEdit;
+
+/**
  * Build JetBrains-style breadcrumb nodes for one path. Intermediate segments
  * are buttons that reveal their directory in the tree; the last one is the file.
  * @param segments - path segments, root-first.
@@ -2549,6 +2594,9 @@ function FilesView(props: any) {
   const [symbolsOpen, setSymbolsOpen] = useState(false);
   const [symbolQuery, setSymbolQuery] = useState('');
   const [symbolIndex, setSymbolIndex] = useState(0);
+  const [recentOpen, setRecentOpen] = useState(false);
+  const [recentQuery, setRecentQuery] = useState('');
+  const [recentIndex, setRecentIndex] = useState(0);
   const [tabs, setTabs] = useState<string[]>([]);
   const [closingTab, setClosingTab] = useState<string | null>(null);
 
@@ -2941,6 +2989,58 @@ function FilesView(props: any) {
     applyLineJump(symbol.line);
   }, []);
 
+  const recentResults = useMemo(
+    function () {
+      if (recentOpen === false) return [];
+      const newestFirst = history.slice().reverse();
+      const query = recentQuery.trim();
+      if (query.length === 0) return newestFirst.slice(0, 50);
+      return newestFirst
+        .map(function (entry: any) {
+          const score = typeof S.quickOpenScore === 'function' ? S.quickOpenScore(query, entry.path) : -1;
+          return { entry: entry, score: score };
+        })
+        .filter(function (row: any) { return row.score >= 0; })
+        .sort(function (left: any, right: any) { return right.score - left.score; })
+        .map(function (row: any) { return row.entry; })
+        .slice(0, 50);
+    },
+    [recentOpen, recentQuery, history],
+  );
+
+  const closeRecent = useCallback(function () {
+    setRecentOpen(false);
+  }, []);
+
+  const openRecent = useCallback(function () {
+    setRecentOpen(true);
+    setRecentQuery('');
+    setRecentIndex(0);
+  }, []);
+
+  const changeRecentQuery = useCallback(function (event: any) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    setRecentQuery(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
+    setRecentIndex(0);
+  }, []);
+
+  const moveRecent = useCallback(function (delta: any) {
+    if (recentResults.length === 0) return;
+    setRecentIndex(function (previous: number) {
+      return (previous + delta + recentResults.length) % recentResults.length;
+    });
+  }, [recentResults]);
+
+  const jumpRecent = useCallback(function (entry: any) {
+    if (entry === null || entry === undefined || typeof entry.path !== 'string') return;
+    setRecentOpen(false);
+    if (entry.path === selected) {
+      applyLineJump(Number.isFinite(entry.line) ? entry.line : 1);
+      return;
+    }
+    openPath(entry.path, Number.isFinite(entry.line) ? entry.line : 1);
+  }, [selected, openPath]);
+
   const openQuickPath = useCallback(function (filePath: any) {
     if (typeof filePath !== 'string' || filePath.length === 0) return;
     setQuickOpen(false);
@@ -3143,6 +3243,30 @@ function FilesView(props: any) {
     }
     setCaret({ line: line, column: 1 });
     setCaretIndex(start);
+  }
+
+  /** Apply one `{text, selectionStart, selectionEnd}` edit and restore focus/selection. */
+  function applyEditorResult(result: any) {
+    if (result === null || result === undefined || typeof result.text !== 'string') return;
+    const start = Number.isFinite(result.selectionStart) ? Math.max(0, Math.floor(result.selectionStart)) : 0;
+    const end = Number.isFinite(result.selectionEnd) ? Math.max(start, Math.floor(result.selectionEnd)) : start;
+    setDraft(result.text);
+    setCaret(caretFromIndex(result.text, start));
+    setCaretIndex(start);
+    try {
+      setTimeout(function () {
+        const current = textareaRef.current;
+        if (current === null || current === undefined) return;
+        try {
+          current.focus();
+          current.setSelectionRange(start, end);
+        } catch (error) {
+          /* selection is a nicety */
+        }
+      }, 0);
+    } catch (error) {
+      /* no timer */
+    }
   }
 
   useEffect(function () {
@@ -3360,7 +3484,7 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom, recentOpen, openRecent, closeRecent]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
@@ -3369,6 +3493,11 @@ function FilesView(props: any) {
     if (meta && (key === 'w' || key === 'W')) {
       event.preventDefault();
       if (selected !== null) closeTab(selected);
+      return;
+    }
+    if (meta && event.shiftKey === true && (key === 'e' || key === 'E')) {
+      event.preventDefault();
+      openRecent();
       return;
     }
     if (meta && event.shiftKey === true && (key === 'o' || key === 'O')) {
@@ -3384,6 +3513,11 @@ function FilesView(props: any) {
     if (meta && event.altKey === true && (key === 'ArrowLeft' || key === 'ArrowRight')) {
       event.preventDefault();
       navigateHistory(key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
+    if (key === 'Escape' && recentOpen === true) {
+      event.preventDefault();
+      closeRecent();
       return;
     }
     if (key === 'Escape' && symbolsOpen === true) {
@@ -3474,6 +3608,16 @@ function FilesView(props: any) {
               /* no timer */
             }
           }
+          return;
+        }
+        if (meta && event.shiftKey === true && (key === 'u' || key === 'U')) {
+          event.preventDefault();
+          applyEditorResult(typeof S.toggleCaseEdit === 'function' ? S.toggleCaseEdit(editValue, editStart, editEnd) : null);
+          return;
+        }
+        if (meta && event.shiftKey === true && (key === 'j' || key === 'J')) {
+          event.preventDefault();
+          applyEditorResult(typeof S.joinLinesEdit === 'function' ? S.joinLinesEdit(editValue, editStart, editEnd) : null);
           return;
         }
         if (event.altKey === true && event.shiftKey === true && (key === 'ArrowUp' || key === 'ArrowDown')) {
@@ -3845,6 +3989,84 @@ function FilesView(props: any) {
     viewer = h(S.EmptyState, { t: t, icon: S.Icons.Files, title: t('files.open.title'), body: t('files.open.body') });
   }
 
+  const recentPanel = recentOpen
+    ? h(
+        'div',
+        { style: ST_FILES.quickLayer, onMouseDown: function () { closeRecent(); } },
+        h(
+          'div',
+          {
+            style: ST_FILES.quickPanel,
+            onMouseDown: function (event: any) {
+              if (event !== null && event !== undefined && typeof event.stopPropagation === 'function') event.stopPropagation();
+            },
+          },
+          h(
+            'div',
+            { style: ST_FILES.quickInputRow },
+            h('span', { style: ST_FILES.quickIndexIcon }, h(S.Icons.Search, { size: 14 })),
+            h('input', {
+              type: 'text',
+              value: recentQuery,
+              placeholder: t('recentLocations.label'),
+              'aria-label': t('recentLocations.label'),
+              style: ST_FILES.quickInput,
+              autoFocus: true,
+              onChange: changeRecentQuery,
+              onKeyDown: function (event: any) {
+                if (event === null || event === undefined) return;
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  moveRecent(1);
+                } else if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  moveRecent(-1);
+                } else if (event.key === 'Enter') {
+                  event.preventDefault();
+                  const entry = recentResults[recentIndex];
+                  if (entry !== null && entry !== undefined) jumpRecent(entry);
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  closeRecent();
+                }
+              },
+            }),
+            h('span', { style: ST_FILES.quickBadge }, t('recentLocations.label')),
+          ),
+          h(
+            'div',
+            { style: ST_FILES.quickList, role: 'listbox', 'aria-label': t('recentLocations.label') },
+            recentResults.length === 0
+              ? h('div', { style: ST_FILES.quickEmpty }, t('recentLocations.empty'))
+              : recentResults.map(function (entry: any, index: number) {
+                  const slash = entry.path.lastIndexOf('/');
+                  const directory = slash >= 0 ? entry.path.slice(0, slash + 1) : '';
+                  const basename = slash >= 0 ? entry.path.slice(slash + 1) : entry.path;
+                  return h(
+                    'div',
+                    {
+                      key: 'recent-' + String(index) + '-' + entry.path,
+                      role: 'option',
+                      'aria-selected': index === recentIndex ? 'true' : 'false',
+                      style: Object.assign({}, ST_FILES.quickRow, index === recentIndex ? ST_FILES.quickRowActive : null),
+                      title: entry.path + ':' + String(entry.line),
+                      onMouseDown: function (event: any) {
+                        if (event !== null && event !== undefined && typeof event.preventDefault === 'function') event.preventDefault();
+                        jumpRecent(entry);
+                      },
+                    },
+                    directory.length > 0 ? h('span', { style: ST_FILES.quickPathDir }, directory) : null,
+                    h('span', { style: ST_FILES.quickPathFile }, basename),
+                    h('span', { style: { flex: '1 1 auto' } }),
+                    h('span', { style: ST_FILES.symbolLine }, ':' + String(entry.line)),
+                  );
+                }),
+          ),
+          h('div', { style: ST_FILES.quickHint }, t('recentLocations.hint')),
+        ),
+      )
+    : null;
+
   const symbolPanel = symbolsOpen
     ? h(
         'div',
@@ -4064,6 +4286,7 @@ function FilesView(props: any) {
       maxWidth: SPLIT_MAX,
       handleLabel: t('files.tree.label'),
     }),
+    recentPanel,
     symbolPanel,
     quickPanel,
   );

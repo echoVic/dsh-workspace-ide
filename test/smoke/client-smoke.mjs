@@ -606,6 +606,14 @@ function run() {
   assert.equal(T.moveLines('a\nb', 0, 0, -1), null, 'moving the first line up is a no-op');
   assert.equal(T.moveLines('a\nb', 2, 2, 1), null, 'moving the last line down is a no-op');
   assert.equal(T.duplicateLines('abc', 0, 0).text, 'abc\nabc', 'duplicating the last line adds a newline');
+  assert.equal(T.toggleCaseEdit('abc DEF', 0, 7).text, 'abc def', 'Ctrl+Shift+U folds a mixed-case selection to lowercase');
+  assert.equal(T.toggleCaseEdit('abc def', 0, 7).text, 'ABC DEF', 'Ctrl+Shift+U folds a lowercase selection to uppercase');
+  assert.equal(T.toggleCaseEdit('abc', 0, 0), null, 'toggle case needs a selection');
+  const joined = T.joinLinesEdit('a\n  b', 0, 0);
+  assert.equal(joined.text, 'a b', 'Ctrl+Shift+J joins the next line and trims its indent');
+  assert.equal(joined.selectionStart, 1, 'the caret lands at the join point');
+  assert.equal(T.joinLinesEdit('a\n\nb', 0, 0).text, 'a\nb', 'joining an empty line removes it');
+  assert.equal(T.joinLinesEdit('x', 0, 0), null, 'the last line has nothing to join');
   assert.deepEqual(T.bracketMatch('(a)', 1), { open: 0, close: 2 }, 'caret inside a bracket pair matches it');
   assert.deepEqual(T.bracketMatch('((x))', 2), { open: 1, close: 3 }, 'nested pairs balance');
   assert.equal(T.bracketMatch('abc', 1), null, 'no bracket next to the caret');

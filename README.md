@@ -79,7 +79,9 @@ standard:
   paints every match behind the text.
 - **Quick Open** (`Ctrl/Cmd+P`) ranks the whole workspace file index locally with a fuzzy
   subsequence score; **Go to Symbol** (`Ctrl/Cmd+Shift+O`) jumps to functions, classes,
-  types, constants and (in Markdown/JSON) headings or keys in the current file.
+  types, constants and (in Markdown/JSON) headings or keys in the current file;
+  **Recent Locations** (`Ctrl/Cmd+Shift+E`) reopens any earlier file:line, and
+  **case toggle** / **join lines** round out the editing shortcuts.
 - **Tabs** keep one tab per open file with dirty markers; unsaved drafts and carets survive
   tab switches, and closing a dirty tab asks before discarding.
 - **Bracket matching / auto-pair / smart indent / current line / indent guides** make the

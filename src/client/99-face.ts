@@ -167,6 +167,8 @@ S.face = {
       extractSymbols: S.extractSymbols,
       duplicateLines: S.duplicateLines,
       moveLines: S.moveLines,
+      toggleCaseEdit: S.toggleCaseEdit,
+      joinLinesEdit: S.joinLinesEdit,
       bracketMatch: S.bracketMatch,
       autoPairEdit: S.autoPairEdit,
       smartIndentEdit: S.smartIndentEdit,
