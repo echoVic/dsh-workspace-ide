@@ -754,6 +754,22 @@ const ST_FILES = {
     fontSize: 11,
     whiteSpace: 'nowrap',
   },
+  symbolKind: {
+    minWidth: 62,
+    color: C.textTertiary,
+    fontFamily: FONT_UI,
+    fontSize: 10.5,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    flex: '0 0 auto',
+  },
+  symbolLine: {
+    color: C.textTertiary,
+    fontFamily: FONT_MONO,
+    fontSize: 11,
+    whiteSpace: 'nowrap',
+    flex: '0 0 auto',
+  },
   quickIndexIcon: {
     display: 'inline-flex',
     color: C.textTertiary,
@@ -1069,6 +1085,65 @@ function orderQuickFiles(recent: string[], files: string[], limit?: number): str
 }
 
 S.orderQuickFiles = orderQuickFiles;
+
+/** One navigable symbol in the current file. */
+interface FileSymbol {
+  name: string;
+  line: number;
+  kind: string;
+  indent: number;
+}
+
+/**
+ * Extract navigable symbols (functions/classes/types/constants/methods,
+ * markdown headings, JSON keys) for Go-to-Symbol. Regex-based on purpose: it
+ * must stay dependency-free and cheap on large files.
+ * @param text - current editor text.
+ * @param language - Host language chip.
+ * @returns symbols in document order (capped at 400).
+ */
+function extractSymbols(text: any, language: any): FileSymbol[] {
+  if (typeof text !== 'string' || text.length === 0) return [];
+  const lang = typeof language === 'string' ? language.toLowerCase() : '';
+  const markdown = lang === 'markdown' || lang === 'md';
+  const jsonLike = lang === 'json' || lang === 'jsonc' || lang === 'json5';
+  const lines = text.split('\n');
+  const symbols: FileSymbol[] = [];
+  for (let index = 0; index < lines.length; index = index + 1) {
+    if (symbols.length >= 400) break;
+    const raw = lines[index];
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) continue;
+    const indentMatch = /^[ \t]*/.exec(raw);
+    const indent = indentMatch === null ? 0 : indentMatch[0].replace(/\t/g, '  ').length;
+    let match: RegExpExecArray | null;
+    if (markdown) {
+      match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(trimmed);
+      if (match !== null) symbols.push({ name: match[2].trim(), line: index + 1, kind: 'heading', indent: 0 });
+      continue;
+    }
+    if (jsonLike) {
+      match = /^"([^"]+)"\s*:/.exec(trimmed);
+      if (match !== null) symbols.push({ name: match[1], line: index + 1, kind: 'key', indent: indent });
+      continue;
+    }
+    match = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/.exec(trimmed);
+    if (match !== null) { symbols.push({ name: match[1], line: index + 1, kind: 'function', indent: indent }); continue; }
+    match = /^(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+([A-Za-z_$][\w$]*)/.exec(trimmed);
+    if (match !== null) { symbols.push({ name: match[1], line: index + 1, kind: 'class', indent: indent }); continue; }
+    match = /^(?:export\s+)?(?:interface|type|enum)\s+([A-Za-z_$][\w$]*)/.exec(trimmed);
+    if (match !== null) { symbols.push({ name: match[1], line: index + 1, kind: 'type', indent: indent }); continue; }
+    match = /^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/.exec(trimmed);
+    if (match !== null) { symbols.push({ name: match[1], line: index + 1, kind: 'constant', indent: indent }); continue; }
+    if (indent > 0) {
+      match = /^(?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/.exec(trimmed);
+      if (match !== null) symbols.push({ name: match[1], line: index + 1, kind: 'method', indent: indent });
+    }
+  }
+  return symbols;
+}
+
+S.extractSymbols = extractSymbols;
 
 /** Bracket pairs the editor understands for matching / auto-pairing. */
 const BRACKET_PAIRS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
@@ -1914,6 +1989,19 @@ function FileViewer(props: any) {
             h(S.Icons.Search, { size: 13 }),
           )
         : null,
+      typeof props.onSymbolsOpen === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('symbols.label'),
+              ariaLabel: t('symbols.label'),
+              active: props.symbolsOpen === true,
+              style: { width: 24, height: 24 },
+              onClick: props.onSymbolsOpen,
+            },
+            h(S.Icons.Symbol, { size: 13 }),
+          )
+        : null,
       readOnly
         ? null
         : h(
@@ -2328,6 +2416,9 @@ function FilesView(props: any) {
   const [quickError, setQuickError] = useState<any>(null);
   const [quickTruncated, setQuickTruncated] = useState(false);
   const [quickIndex, setQuickIndex] = useState(0);
+  const [symbolsOpen, setSymbolsOpen] = useState(false);
+  const [symbolQuery, setSymbolQuery] = useState('');
+  const [symbolIndex, setSymbolIndex] = useState(0);
   const [tabs, setTabs] = useState<string[]>([]);
   const [closingTab, setClosingTab] = useState<string | null>(null);
 
@@ -2663,6 +2754,62 @@ function FilesView(props: any) {
     },
     [quickOpen, quickQuery, quickFiles, recentPaths],
   );
+
+  const symbolItems = useMemo(
+    function () {
+      if (symbolsOpen === false || file.status !== 'loaded') return [];
+      const data = file !== null && file !== undefined ? file.data : null;
+      const lang = data !== null && data !== undefined && typeof data.language === 'string' ? data.language : '';
+      return typeof S.extractSymbols === 'function' ? S.extractSymbols(draft, lang) : [];
+    },
+    [symbolsOpen, draft, file.status],
+  );
+
+  const symbolResults = useMemo(
+    function () {
+      if (symbolsOpen === false) return [];
+      const query = symbolQuery.trim();
+      if (query.length === 0) return symbolItems.slice(0, 200);
+      return symbolItems
+        .map(function (symbol: any) {
+          return { symbol: symbol, score: typeof S.quickOpenScore === 'function' ? S.quickOpenScore(query, symbol.name) : -1 };
+        })
+        .filter(function (row: any) { return row.score >= 0; })
+        .sort(function (left: any, right: any) { return right.score === left.score ? left.symbol.line - right.symbol.line : right.score - left.score; })
+        .map(function (row: any) { return row.symbol; })
+        .slice(0, 200);
+    },
+    [symbolsOpen, symbolQuery, symbolItems],
+  );
+
+  const closeSymbols = useCallback(function () {
+    setSymbolsOpen(false);
+  }, []);
+
+  const openSymbols = useCallback(function () {
+    setSymbolsOpen(true);
+    setSymbolQuery('');
+    setSymbolIndex(0);
+  }, []);
+
+  const changeSymbolQuery = useCallback(function (event: any) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    setSymbolQuery(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
+    setSymbolIndex(0);
+  }, []);
+
+  const moveSymbol = useCallback(function (delta: any) {
+    if (symbolResults.length === 0) return;
+    setSymbolIndex(function (previous: number) {
+      return (previous + delta + symbolResults.length) % symbolResults.length;
+    });
+  }, [symbolResults]);
+
+  const jumpToSymbol = useCallback(function (symbol: any) {
+    if (symbol === null || symbol === undefined || !Number.isFinite(symbol.line)) return;
+    setSymbolsOpen(false);
+    applyLineJump(symbol.line);
+  }, []);
 
   const openQuickPath = useCallback(function (filePath: any) {
     if (typeof filePath !== 'string' || filePath.length === 0) return;
@@ -3046,7 +3193,7 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
@@ -3057,6 +3204,11 @@ function FilesView(props: any) {
       if (selected !== null) closeTab(selected);
       return;
     }
+    if (meta && event.shiftKey === true && (key === 'o' || key === 'O')) {
+      event.preventDefault();
+      openSymbols();
+      return;
+    }
     if (meta && (key === 'p' || key === 'P')) {
       event.preventDefault();
       openQuick();
@@ -3065,6 +3217,11 @@ function FilesView(props: any) {
     if (meta && event.altKey === true && (key === 'ArrowLeft' || key === 'ArrowRight')) {
       event.preventDefault();
       navigateHistory(key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
+    if (key === 'Escape' && symbolsOpen === true) {
+      event.preventDefault();
+      closeSymbols();
       return;
     }
     if (key === 'Escape' && quickOpen === true) {
@@ -3406,6 +3563,8 @@ function FilesView(props: any) {
       onGotoSubmit: submitGoto,
       onGotoClose: closeGoto,
       onFindOpen: function () { openFind(false); },
+      onSymbolsOpen: openSymbols,
+      symbolsOpen: symbolsOpen,
       selection: selection,
       eol: eol,
       onReload: reloadSelected,
@@ -3437,6 +3596,81 @@ function FilesView(props: any) {
   } else {
     viewer = h(S.EmptyState, { t: t, icon: S.Icons.Files, title: t('files.open.title'), body: t('files.open.body') });
   }
+
+  const symbolPanel = symbolsOpen
+    ? h(
+        'div',
+        { style: ST_FILES.quickLayer, onMouseDown: function () { closeSymbols(); } },
+        h(
+          'div',
+          {
+            style: ST_FILES.quickPanel,
+            onMouseDown: function (event: any) {
+              if (event !== null && event !== undefined && typeof event.stopPropagation === 'function') event.stopPropagation();
+            },
+          },
+          h(
+            'div',
+            { style: ST_FILES.quickInputRow },
+            h('span', { style: ST_FILES.quickIndexIcon }, h(S.Icons.Symbol, { size: 14 })),
+            h('input', {
+              type: 'text',
+              value: symbolQuery,
+              placeholder: t('symbols.placeholder'),
+              'aria-label': t('symbols.label'),
+              style: ST_FILES.quickInput,
+              autoFocus: true,
+              onChange: changeSymbolQuery,
+              onKeyDown: function (event: any) {
+                if (event === null || event === undefined) return;
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  moveSymbol(1);
+                } else if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  moveSymbol(-1);
+                } else if (event.key === 'Enter') {
+                  event.preventDefault();
+                  const symbol = symbolResults[symbolIndex];
+                  if (symbol !== null && symbol !== undefined) jumpToSymbol(symbol);
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  closeSymbols();
+                }
+              },
+            }),
+            h('span', { style: ST_FILES.quickBadge }, t('symbols.label')),
+          ),
+          h(
+            'div',
+            { style: ST_FILES.quickList, role: 'listbox', 'aria-label': t('symbols.label') },
+            symbolResults.length === 0
+              ? h('div', { style: ST_FILES.quickEmpty }, t('symbols.noResults'))
+              : symbolResults.map(function (symbol: any, index: number) {
+                  return h(
+                    'div',
+                    {
+                      key: 'symbol-' + String(symbol.line) + '-' + symbol.name,
+                      role: 'option',
+                      'aria-selected': index === symbolIndex ? 'true' : 'false',
+                      style: Object.assign({}, ST_FILES.quickRow, index === symbolIndex ? ST_FILES.quickRowActive : null),
+                      title: symbol.name,
+                      onMouseDown: function (event: any) {
+                        if (event !== null && event !== undefined && typeof event.preventDefault === 'function') event.preventDefault();
+                        jumpToSymbol(symbol);
+                      },
+                    },
+                    h('span', { style: ST_FILES.symbolKind }, t('symbols.kind.' + symbol.kind)),
+                    h('span', { style: ST_FILES.quickPathFile }, symbol.name),
+                    h('span', { style: { flex: '1 1 auto' } }),
+                    h('span', { style: ST_FILES.symbolLine }, ':' + String(symbol.line)),
+                  );
+                }),
+          ),
+          h('div', { style: ST_FILES.quickHint }, t('symbols.hint')),
+        ),
+      )
+    : null;
 
   const quickPanel = quickOpen
     ? h(
@@ -3582,6 +3816,7 @@ function FilesView(props: any) {
       maxWidth: SPLIT_MAX,
       handleLabel: t('files.tree.label'),
     }),
+    symbolPanel,
     quickPanel,
   );
 }

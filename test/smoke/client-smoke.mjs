@@ -589,6 +589,12 @@ function run() {
   assert.deepEqual(T.orderQuickFiles(['b.ts', 'a.ts'], ['a.ts', 'b.ts', 'c.ts'], 5), ['a.ts', 'b.ts', 'c.ts'], 'recent files lead the empty query');
   assert.deepEqual(T.orderQuickFiles(['missing.ts'], ['a.ts'], 5), ['a.ts'], 'unknown recent paths are skipped');
   assert.deepEqual(T.orderQuickFiles([], ['b.ts', 'a.ts'], 1), ['b.ts'], 'the limit slices the ordered list');
+  const codeSymbols = T.extractSymbols('export function foo() {}\nclass Bar {}\n  method() {}\nconst baz = 1;', 'typescript');
+  assert.deepEqual(codeSymbols.map(function (symbol) { return symbol.name; }), ['foo', 'Bar', 'method', 'baz'], 'code symbols keep document order');
+  assert.deepEqual(codeSymbols.map(function (symbol) { return symbol.kind; }), ['function', 'class', 'method', 'constant'], 'symbol kinds are classified');
+  assert.deepEqual(T.extractSymbols('# Title\n## Sub', 'markdown').map(function (symbol) { return symbol.kind; }), ['heading', 'heading'], 'markdown headings are symbols');
+  assert.deepEqual(T.extractSymbols('{\n  "alpha": 1\n}', 'json').map(function (symbol) { return symbol.name; }), ['alpha'], 'json keys are symbols');
+  assert.deepEqual(T.extractSymbols('', 'typescript'), [], 'empty source has no symbols');
   assert.deepEqual(T.bracketMatch('(a)', 1), { open: 0, close: 2 }, 'caret inside a bracket pair matches it');
   assert.deepEqual(T.bracketMatch('((x))', 2), { open: 1, close: 3 }, 'nested pairs balance');
   assert.equal(T.bracketMatch('abc', 1), null, 'no bracket next to the caret');

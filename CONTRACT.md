@@ -479,6 +479,10 @@ the top-left corner — see that package's README.)
     without a network round-trip, so unsaved drafts and carets survive tab switches.
     Closing a dirty tab first shows an inline confirmation bar (Close Anyway /
     Cancel); the workspace root change resets the tab set.
+  - Go to Symbol (`Cmd/Ctrl+Shift+O`, or the list button in the editor toolbar): a
+    centered palette fed by `S.extractSymbols` (regex-based functions/classes/types/
+    constants/methods, Markdown headings, JSON keys) over the current draft; Up/Down +
+    Enter jumps to the line, Esc or a click outside closes.
   - Quick open (`Cmd/Ctrl+P`, or the search button in the tree header): a centered palette
     fetches `api/dsh-workspace-ide.files` once per session, then ranks paths locally with
     `S.quickOpenScore` / `S.rankQuickOpen` (case-insensitive subsequence, boundary and
@@ -497,7 +501,8 @@ the top-left corner — see that package's README.)
     highlighted through a transparent overlay (`S.bracketMatch`); the current line
     and indent guides render behind the text in the same character grid (guides are
     hidden in soft-wrap/read-only/preview modes where visual lines no longer match).
-  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+W closes the active tab; Ctrl/Cmd+P opens
+  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
+    the active tab; Ctrl/Cmd+P opens
     Quick Open; Ctrl/Cmd+Alt+Left/Right walk
     the navigation history; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;
     Ctrl/Cmd+H opens Find with the replace row; Alt+Z toggles soft-wrap; in the find bar

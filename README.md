@@ -78,7 +78,8 @@ standard:
   case / whole-word / regex toggles, Replace and Replace All, and a highlight layer that
   paints every match behind the text.
 - **Quick Open** (`Ctrl/Cmd+P`) ranks the whole workspace file index locally with a fuzzy
-  subsequence score; type, arrow, Enter.
+  subsequence score; **Go to Symbol** (`Ctrl/Cmd+Shift+O`) jumps to functions, classes,
+  types, constants and (in Markdown/JSON) headings or keys in the current file.
 - **Tabs** keep one tab per open file with dirty markers; unsaved drafts and carets survive
   tab switches, and closing a dirty tab asks before discarding.
 - **Bracket matching / auto-pair / smart indent / current line / indent guides** make the

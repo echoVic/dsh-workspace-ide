@@ -112,6 +112,14 @@ const LUCIDE_ICONS: Record<string, LucideArc[]> = Object.freeze({
     ['path', { 'd': "m16 16-2 2 2 2" }],
     ['path', { 'd': "M3 18h7" }],
   ],
+  'list': [
+    ['line', { 'x1': 8, 'x2': 21, 'y1': 6, 'y2': 6 }],
+    ['line', { 'x1': 8, 'x2': 21, 'y1': 12, 'y2': 12 }],
+    ['line', { 'x1': 8, 'x2': 21, 'y1': 18, 'y2': 18 }],
+    ['line', { 'x1': 3, 'x2': 3.01, 'y1': 6, 'y2': 6 }],
+    ['line', { 'x1': 3, 'x2': 3.01, 'y1': 12, 'y2': 12 }],
+    ['line', { 'x1': 3, 'x2': 3.01, 'y1': 18, 'y2': 18 }],
+  ],
   'hash': [
     ['line', { 'x1': 4, 'x2': 20, 'y1': 9, 'y2': 9 }],
     ['line', { 'x1': 4, 'x2': 20, 'y1': 15, 'y2': 15 }],
@@ -229,6 +237,9 @@ const WrapIcon = makeIcon('wrap-text');
 /** Go-to-line action in the editor toolbar. */
 const GoToLineIcon = makeIcon('hash');
 
+/** Go-to-symbol action in the editor toolbar. */
+const SymbolIcon = makeIcon('list');
+
 /** Indeterminate spinner (SMIL, so no stylesheet is needed). */
 function SpinnerIcon(props: IconProps): any {
   const size = iconSize(props, 14);
@@ -288,5 +299,6 @@ S.Icons = {
   Check: CheckIcon,
   Wrap: WrapIcon,
   GoToLine: GoToLineIcon,
+  Symbol: SymbolIcon,
   Spinner: SpinnerIcon,
 };
