@@ -628,6 +628,16 @@ function run() {
   assert.deepEqual(T.parseGitGutter(gutterDiff), { 2: 'added', 5: 'modified' }, 'git gutter parses added/modified lines');
   assert.deepEqual(T.parseGitGutter(''), {}, 'empty diff has no gutter markers');
   assert.deepEqual(T.parseGitGutter(undefined), {}, 'missing diff has no gutter markers');
+  const browseSymbols = [
+    { name: 'Panel', kind: 'class', line: 1 },
+    { name: 'render', kind: 'method', line: 10 },
+    { name: 'close', kind: 'method', line: 20 },
+  ];
+  assert.equal(T.symbolAtLine(browseSymbols, 15).name, 'render', 'current symbol is the deepest declaration above the caret');
+  assert.equal(T.symbolAtLine(browseSymbols, 0), null, 'no symbol before the first declaration');
+  assert.equal(T.nextSymbolLine(browseSymbols, 10, 1), 20, 'next symbol navigation');
+  assert.equal(T.nextSymbolLine(browseSymbols, 10, -1), 1, 'previous symbol navigation');
+  assert.equal(T.nextSymbolLine(browseSymbols, 20, 1), null, 'no next symbol at the end');
   assert.deepEqual(T.flattenBookmarks({ 'b.ts': [2], 'a.ts': [3, 1] }), [
     { path: 'a.ts', line: 1 }, { path: 'a.ts', line: 3 }, { path: 'b.ts', line: 2 },
   ], 'bookmark palette rows are sorted by path and line');
@@ -1148,6 +1158,8 @@ function run() {
     onSave: function () {}, onDismissNotice: function () {},
   };
   const plainViewer = renderTree(T.FileViewer(plainViewerProps));
+  const symbolViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { currentSymbol: { name: 'App', kind: 'function' } })));
+  assert.equal(symbolViewer.texts.indexOf('App') !== -1, true, 'the header shows the current symbol');
   const gitMarkerViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { gitMarkers: [{ line: 2, kind: 'added' }, { line: 4, kind: 'deleted' }] })));
   assert.equal(gitMarkerViewer.hosts.some(function (host) { return host.props['data-editor-git-markers'] === '1'; }), true, 'git gutter decorations render');
   const bookmarkViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { bookmarkLines: [2, 5], onBookmarksOpen: function () {} })));

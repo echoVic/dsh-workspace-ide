@@ -811,6 +811,18 @@ const ST_FILES = {
     letterSpacing: '0.04em',
     flex: '0 0 auto',
   },
+  currentSymbol: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    maxWidth: 220,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: C.textSecondary,
+    fontFamily: FONT_UI,
+    fontSize: 12,
+    flex: '0 1 auto',
+  },
   symbolLine: {
     color: C.textTertiary,
     fontFamily: FONT_MONO,
@@ -1213,6 +1225,38 @@ function extractSymbols(text: any, language: any): FileSymbol[] {
 }
 
 S.extractSymbols = extractSymbols;
+
+/** Deepest symbol whose declaration is at or above `line` (breadcrumb scope). */
+function symbolAtLine(symbols: any, line: any): any {
+  if (!Array.isArray(symbols) || !Number.isFinite(line)) return null;
+  let best: any = null;
+  for (let index = 0; index < symbols.length; index = index + 1) {
+    const symbol = symbols[index];
+    if (symbol === null || symbol === undefined || !Number.isFinite(symbol.line)) continue;
+    if (symbol.line > line) continue;
+    if (best === null || symbol.line > best.line) best = symbol;
+  }
+  return best;
+}
+
+/** Line of the next/previous symbol relative to `line`, or null at the edge. */
+function nextSymbolLine(symbols: any, line: any, direction: any): number | null {
+  if (!Array.isArray(symbols) || !Number.isFinite(line)) return null;
+  let best: number | null = null;
+  for (let index = 0; index < symbols.length; index = index + 1) {
+    const symbol = symbols[index];
+    if (symbol === null || symbol === undefined || !Number.isFinite(symbol.line)) continue;
+    if (direction < 0) {
+      if (symbol.line < line && (best === null || symbol.line > best)) best = symbol.line;
+    } else if (symbol.line > line && (best === null || symbol.line < best)) {
+      best = symbol.line;
+    }
+  }
+  return best;
+}
+
+S.symbolAtLine = symbolAtLine;
+S.nextSymbolLine = nextSymbolLine;
 
 /** Bracket pairs the editor understands for matching / auto-pairing. */
 const BRACKET_PAIRS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
@@ -1974,6 +2018,7 @@ function FileViewer(props: any) {
   const findInvalidRegex = props.findInvalidRegex === true;
   const bookmarkLines: number[] = Array.isArray(props.bookmarkLines) ? props.bookmarkLines : [];
   const gitMarkers: Array<{ line: number, kind: string }> = Array.isArray(props.gitMarkers) ? props.gitMarkers : [];
+  const currentSymbol: any = props.currentSymbol !== null && props.currentSymbol !== undefined ? props.currentSymbol : null;
   const zoom = Number.isFinite(props.zoom) ? Math.min(2, Math.max(0.5, Number(props.zoom))) : 1;
   const zoomFont = Math.round(12.5 * zoom * 10) / 10;
   const zoomGutterFont = Math.round(11.5 * zoom * 10) / 10;
@@ -2241,6 +2286,14 @@ function FileViewer(props: any) {
           t('files.revealHint'),
         ),
       ),
+      currentSymbol !== null && typeof currentSymbol.name === 'string' && currentSymbol.name.length > 0
+        ? h(
+            'span',
+            { style: ST_FILES.currentSymbol, title: t('symbols.kind.' + String(currentSymbol.kind)) },
+            '› ',
+            currentSymbol.name,
+          )
+        : null,
       h('span', { style: { flex: '1 1 auto' } }),
       dirty ? h('span', { style: ST_FILES.dirtyBadge }, h(S.Icons.Dot, { size: 9 }), t('files.modified')) : null,
       readOnly ? h(S.Chip, { tone: 'warn', icon: S.Icons.Lock, title: t('files.saveUnavailable') }, t('files.readonly')) : null,
@@ -3450,6 +3503,29 @@ function FilesView(props: any) {
     };
   }, [selected, file.status, root, gitMtime]);
 
+  const fileSymbols = useMemo(
+    function () {
+      if (file.status !== 'loaded') return [];
+      const data = file !== null && file !== undefined ? file.data : null;
+      const lang = data !== null && data !== undefined && typeof data.language === 'string' ? data.language : '';
+      return typeof S.extractSymbols === 'function' ? S.extractSymbols(draft, lang) : [];
+    },
+    [draft, file.status],
+  );
+
+  const currentSymbol = useMemo(
+    function () {
+      if (file.status !== 'loaded') return null;
+      return typeof S.symbolAtLine === 'function' ? S.symbolAtLine(fileSymbols, caret.line) : null;
+    },
+    [fileSymbols, caret.line, file.status],
+  );
+
+  const navigateSymbol = useCallback(function (direction: any) {
+    const target = typeof S.nextSymbolLine === 'function' ? S.nextSymbolLine(fileSymbols, caret.line, direction) : null;
+    if (target !== null && target !== undefined) applyLineJump(target);
+  }, [fileSymbols, caret.line]);
+
   const gitMarkers = useMemo(
     function () {
       return Object.keys(gitGutter).map(function (key) {
@@ -3853,7 +3929,7 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom, recentOpen, openRecent, closeRecent, bookmarksOpen, openBookmarks, closeBookmarks, toggleBookmark, reopenClosedTab]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom, recentOpen, openRecent, closeRecent, bookmarksOpen, openBookmarks, closeBookmarks, toggleBookmark, reopenClosedTab, navigateSymbol]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
@@ -3862,6 +3938,11 @@ function FilesView(props: any) {
     if (meta && (key === 'w' || key === 'W')) {
       event.preventDefault();
       if (selected !== null) closeTab(selected);
+      return;
+    }
+    if (event.altKey === true && meta === false && event.shiftKey !== true && (key === 'ArrowUp' || key === 'ArrowDown')) {
+      event.preventDefault();
+      navigateSymbol(key === 'ArrowUp' ? -1 : 1);
       return;
     }
     if (key === 'F11') {
@@ -4303,6 +4384,7 @@ function FilesView(props: any) {
       onZoomReset: resetZoom,
       bookmarkLines: selected === null ? [] : (bookmarks[selected] === undefined ? [] : bookmarks[selected]),
       gitMarkers: gitMarkers,
+      currentSymbol: currentSymbol,
       onBookmarksOpen: openBookmarks,
       gotoOpen: gotoOpen,
       gotoValue: gotoValue,

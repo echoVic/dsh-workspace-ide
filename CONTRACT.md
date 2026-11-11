@@ -496,6 +496,9 @@ the top-left corner — see that package's README.)
     `S.indentLines`); with no selection Tab inserts one indent level at the caret.
     `Cmd/Ctrl+Shift+T` reopens the last closed tab with its unsaved draft; opening
     Find with no selection seeds the query from the word under the caret.
+  - Current symbol breadcrumb: the header appends the deepest `S.symbolAtLine`
+    declaration above the caret (class/function/method), and `Alt+Up/Down` jumps
+    to the previous/next symbol via `S.nextSymbolLine`.
   - Go to Symbol (`Cmd/Ctrl+Shift+O`, or the list button in the editor toolbar): a
     centered palette fed by `S.extractSymbols` (regex-based functions/classes/types/
     constants/methods, Markdown headings, JSON keys) over the current draft; Up/Down +

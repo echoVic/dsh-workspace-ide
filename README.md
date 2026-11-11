@@ -79,7 +79,8 @@ standard:
   paints every match behind the text.
 - **Quick Open** (`Ctrl/Cmd+P`) ranks the whole workspace file index locally with a fuzzy
   subsequence score; **Go to Symbol** (`Ctrl/Cmd+Shift+O`) jumps to functions, classes,
-  types, constants and (in Markdown/JSON) headings or keys in the current file;
+  types, constants and (in Markdown/JSON) headings or keys in the current file
+  (`Alt+↑/↓` walks symbols; the header shows the enclosing symbol);
   **Recent Locations** (`Ctrl/Cmd+Shift+E`) reopens any earlier file:line,
   **bookmarks** (`F11` / `Shift+F11`) mark and revisit lines, and **case toggle** /
   **join lines** round out the editing shortcuts.

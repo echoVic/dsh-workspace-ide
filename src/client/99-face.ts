@@ -173,6 +173,8 @@ S.face = {
       flattenBookmarks: S.flattenBookmarks,
       indentLines: S.indentLines,
       parseGitGutter: S.parseGitGutter,
+      symbolAtLine: S.symbolAtLine,
+      nextSymbolLine: S.nextSymbolLine,
       bracketMatch: S.bracketMatch,
       autoPairEdit: S.autoPairEdit,
       smartIndentEdit: S.smartIndentEdit,
