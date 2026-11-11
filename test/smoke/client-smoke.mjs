@@ -1112,6 +1112,12 @@ function run() {
     onSave: function () {}, onDismissNotice: function () {},
   };
   const plainViewer = renderTree(T.FileViewer(plainViewerProps));
+  const zoomedViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { zoom: 1.5 })));
+  const zoomedTextarea = findHost(zoomedViewer, 'textarea')[0];
+  assert.equal(zoomedTextarea.props.style.fontSize, '18.8px', 'zoom scales the editor font');
+  assert.equal(zoomedTextarea.props.style.lineHeight, '30px', 'zoom scales the editor line height');
+  const zoomButton = zoomedViewer.hosts.filter(function (host) { return host.props['data-editor-zoom'] !== undefined; })[0];
+  assert.equal(zoomButton.props['data-editor-zoom'], '150', 'the status bar reports the zoom percent');
   const invalidFindRender = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, {
     findOpen: true, findQuery: '(', findRegex: true, findInvalidRegex: true, findMatches: [], findCurrent: 0,
   })));

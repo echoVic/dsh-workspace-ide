@@ -473,7 +473,9 @@ the top-left corner — see that package's README.)
     answer no matches instead of throwing; an invalid regex shows a red error label, and
     F3 / Shift+F3 walk matches while the bar is open.
   - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
-    encoding, a clickable soft-wrap state and the read-only lock.
+    encoding, editor zoom (click resets to 100%), a clickable soft-wrap state and the
+    read-only lock. `Ctrl/Cmd+=` / `-` zoom the editor (50–200%, persisted), `Ctrl/Cmd+0`
+    resets.
   - Multi-tab editor: every opened file becomes a tab above the viewer (file glyph,
     basename, dirty dot, per-tab close). Switching stores the live `{file, draft, caret,
     markdownMode, svgMode, image, dimensions}` snapshot in memory and restores it
@@ -502,7 +504,8 @@ the top-left corner — see that package's README.)
     highlighted through a transparent overlay (`S.bracketMatch`); the current line
     and indent guides render behind the text in the same character grid (guides are
     hidden in soft-wrap/read-only/preview modes where visual lines no longer match).
-  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
+  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+= / Ctrl/Cmd+- zoom the editor (Ctrl/Cmd+0
+    resets); Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
     the active tab; Ctrl/Cmd+P opens
     Quick Open; Ctrl/Cmd+Alt+Left/Right walk
     the navigation history; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;

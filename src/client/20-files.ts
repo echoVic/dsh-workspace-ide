@@ -30,6 +30,8 @@ function detectEol(text: string): string {
 
 /** Persisted soft-wrap preference. */
 const STORAGE_WRAP = 'dsh-workspace-ide:editor-wrap';
+/** Persisted editor zoom (percent). */
+const STORAGE_ZOOM = 'dsh-workspace-ide:editor-zoom';
 
 /** Read the persisted soft-wrap flag (default off). */
 function readWrapPref(): boolean {
@@ -38,6 +40,17 @@ function readWrapPref(): boolean {
   } catch (error) {
     return false;
   }
+}
+
+/** Read the persisted editor zoom (1 = 100%). */
+function readZoomPref(): number {
+  try {
+    const stored = typeof S.readStoredNumber === 'function' ? S.readStoredNumber(STORAGE_ZOOM) : null;
+    if (typeof stored === 'number' && Number.isFinite(stored)) return Math.min(2, Math.max(0.5, stored / 100));
+  } catch (error) {
+    /* preference is optional */
+  }
+  return 1;
 }
 
 /** One tree row. */
@@ -1668,6 +1681,45 @@ function FileViewer(props: any) {
   const findMatches: FindRange[] = Array.isArray(props.findMatches) ? props.findMatches : [];
   const findCurrent = Number.isFinite(props.findCurrent) ? Math.max(0, Math.floor(props.findCurrent)) : 0;
   const findInvalidRegex = props.findInvalidRegex === true;
+  const zoom = Number.isFinite(props.zoom) ? Math.min(2, Math.max(0.5, Number(props.zoom))) : 1;
+  const zoomFont = Math.round(12.5 * zoom * 10) / 10;
+  const zoomGutterFont = Math.round(11.5 * zoom * 10) / 10;
+  const zoomLine = Math.round(EDITOR_LINE_HEIGHT * zoom * 100) / 100;
+  const zoomPadTop = Math.round(EDITOR_PADDING_TOP * zoom * 100) / 100;
+  const zoomPadBottom = Math.round(24 * zoom * 100) / 100;
+  const zoomGutterWidth = Math.round(58 * zoom);
+  const editorTextStyle = Object.assign({}, ST_FILES.textarea, wrap === true ? ST_FILES.textareaWrap : null, {
+    fontSize: zoomFont + 'px',
+    lineHeight: zoomLine + 'px',
+    padding: zoomPadTop + 'px 16px ' + zoomPadBottom + 'px 12px',
+  });
+  const editorSyntaxStyle = Object.assign({}, ST_FILES.syntaxCode, wrap === true ? ST_FILES.syntaxCodeWrap : null, {
+    fontSize: zoomFont + 'px',
+    lineHeight: zoomLine + 'px',
+    padding: zoomPadTop + 'px 16px ' + zoomPadBottom + 'px 12px',
+  });
+  const editorFindStyle = Object.assign({}, ST_FILES.findCode, wrap === true ? ST_FILES.syntaxCodeWrap : null, {
+    fontSize: zoomFont + 'px',
+    lineHeight: zoomLine + 'px',
+    padding: zoomPadTop + 'px 16px ' + zoomPadBottom + 'px 12px',
+  });
+  const editorGutterStyle = Object.assign({}, ST_FILES.gutter, {
+    fontSize: zoomGutterFont + 'px',
+    lineHeight: zoomLine + 'px',
+    padding: zoomPadTop + 'px 9px ' + zoomPadBottom + 'px 0',
+  });
+  const editorGutterWrapStyle = Object.assign({}, ST_FILES.gutterWrap, { width: zoomGutterWidth });
+  const editorReadOnlyGutterStyle = Object.assign({}, ST_FILES.readOnlyGutter, {
+    width: zoomGutterWidth,
+    fontSize: zoomGutterFont + 'px',
+    lineHeight: zoomLine + 'px',
+    padding: zoomPadTop + 'px 9px ' + zoomPadBottom + 'px 0',
+  });
+  const editorReadOnlyCodeStyle = Object.assign({}, ST_FILES.readOnlyCode, wrap === true ? ST_FILES.readOnlyCodeWrap : null, {
+    fontSize: zoomFont + 'px',
+    lineHeight: zoomLine + 'px',
+    padding: zoomPadTop + 'px 16px ' + zoomPadBottom + 'px 12px',
+  });
   const findCase = props.findCase === true;
   const findWhole = props.findWhole === true;
   const findRegex = props.findRegex === true;
@@ -1706,12 +1758,12 @@ function FileViewer(props: any) {
         children.push(h('div', {
           key: 'current-line',
           style: Object.assign({}, ST_FILES.currentLine, {
-            top: EDITOR_PADDING_TOP + (caretLine - 1) * EDITOR_LINE_HEIGHT + 'px',
-            height: EDITOR_LINE_HEIGHT + 'px',
+            top: zoomPadTop + (caretLine - 1) * zoomLine + 'px',
+            height: zoomLine + 'px',
           }),
         }));
       }
-      const firstVisible = Math.max(1, Math.floor((editorScrollTop - EDITOR_PADDING_TOP) / EDITOR_LINE_HEIGHT) + 1);
+      const firstVisible = Math.max(1, Math.floor((editorScrollTop - zoomPadTop) / zoomLine) + 1);
       const lastVisible = Math.min(lines.length, firstVisible + 80);
       for (let lineNumber = firstVisible; lineNumber <= lastVisible; lineNumber = lineNumber + 1) {
         const text = lines[lineNumber - 1];
@@ -1722,16 +1774,16 @@ function FileViewer(props: any) {
           children.push(h('div', {
             key: 'guide-' + String(lineNumber) + '-' + String(level),
             style: Object.assign({}, ST_FILES.guideLine, {
-              top: EDITOR_PADDING_TOP + (lineNumber - 1) * EDITOR_LINE_HEIGHT + 'px',
-              left: 12 + level * 15 + 'px',
-              height: EDITOR_LINE_HEIGHT + 'px',
+              top: zoomPadTop + (lineNumber - 1) * zoomLine + 'px',
+              left: Math.round(12 * zoom) + level * Math.round(15 * zoom) + 'px',
+              height: zoomLine + 'px',
             }),
           }));
         }
       }
       return children;
     },
-    [props.value, props.caret, editorScrollTop, wrap, readOnly],
+    [props.value, props.caret, editorScrollTop, wrap, readOnly, zoom, zoomLine, zoomPadTop],
   );
 
   useEffect(function () {
@@ -2244,11 +2296,11 @@ function FileViewer(props: any) {
           h(
             'div',
             { style: wrap ? ST_FILES.readOnlyInnerWrap : ST_FILES.readOnlyInner },
-            wrap ? null : h('pre', { style: ST_FILES.readOnlyGutter, 'aria-hidden': true }, numbersText),
+            wrap ? null : h('pre', { style: editorReadOnlyGutterStyle, 'aria-hidden': true }, numbersText),
             h(
               'pre',
               {
-                style: wrap ? Object.assign({}, ST_FILES.readOnlyCode, ST_FILES.readOnlyCodeWrap) : ST_FILES.readOnlyCode,
+                style: editorReadOnlyCodeStyle,
                 'data-ide-highlight': syntaxChildren === null ? 'plain' : 'syntax',
               },
               syntaxChildren === null ? props.value : syntaxChildren,
@@ -2262,8 +2314,8 @@ function FileViewer(props: any) {
             ? null
             : h(
                 'div',
-                { ref: props.gutterRef, style: ST_FILES.gutterWrap, 'aria-hidden': true },
-                h('pre', { style: ST_FILES.gutter }, numbersText),
+                { ref: props.gutterRef, style: editorGutterWrapStyle, 'aria-hidden': true },
+                h('pre', { style: editorGutterStyle }, numbersText),
               ),
           h(
             'div',
@@ -2281,7 +2333,7 @@ function FileViewer(props: any) {
                   },
                   h(
                     'pre',
-                    { ref: syntaxRef, style: wrap ? Object.assign({}, ST_FILES.syntaxCode, ST_FILES.syntaxCodeWrap) : ST_FILES.syntaxCode },
+                    { ref: syntaxRef, style: editorSyntaxStyle },
                     syntaxChildren,
                   ),
                 )
@@ -2294,9 +2346,7 @@ function FileViewer(props: any) {
                     'pre',
                     {
                       ref: bracketRef,
-                      style: wrap
-                        ? Object.assign({}, ST_FILES.findCode, ST_FILES.syntaxCodeWrap)
-                        : ST_FILES.findCode,
+                      style: editorFindStyle,
                     },
                     bracketHighlight,
                   ),
@@ -2310,9 +2360,7 @@ function FileViewer(props: any) {
                     'pre',
                     {
                       ref: findRef,
-                      style: wrap
-                        ? Object.assign({}, ST_FILES.findCode, ST_FILES.syntaxCodeWrap)
-                        : ST_FILES.findCode,
+                      style: editorFindStyle,
                     },
                     findHighlight,
                   ),
@@ -2321,9 +2369,7 @@ function FileViewer(props: any) {
             h('textarea', {
               ref: props.textareaRef,
               value: props.value,
-              style: syntaxActive
-                ? Object.assign({}, ST_FILES.textarea, ST_FILES.textareaHighlighting, wrap ? ST_FILES.textareaWrap : null)
-                : Object.assign({}, ST_FILES.textarea, wrap ? ST_FILES.textareaWrap : null),
+              style: syntaxActive ? Object.assign({}, editorTextStyle, ST_FILES.textareaHighlighting) : editorTextStyle,
               spellCheck: false,
               autoCapitalize: 'off',
               autoCorrect: 'off',
@@ -2362,6 +2408,17 @@ function FileViewer(props: any) {
       h('span', null, t('files.eol', { eol: eolLabel })),
       h('span', null, t('files.lines', { count: S.formatCount(props.lineCount) })),
       h('span', null, t('files.encoding')),
+      h(
+        'button',
+        {
+          type: 'button',
+          title: t('files.zoomHint'),
+          'data-editor-zoom': String(Math.round(zoom * 100)),
+          style: ST_FILES.statusButton,
+          onClick: function () { if (typeof props.onZoomReset === 'function') props.onZoomReset(); },
+        },
+        Math.round(zoom * 100) + '%',
+      ),
       typeof props.onToggleWrap === 'function'
         ? h(
             'button',
@@ -2405,6 +2462,7 @@ function FilesView(props: any) {
   const [image, setImage] = useState<any>({ status: 'idle', data: null, error: null });
   const [dimensions, setDimensions] = useState<any>(null);
   const [wrap, setWrap] = useState<boolean>(readWrapPref());
+  const [zoom, setZoom] = useState<number>(readZoomPref());
   const [gotoOpen, setGotoOpen] = useState(false);
   const [gotoValue, setGotoValue] = useState('');
   const [selection, setSelection] = useState(0);
@@ -2930,6 +2988,27 @@ function FilesView(props: any) {
     });
   }, []);
 
+  const changeZoom = useCallback(function (delta: any) {
+    setZoom(function (previous: number) {
+      const next = Math.min(2, Math.max(0.5, Math.round((previous + delta) * 10) / 10));
+      try {
+        if (typeof S.writeStoredNumber === 'function') S.writeStoredNumber(STORAGE_ZOOM, Math.round(next * 100));
+      } catch (error) {
+        /* preference persistence is optional */
+      }
+      return next;
+    });
+  }, []);
+
+  const resetZoom = useCallback(function () {
+    setZoom(1);
+    try {
+      if (typeof S.writeStoredNumber === 'function') S.writeStoredNumber(STORAGE_ZOOM, 100);
+    } catch (error) {
+      /* preference persistence is optional */
+    }
+  }, []);
+
   const reloadSelected = useCallback(function () {
     if (selected === null) return;
     openPath(selected, null, { reload: true });
@@ -2959,6 +3038,9 @@ function FilesView(props: any) {
     }
   }, []);
 
+  const editorLineHeight = EDITOR_LINE_HEIGHT * zoom;
+  const editorPadTop = EDITOR_PADDING_TOP * zoom;
+
   function applyLineJump(targetLine: any) {
     const textarea = textareaRef.current;
     if (textarea === null || textarea === undefined) return;
@@ -2982,7 +3064,7 @@ function FilesView(props: any) {
     } catch (error) {
       /* selection is a nicety */
     }
-    const top = Math.max(0, (line - 1) * EDITOR_LINE_HEIGHT + EDITOR_PADDING_TOP - 4 * EDITOR_LINE_HEIGHT);
+    const top = Math.max(0, (line - 1) * editorLineHeight + editorPadTop - 4 * editorLineHeight);
     try {
       textarea.scrollTop = top;
     } catch (error) {
@@ -3068,7 +3150,7 @@ function FilesView(props: any) {
     for (let index = 0; index < match.start && index < value.length; index = index + 1) {
       if (value.charCodeAt(index) === 10) line = line + 1;
     }
-    const top = Math.max(0, (line - 1) * EDITOR_LINE_HEIGHT - 4 * EDITOR_LINE_HEIGHT);
+    const top = Math.max(0, (line - 1) * editorLineHeight - 4 * editorLineHeight);
     try {
       textarea.scrollTop = top;
     } catch (error) {
@@ -3215,7 +3297,7 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
@@ -3264,6 +3346,21 @@ function FilesView(props: any) {
     if (key === 'Escape' && findOpen === true) {
       event.preventDefault();
       closeFind();
+      return;
+    }
+    if (meta && (key === '=' || key === '+' || key === ')')) {
+      event.preventDefault();
+      changeZoom(0.1);
+      return;
+    }
+    if (meta && key === '-') {
+      event.preventDefault();
+      changeZoom(-0.1);
+      return;
+    }
+    if (meta && key === '0') {
+      event.preventDefault();
+      resetZoom();
       return;
     }
     if (meta && (key === 'g' || key === 'G')) {
@@ -3583,6 +3680,8 @@ function FilesView(props: any) {
       onDismissNotice: dismissNotice,
       wrap: wrap,
       onToggleWrap: toggleWrap,
+      zoom: zoom,
+      onZoomReset: resetZoom,
       gotoOpen: gotoOpen,
       gotoValue: gotoValue,
       onGotoOpen: openGoto,
