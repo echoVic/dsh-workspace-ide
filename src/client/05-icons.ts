@@ -106,6 +106,18 @@ const LUCIDE_ICONS: Record<string, LucideArc[]> = Object.freeze({
   'check': [
     ['path', { 'd': "M20 6 9 17l-5-5" }],
   ],
+  'wrap-text': [
+    ['path', { 'd': "M3 6h18" }],
+    ['path', { 'd': "M3 12h15a3 3 0 1 1 0 6h-4" }],
+    ['path', { 'd': "m16 16-2 2 2 2" }],
+    ['path', { 'd': "M3 18h7" }],
+  ],
+  'hash': [
+    ['line', { 'x1': 4, 'x2': 20, 'y1': 9, 'y2': 9 }],
+    ['line', { 'x1': 4, 'x2': 20, 'y1': 15, 'y2': 15 }],
+    ['line', { 'x1': 10, 'x2': 8, 'y1': 3, 'y2': 21 }],
+    ['line', { 'x1': 16, 'x2': 14, 'y1': 3, 'y2': 21 }],
+  ],
 });
 
 /** Rendered pixel size from owner props, falling back when absent. */
@@ -211,6 +223,12 @@ const PaletteIcon = makeIcon('palette');
 /** Applied-theme marker in the theme popover. */
 const CheckIcon = makeIcon('check');
 
+/** Soft-wrap toggle in the editor toolbar. */
+const WrapIcon = makeIcon('wrap-text');
+
+/** Go-to-line action in the editor toolbar. */
+const GoToLineIcon = makeIcon('hash');
+
 /** Indeterminate spinner (SMIL, so no stylesheet is needed). */
 function SpinnerIcon(props: IconProps): any {
   const size = iconSize(props, 14);
@@ -268,5 +286,7 @@ S.Icons = {
   Dot: DotIcon,
   Palette: PaletteIcon,
   Check: CheckIcon,
+  Wrap: WrapIcon,
+  GoToLine: GoToLineIcon,
   Spinner: SpinnerIcon,
 };

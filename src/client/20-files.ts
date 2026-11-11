@@ -28,6 +28,18 @@ function detectEol(text: string): string {
   return typeof text === 'string' && text.indexOf('\r\n') !== -1 ? '\r\n' : '\n';
 }
 
+/** Persisted soft-wrap preference. */
+const STORAGE_WRAP = 'dsh-workspace-ide:editor-wrap';
+
+/** Read the persisted soft-wrap flag (default off). */
+function readWrapPref(): boolean {
+  try {
+    return typeof S.readStoredNumber === 'function' && S.readStoredNumber(STORAGE_WRAP) === 1;
+  } catch (error) {
+    return false;
+  }
+}
+
 /** One tree row. */
 interface TreeEntry {
   name: string;
@@ -442,6 +454,88 @@ const ST_FILES = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
+  // Soft-wrap only changes glyph wrapping: the syntax layer and the textarea
+  // share it, and the gutter is hidden because numbered rows would no longer
+  // line up with visual (wrapped) rows.
+  textareaWrap: {
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere',
+  },
+  syntaxCodeWrap: {
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere',
+  },
+  readOnlyInnerWrap: {
+    display: 'block',
+    minWidth: 0,
+  },
+  readOnlyCodeWrap: {
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    overflowWrap: 'anywhere',
+  },
+  // Clickable breadcrumb segment (JetBrains-style path navigation).
+  crumbButton: {
+    border: 'none',
+    background: 'transparent',
+    padding: 0,
+    margin: 0,
+    fontFamily: FONT_UI,
+    fontSize: 12.5,
+    color: C.textTertiary,
+    cursor: 'pointer',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  // Slim go-to-line bar above the editor (⌘G).
+  gotoBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    height: 32,
+    flex: '0 0 auto',
+    padding: '0 12px',
+    boxSizing: 'border-box',
+    borderBottom: '1px solid ' + C.border2,
+    background: C.platform,
+  },
+  gotoLabel: {
+    color: C.textTertiary,
+    fontSize: 11.5,
+    fontFamily: FONT_UI,
+    whiteSpace: 'nowrap',
+  },
+  gotoInput: {
+    width: 96,
+    padding: '3px 7px',
+    borderRadius: 4,
+    border: '1px solid ' + C.border1,
+    background: C.base,
+    color: C.text,
+    fontFamily: FONT_MONO,
+    fontSize: 12,
+    outline: 'none',
+  },
+  gotoHint: {
+    color: C.textTertiary,
+    fontSize: 11,
+    fontFamily: FONT_UI,
+    whiteSpace: 'nowrap',
+  },
+  statusButton: {
+    border: 'none',
+    background: 'transparent',
+    padding: 0,
+    margin: 0,
+    color: C.textTertiary,
+    fontFamily: FONT_UI,
+    fontSize: 11,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
 };
 
 /**
@@ -458,6 +552,44 @@ function countLines(text: string): number {
     index = text.indexOf('\n', index + 1);
   }
   return lines;
+}
+
+/**
+ * Build JetBrains-style breadcrumb nodes for one path. Intermediate segments
+ * are buttons that reveal their directory in the tree; the last one is the file.
+ * @param segments - path segments, root-first.
+ * @param onBreadcrumb - reveal callback for directory prefixes (null when inert).
+ * @param revealHint - tooltip for clickable segments.
+ * @returns React nodes for the breadcrumb row.
+ */
+function breadcrumbNodes(segments: string[], onBreadcrumb: Function | null, revealHint: string): any[] {
+  return segments.map(function (segment: string, index: number) {
+    const prefix = segments.slice(0, index + 1).join('/');
+    const last = index === segments.length - 1;
+    const clickable = last === false && typeof onBreadcrumb === 'function';
+    const content = clickable
+      ? h(
+          'button',
+          {
+            type: 'button',
+            key: 'crumb-' + String(index),
+            style: ST_FILES.crumbButton,
+            title: revealHint,
+            'aria-label': revealHint + ': ' + prefix,
+            onClick: function () {
+              if (typeof onBreadcrumb === 'function') onBreadcrumb(prefix);
+            },
+          },
+          segment,
+        )
+      : h('span', { key: 'crumb-' + String(index), style: last ? ST_FILES.crumbLast : ST_FILES.crumb }, segment);
+    return h(
+      'span',
+      { key: 'seg-' + String(index), style: { display: 'inline-flex', alignItems: 'center', minWidth: 0 } },
+      index === 0 ? null : h('span', { key: 'sep-' + String(index), style: ST_FILES.crumbSep }, '›'),
+      content,
+    );
+  });
 }
 
 /**
@@ -689,14 +821,11 @@ function ImageViewer(props: any) {
       h(
         'div',
         { style: ST_FILES.breadcrumb, title: props.path },
-        segments.map(function (segment: any, index: any) {
-          return h(
-            'span',
-            { key: 'crumb-' + String(index), style: { display: 'inline-flex', alignItems: 'center', minWidth: 0 } },
-            index === 0 ? null : h('span', { style: ST_FILES.crumbSep }, '›'),
-            h('span', { style: index === segments.length - 1 ? ST_FILES.crumbLast : ST_FILES.crumb }, segment),
-          );
-        }),
+        breadcrumbNodes(
+          segments,
+          typeof props.onBreadcrumb === 'function' ? props.onBreadcrumb : null,
+          t('files.revealHint'),
+        ),
       ),
       h('span', { style: { flex: '1 1 auto' } }),
       h(S.Chip, { title: typeof props.mime === 'string' ? props.mime : '' }, t('files.image.badge')),
@@ -723,6 +852,25 @@ function ImageViewer(props: any) {
 function FileViewer(props: any) {
   const t = props.t;
   const readOnly = props.readOnly === true;
+  const wrap = props.wrap === true;
+  const gotoOpen = props.gotoOpen === true;
+  const gotoValue = typeof props.gotoValue === 'string' ? props.gotoValue : '';
+  const selection = Number.isFinite(props.selection) && props.selection > 0 ? Math.floor(props.selection) : 0;
+  const eolLabel = props.eol === '\r\n' ? 'CRLF' : 'LF';
+  const gotoInputRef = useRef<any>(null);
+
+  useEffect(function () {
+    if (gotoOpen === false) return undefined;
+    const input = gotoInputRef.current;
+    if (input === null || input === undefined || typeof input.focus !== 'function') return undefined;
+    try {
+      input.focus();
+      input.select();
+    } catch (error) {
+      /* focus is a nicety */
+    }
+    return undefined;
+  }, [gotoOpen]);
   const dirty = props.dirty === true;
   const isMarkdown = props.language === 'markdown';
   const markdownMode = props.markdownMode === 'preview' ? 'preview' : 'source';
@@ -821,14 +969,11 @@ function FileViewer(props: any) {
       h(
         'div',
         { style: ST_FILES.breadcrumb, title: props.path },
-        segments.map(function (segment: any, index: any) {
-          return h(
-            'span',
-            { key: 'crumb-' + String(index), style: { display: 'inline-flex', alignItems: 'center', minWidth: 0 } },
-            index === 0 ? null : h('span', { style: ST_FILES.crumbSep }, '›'),
-            h('span', { style: index === segments.length - 1 ? ST_FILES.crumbLast : ST_FILES.crumb }, segment),
-          );
-        }),
+        breadcrumbNodes(
+          segments,
+          typeof props.onBreadcrumb === 'function' ? props.onBreadcrumb : null,
+          t('files.revealHint'),
+        ),
       ),
       h('span', { style: { flex: '1 1 auto' } }),
       dirty ? h('span', { style: ST_FILES.dirtyBadge }, h(S.Icons.Dot, { size: 9 }), t('files.modified')) : null,
@@ -884,6 +1029,39 @@ function FileViewer(props: any) {
       props.language ? h(S.Chip, { title: t('files.language', { language: props.language }) }, props.language) : null,
       h('span', { style: ST_FILES.meta }, S.formatBytes(props.size)),
       props.mtimeMs ? h('span', { style: ST_FILES.meta }, t('files.modifiedAt', { time: S.formatDateTime(props.mtimeMs) })) : null,
+      typeof props.onReload === 'function'
+        ? h(
+            S.ToolButton,
+            { title: t('action.reload'), ariaLabel: t('action.reload'), style: { width: 24, height: 24 }, onClick: props.onReload },
+            h(S.Icons.Refresh, { size: 13 }),
+          )
+        : null,
+      typeof props.onToggleWrap === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('files.wrapHint'),
+              ariaLabel: t('action.wrap'),
+              active: wrap,
+              style: { width: 24, height: 24 },
+              onClick: props.onToggleWrap,
+            },
+            h(S.Icons.Wrap, { size: 13 }),
+          )
+        : null,
+      typeof props.onGotoOpen === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('files.gotoHint'),
+              ariaLabel: t('action.gotoLine'),
+              active: gotoOpen,
+              style: { width: 24, height: 24 },
+              onClick: props.onGotoOpen,
+            },
+            h(S.Icons.GoToLine, { size: 13 }),
+          )
+        : null,
       readOnly
         ? null
         : h(
@@ -906,6 +1084,45 @@ function FileViewer(props: any) {
       : null,
     props.tooBig
       ? h(S.NoticeBar, { t: t, kind: 'info', text: t('files.readonly.big', { limit: '400 KB' }) })
+      : null,
+    gotoOpen
+      ? h(
+          'div',
+          { style: ST_FILES.gotoBar, role: 'search', 'aria-label': t('action.gotoLine') },
+          h('span', { style: ST_FILES.gotoLabel }, t('action.gotoLine')),
+          h('input', {
+            ref: gotoInputRef,
+            type: 'text',
+            inputMode: 'numeric',
+            value: gotoValue,
+            placeholder: t('files.gotoPlaceholder'),
+            'aria-label': t('files.gotoPlaceholder'),
+            style: ST_FILES.gotoInput,
+            onChange: function (event: any) {
+              if (typeof props.onGotoChange === 'function') props.onGotoChange(event);
+            },
+            onKeyDown: function (event: any) {
+              if (event === null || event === undefined) return;
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                if (typeof props.onGotoSubmit === 'function') props.onGotoSubmit();
+              } else if (event.key === 'Escape') {
+                event.preventDefault();
+                if (typeof props.onGotoClose === 'function') props.onGotoClose();
+              }
+            },
+          }),
+          h(
+            S.PrimaryButton,
+            { title: t('files.gotoSubmit'), ariaLabel: t('files.gotoSubmit'), onClick: props.onGotoSubmit },
+            t('files.gotoSubmit'),
+          ),
+          h(
+            S.ToolButton,
+            { title: t('action.dismiss'), ariaLabel: t('action.dismiss'), style: { width: 24, height: 24 }, onClick: props.onGotoClose },
+            h(S.Icons.Close, { size: 12 }),
+          ),
+        )
       : null,
     svgImageMode
       ? h(
@@ -936,12 +1153,12 @@ function FileViewer(props: any) {
           { style: ST_FILES.readOnlyScroll },
           h(
             'div',
-            { style: ST_FILES.readOnlyInner },
-            h('pre', { style: ST_FILES.readOnlyGutter, 'aria-hidden': true }, numbersText),
+            { style: wrap ? ST_FILES.readOnlyInnerWrap : ST_FILES.readOnlyInner },
+            wrap ? null : h('pre', { style: ST_FILES.readOnlyGutter, 'aria-hidden': true }, numbersText),
             h(
               'pre',
               {
-                style: ST_FILES.readOnlyCode,
+                style: wrap ? Object.assign({}, ST_FILES.readOnlyCode, ST_FILES.readOnlyCodeWrap) : ST_FILES.readOnlyCode,
                 'data-ide-highlight': syntaxChildren === null ? 'plain' : 'syntax',
               },
               syntaxChildren === null ? props.value : syntaxChildren,
@@ -951,11 +1168,13 @@ function FileViewer(props: any) {
       : h(
           'div',
           { style: ST_FILES.editorWrap },
-          h(
-            'div',
-            { ref: props.gutterRef, style: ST_FILES.gutterWrap, 'aria-hidden': true },
-            h('pre', { style: ST_FILES.gutter }, numbersText),
-          ),
+          wrap
+            ? null
+            : h(
+                'div',
+                { ref: props.gutterRef, style: ST_FILES.gutterWrap, 'aria-hidden': true },
+                h('pre', { style: ST_FILES.gutter }, numbersText),
+              ),
           h(
             'div',
             { style: ST_FILES.codeRegion },
@@ -967,18 +1186,24 @@ function FileViewer(props: any) {
                     'aria-hidden': true,
                     'data-ide-highlight': 'layer',
                   },
-                  h('pre', { ref: syntaxRef, style: ST_FILES.syntaxCode }, syntaxChildren),
+                  h(
+                    'pre',
+                    { ref: syntaxRef, style: wrap ? Object.assign({}, ST_FILES.syntaxCode, ST_FILES.syntaxCodeWrap) : ST_FILES.syntaxCode },
+                    syntaxChildren,
+                  ),
                 )
               : null,
             h('textarea', {
               ref: props.textareaRef,
               value: props.value,
-              style: syntaxActive ? Object.assign({}, ST_FILES.textarea, ST_FILES.textareaHighlighting) : ST_FILES.textarea,
+              style: syntaxActive
+                ? Object.assign({}, ST_FILES.textarea, ST_FILES.textareaHighlighting, wrap ? ST_FILES.textareaWrap : null)
+                : Object.assign({}, ST_FILES.textarea, wrap ? ST_FILES.textareaWrap : null),
               spellCheck: false,
               autoCapitalize: 'off',
               autoCorrect: 'off',
               autoComplete: 'off',
-              wrap: 'off',
+              wrap: wrap ? 'soft' : 'off',
               'aria-label': props.path,
               onChange: props.onChange,
               onKeyDown: props.onKeyDown,
@@ -997,6 +1222,9 @@ function FileViewer(props: any) {
         : previewMode
         ? h('span', null, t('files.md.preview'))
         : h('span', null, t('files.caret', { line: props.caret.line, column: props.caret.column })),
+      svgImageMode === false && previewMode === false && selection > 0
+        ? h('span', null, t('files.selection', { count: S.formatCount(selection) }))
+        : null,
       h('span', { style: { flex: '1 1 auto' } }),
       svgImageMode && dimensions !== null
         ? h('span', null, t('files.image.dimensions', { width: String(dimensions.width), height: String(dimensions.height) }))
@@ -1005,8 +1233,24 @@ function FileViewer(props: any) {
       isMarkdown ? h('span', { title: t('files.md.toggleHint') }, t('files.md.shortcut')) : null,
       isSvg ? h('span', { title: t('files.svg.toggleHint') }, t('files.svg.shortcut')) : null,
       readOnly || svgImageMode ? null : h('span', { title: t('files.commentHint') }, t('files.commentShortcut')),
+      props.language ? h('span', null, props.language) : null,
+      h('span', null, t('files.eol', { eol: eolLabel })),
       h('span', null, t('files.lines', { count: S.formatCount(props.lineCount) })),
       h('span', null, t('files.encoding')),
+      typeof props.onToggleWrap === 'function'
+        ? h(
+            'button',
+            {
+              type: 'button',
+              title: t('files.wrapHint'),
+              'aria-pressed': wrap ? 'true' : 'false',
+              'data-soft-wrap': wrap ? '1' : '0',
+              style: ST_FILES.statusButton,
+              onClick: props.onToggleWrap,
+            },
+            t(wrap ? 'files.wrapOn' : 'files.wrapOff'),
+          )
+        : null,
       readOnly ? h('span', null, t('files.readonly')) : null,
     ),
   );
@@ -1034,6 +1278,10 @@ function FilesView(props: any) {
   const [svgMode, setSvgMode] = useState('image');
   const [image, setImage] = useState<any>({ status: 'idle', data: null, error: null });
   const [dimensions, setDimensions] = useState<any>(null);
+  const [wrap, setWrap] = useState<boolean>(readWrapPref());
+  const [gotoOpen, setGotoOpen] = useState(false);
+  const [gotoValue, setGotoValue] = useState('');
+  const [selection, setSelection] = useState(0);
 
   const textareaRef = useRef<any>(null);
   const gutterRef = useRef<any>(null);
@@ -1241,6 +1489,18 @@ function FilesView(props: any) {
       });
   }, [selected, file, saving, draft, root, eol, t, showNotice]);
 
+  const toggleWrap = useCallback(function () {
+    setWrap(function (previous: boolean) {
+      const next = previous !== true;
+      try {
+        if (typeof S.writeStoredNumber === 'function') S.writeStoredNumber(STORAGE_WRAP, next ? 1 : 0);
+      } catch (error) {
+        /* preference persistence is optional */
+      }
+      return next;
+    });
+  }, []);
+
   const reloadSelected = useCallback(function () {
     if (selected === null) return;
     openFile(selected, null);
@@ -1256,6 +1516,9 @@ function FilesView(props: any) {
     const target = event !== null && event !== undefined ? event.target : null;
     if (target === null || target === undefined) return;
     setCaret(caretFromIndex(typeof target.value === 'string' ? target.value : draft, target.selectionStart));
+    const start = Number.isFinite(target.selectionStart) ? target.selectionStart : 0;
+    const end = Number.isFinite(target.selectionEnd) ? target.selectionEnd : start;
+    setSelection(end > start ? end - start : 0);
   }, [draft]);
 
   const onEditorScroll = useCallback(function (event: any) {
@@ -1313,6 +1576,30 @@ function FilesView(props: any) {
     return undefined;
   }, [pendingLine, file.status]);
 
+  const openGoto = useCallback(function () {
+    setGotoOpen(true);
+    setGotoValue('');
+  }, []);
+
+  const closeGoto = useCallback(function () {
+    setGotoOpen(false);
+  }, []);
+
+  const changeGoto = useCallback(function (event: any) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    setGotoValue(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
+  }, []);
+
+  const submitGoto = useCallback(function () {
+    const line = Number.parseInt(String(gotoValue).trim(), 10);
+    if (!Number.isFinite(line) || line < 1 || line > Math.max(1, lineCount)) {
+      showNotice({ kind: 'info', text: t('files.gotoInvalid') });
+      return;
+    }
+    setGotoOpen(false);
+    applyLineJump(line);
+  }, [gotoValue, lineCount, showNotice, t]);
+
   const openToken =
     props.openRequest !== null && props.openRequest !== undefined && Number.isFinite(props.openRequest.token)
       ? props.openRequest.token
@@ -1335,6 +1622,9 @@ function FilesView(props: any) {
     const value = target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '';
     setDraft(value);
     if (target !== null && target !== undefined) setCaret(caretFromIndex(value, target.selectionStart));
+    const start = target !== null && target !== undefined && Number.isFinite(target.selectionStart) ? target.selectionStart : 0;
+    const end = target !== null && target !== undefined && Number.isFinite(target.selectionEnd) ? target.selectionEnd : start;
+    setSelection(end > start ? end - start : 0);
   }, []);
 
   // Cmd/Ctrl+/ toggles line comments (VSCode's shortcut). The pure engine lives
@@ -1366,12 +1656,27 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
     const key = event.key;
     const meta = event.metaKey === true || event.ctrlKey === true;
+    if (meta && (key === 'g' || key === 'G')) {
+      event.preventDefault();
+      openGoto();
+      return;
+    }
+    if (event.altKey === true && (key === 'z' || key === 'Z')) {
+      event.preventDefault();
+      toggleWrap();
+      return;
+    }
+    if (key === 'Escape' && gotoOpen === true) {
+      event.preventDefault();
+      closeGoto();
+      return;
+    }
     if (meta && (key === '/' || (key === '?' && event.shiftKey === true))) {
       if (toggleComments()) {
         event.preventDefault();
@@ -1468,6 +1773,21 @@ function FilesView(props: any) {
     ),
   );
 
+  const revealPath = useCallback(function (prefix: any) {
+    if (typeof prefix !== 'string' || prefix.length === 0) return;
+    const parts = prefix.split('/').filter(function (part: string) { return part.length > 0; });
+    if (parts.length === 0) return;
+    const expandedNext: Record<string, boolean> = {};
+    for (let index = 1; index <= parts.length; index = index + 1) {
+      expandedNext[parts.slice(0, index).join('/')] = true;
+    }
+    setExpanded(function (previous: Record<string, boolean>) { return Object.assign({}, previous, expandedNext); });
+    for (let index = 1; index <= parts.length; index = index + 1) {
+      const partPath = parts.slice(0, index).join('/');
+      if (tree[partPath] === undefined || tree[partPath] === null) loadDir(partPath);
+    }
+  }, [tree, loadDir]);
+
   /** @type {any} */
   let viewer: any = null;
   if (image.status === 'loading') {
@@ -1489,6 +1809,7 @@ function FilesView(props: any) {
       mtimeMs: imageData.mtimeMs,
       dimensions: dimensions,
       onDimensions: setDimensions,
+      onBreadcrumb: revealPath,
     });
   } else if (selected === null) {
     viewer = h(S.EmptyState, {
@@ -1545,6 +1866,18 @@ function FilesView(props: any) {
       onSelect: syncCaret,
       onSave: save,
       onDismissNotice: dismissNotice,
+      wrap: wrap,
+      onToggleWrap: toggleWrap,
+      gotoOpen: gotoOpen,
+      gotoValue: gotoValue,
+      onGotoOpen: openGoto,
+      onGotoChange: changeGoto,
+      onGotoSubmit: submitGoto,
+      onGotoClose: closeGoto,
+      selection: selection,
+      eol: eol,
+      onReload: reloadSelected,
+      onBreadcrumb: revealPath,
     });
   } else {
     viewer = h(S.EmptyState, { t: t, icon: S.Icons.Files, title: t('files.open.title'), body: t('files.open.body') });

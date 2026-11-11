@@ -877,6 +877,71 @@ function run() {
   assert.equal(tokenSpans.length >= 2, true, 'coloured token spans carry --ide-tok-* colours');
   ok('FileViewer: syntax overlay mirrors textarea metrics, transparent text, token spans');
 
+  // JetBrains-style editor chrome: soft-wrap, go-to-line bar, clickable
+  // breadcrumbs and the richer status bar (position, selection, EOL, language).
+  const crumbPrefixes = [];
+  const chromeRender = renderTree(T.FileViewer({
+    t: keyTranslator,
+    path: 'src/client/00-core.ts',
+    value: 'const a = 1;\nconst b = 2;\n',
+    lineCount: 2,
+    language: 'typescript',
+    size: 30,
+    mtimeMs: 1700000000000,
+    dirty: false,
+    saving: false,
+    readOnly: false,
+    tooBig: false,
+    truncated: false,
+    notice: null,
+    caret: { line: 2, column: 3 },
+    selection: 5,
+    eol: '\r\n',
+    wrap: true,
+    gotoOpen: true,
+    gotoValue: '2',
+    textareaRef: { current: null },
+    gutterRef: { current: null },
+    onChange: function () {},
+    onKeyDown: function () {},
+    onScroll: function () {},
+    onSelect: function () {},
+    onSave: function () {},
+    onDismissNotice: function () {},
+    onReload: function () {},
+    onToggleWrap: function () {},
+    onGotoOpen: function () {},
+    onGotoChange: function () {},
+    onGotoSubmit: function () {},
+    onGotoClose: function () {},
+    onBreadcrumb: function (prefix) { crumbPrefixes.push(prefix); },
+  }));
+  assert.equal(findHost(chromeRender, 'textarea')[0].props.wrap, 'soft', 'soft-wrap sets textarea wrap=soft');
+  const gutterPres = chromeRender.hosts.filter(function (host) {
+    return host.type === 'pre' && host.props.style !== undefined && host.props.style.userSelect === 'none';
+  });
+  assert.equal(gutterPres.length, 0, 'soft-wrap hides the numbered gutter (wrapped rows cannot line up)');
+  const wrapButtons = findHost(chromeRender, 'button').filter(function (host) {
+    return host.props['data-soft-wrap'] !== undefined;
+  });
+  assert.equal(wrapButtons.length, 1, 'status bar carries one soft-wrap toggle');
+  assert.equal(wrapButtons[0].props['data-soft-wrap'], '1', 'the toggle reflects the persisted preference');
+  assert.equal(wrapButtons[0].props['aria-pressed'], 'true', 'the toggle is announced as pressed');
+  const gotoInputs = findHost(chromeRender, 'input');
+  assert.equal(gotoInputs.length, 1, 'the go-to-line bar renders one input');
+  assert.equal(gotoInputs[0].props.value, '2', 'the bar keeps the typed line number');
+  const crumbButtons = findHost(chromeRender, 'button').filter(function (host) {
+    return typeof host.props['aria-label'] === 'string' && host.props['aria-label'].indexOf('files.revealHint') === 0;
+  });
+  assert.equal(crumbButtons.length, 2, 'directory breadcrumb segments are clickable buttons');
+  crumbButtons[0].props.onClick();
+  assert.deepEqual(crumbPrefixes, ['src'], 'clicking a crumb reveals its directory prefix');
+  assert.equal(chromeRender.texts.some(function (text) { return text.indexOf('files.eol[eol=CRLF]') === 0; }), true, 'status bar shows the EOL');
+  assert.equal(chromeRender.texts.some(function (text) { return text.indexOf('files.selection[count=5]') === 0; }), true, 'status bar shows the selection size');
+  assert.equal(chromeRender.texts.includes('files.wrapOn'), true, 'status bar shows the soft-wrap state');
+  assert.equal(chromeRender.texts.includes('typescript'), true, 'status bar shows the language chip');
+  ok('FileViewer: soft-wrap, go-to-line bar and clickable breadcrumbs');
+
   const plainViewerProps = {
     t: keyTranslator, path: 'notes.txt', value: 'plain a\nplain b', lineCount: 2, language: 'text', size: 17,
     mtimeMs: 0, dirty: false, saving: false, readOnly: false, tooBig: false, truncated: false, notice: null,

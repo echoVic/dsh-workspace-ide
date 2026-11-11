@@ -438,13 +438,24 @@ the top-left corner — see that package's README.)
     hover background. Click dir → toggle; click file → open.
   - Loading/empty/error states inline; refresh when `reloadToken` changes.
 - Viewer pane: fills the rest.
-  - Header: breadcrumb of the opened file path (each segment muted), language chip, size,
-    modified time, and for dirty files a Save button + "已修改" marker.
+  - Header: JetBrains-style breadcrumb of the opened file path; directory segments are
+    buttons that reveal (expand + load) their prefix in the tree, the file segment is the
+    bold leaf. Then the language chip, size, modified time, editor-toolbar actions
+    (Reload, Soft-Wrap, Go-to-Line), and for dirty files a Save button + "已修改" marker.
   - Body: line numbers gutter + editable `<textarea>` (monospace 12.5px/20px, tabSize 2,
-    spellCheck false, whiteSpace pre, no wrap, horizontal scroll, synced vertical scroll
-    with the gutter). Files > 400 KB open read-only (pre, no textarea). Binary → notice.
+    spellCheck false, whiteSpace pre, horizontal scroll, synced vertical scroll with the
+    gutter). Files > 400 KB open read-only (pre, no textarea). Binary → notice.
+  - Soft-wrap (`Alt+Z`, toolbar button or status-bar toggle): the textarea gets
+    `wrap=soft`, the syntax overlay switches to `pre-wrap` with the same metrics, and the
+    numbered gutter is hidden because wrapped rows can no longer line up with numbers.
+    The preference is persisted in localStorage (`dsh-workspace-ide:editor-wrap`).
+  - Go-to-line (`Cmd/Ctrl+G`, toolbar button): a slim bar above the editor takes a line
+    number, Enter jumps (selects the line, scrolls it into view), Escape closes it.
+  - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
+    encoding, a clickable soft-wrap state and the read-only lock.
   - Markdown/HTML just shown as text (this is a code viewer).
-  - Keyboard: Ctrl/Cmd+S saves; Escape cancels dirty state (reload from disk);
+  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+G opens Go-to-Line; Alt+Z toggles soft-wrap;
+    Escape closes the Go-to-Line bar, otherwise cancels dirty state (reload from disk);
     Cmd/Ctrl+Shift+V toggles the Markdown preview (Markdown files) or the image/source
     view (SVG files); Cmd/Ctrl+/ toggles comments via
     `S.toggleLineComments(text, start, end, language)`.
