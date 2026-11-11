@@ -53,6 +53,41 @@ function readZoomPref(): number {
   return 1;
 }
 
+/** Persisted per-file bookmarks (path -> sorted line numbers). */
+const STORAGE_BOOKMARKS = 'dsh-workspace-ide:bookmarks';
+
+/** Read persisted bookmarks, dropping malformed entries. */
+function readBookmarks(): Record<string, number[]> {
+  try {
+    const raw = typeof S.readStorage === 'function' ? S.readStorage(STORAGE_BOOKMARKS) : null;
+    if (typeof raw !== 'string' || raw.length === 0) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const result: Record<string, number[]> = {};
+    Object.keys(parsed).forEach(function (filePath: string) {
+      const lines = parsed[filePath];
+      if (!Array.isArray(lines)) return;
+      const clean = lines
+        .filter(function (value: any) { return Number.isFinite(value); })
+        .map(function (value: number) { return Math.floor(value); })
+        .sort(function (left: number, right: number) { return left - right; });
+      if (clean.length > 0) result[filePath] = clean;
+    });
+    return result;
+  } catch (error) {
+    return {};
+  }
+}
+
+/** Persist bookmarks, ignoring storage failures. */
+function writeBookmarks(map: Record<string, number[]>) {
+  try {
+    if (typeof S.writeStorage === 'function') S.writeStorage(STORAGE_BOOKMARKS, JSON.stringify(map));
+  } catch (error) {
+    /* preference persistence is optional */
+  }
+}
+
 /** One tree row. */
 interface TreeEntry {
   name: string;
@@ -783,6 +818,22 @@ const ST_FILES = {
     whiteSpace: 'nowrap',
     flex: '0 0 auto',
   },
+  bookmarkLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    pointerEvents: 'none',
+  },
+  bookmarkMark: {
+    position: 'absolute',
+    left: 4,
+    width: 3,
+    borderRadius: 2,
+    background: C.accent,
+  },
   quickIndexIcon: {
     display: 'inline-flex',
     color: C.textTertiary,
@@ -1389,6 +1440,41 @@ function joinLinesEdit(text: any, start: number, end: number): any {
 S.toggleCaseEdit = toggleCaseEdit;
 S.joinLinesEdit = joinLinesEdit;
 
+/** Sorted bookmark line numbers for one file after toggling `line`. */
+function toggleBookmarkLine(lines: any, line: any): number[] {
+  const list: number[] = Array.isArray(lines)
+    ? lines.filter(function (value: any) { return Number.isFinite(value); }).map(function (value: number) { return Math.floor(value); })
+    : [];
+  const target = Number.isFinite(line) ? Math.floor(line) : -1;
+  if (target < 1) return list;
+  const index = list.indexOf(target);
+  if (index >= 0) list.splice(index, 1);
+  else list.push(target);
+  list.sort(function (left, right) { return left - right; });
+  return list;
+}
+
+/** Flatten the per-file bookmark map into `{path, line}` rows for the palette. */
+function flattenBookmarks(map: any): Array<{ path: string, line: number }> {
+  if (map === null || typeof map !== 'object') return [];
+  const rows: Array<{ path: string, line: number }> = [];
+  Object.keys(map).forEach(function (filePath: string) {
+    const lines = map[filePath];
+    if (!Array.isArray(lines)) return;
+    lines.forEach(function (line: any) {
+      if (Number.isFinite(line)) rows.push({ path: filePath, line: Math.floor(line) });
+    });
+  });
+  rows.sort(function (left, right) {
+    if (left.path !== right.path) return left.path < right.path ? -1 : 1;
+    return left.line - right.line;
+  });
+  return rows;
+}
+
+S.toggleBookmarkLine = toggleBookmarkLine;
+S.flattenBookmarks = flattenBookmarks;
+
 /**
  * Build JetBrains-style breadcrumb nodes for one path. Intermediate segments
  * are buttons that reveal their directory in the tree; the last one is the file.
@@ -1789,6 +1875,7 @@ function FileViewer(props: any) {
   const findMatches: FindRange[] = Array.isArray(props.findMatches) ? props.findMatches : [];
   const findCurrent = Number.isFinite(props.findCurrent) ? Math.max(0, Math.floor(props.findCurrent)) : 0;
   const findInvalidRegex = props.findInvalidRegex === true;
+  const bookmarkLines: number[] = Array.isArray(props.bookmarkLines) ? props.bookmarkLines : [];
   const zoom = Number.isFinite(props.zoom) ? Math.min(2, Math.max(0.5, Number(props.zoom))) : 1;
   const zoomFont = Math.round(12.5 * zoom * 10) / 10;
   const zoomGutterFont = Math.round(11.5 * zoom * 10) / 10;
@@ -2424,6 +2511,23 @@ function FileViewer(props: any) {
                 'div',
                 { ref: props.gutterRef, style: editorGutterWrapStyle, 'aria-hidden': true },
                 h('pre', { style: editorGutterStyle }, numbersText),
+                bookmarkLines.length > 0
+                  ? h(
+                      'div',
+                      { style: ST_FILES.bookmarkLayer, 'data-editor-bookmarks': '1' },
+                      bookmarkLines.map(function (line: number) {
+                        const top = zoomPadTop + (line - 1) * zoomLine - editorScrollTop;
+                        if (top < -zoomLine || top > 20000) return null;
+                        return h('div', {
+                          key: 'bookmark-' + String(line),
+                          style: Object.assign({}, ST_FILES.bookmarkMark, {
+                            top: top + 'px',
+                            height: Math.max(2, Math.round(zoomLine) - 4) + 'px',
+                          }),
+                        });
+                      }),
+                    )
+                  : null,
               ),
           h(
             'div',
@@ -2516,6 +2620,19 @@ function FileViewer(props: any) {
       h('span', null, t('files.eol', { eol: eolLabel })),
       h('span', null, t('files.lines', { count: S.formatCount(props.lineCount) })),
       h('span', null, t('files.encoding')),
+      bookmarkLines.length > 0 && typeof props.onBookmarksOpen === 'function'
+        ? h(
+            'button',
+            {
+              type: 'button',
+              title: t('bookmarks.label'),
+              'data-bookmark-count': String(bookmarkLines.length),
+              style: ST_FILES.statusButton,
+              onClick: props.onBookmarksOpen,
+            },
+            t('bookmarks.count', { count: S.formatCount(bookmarkLines.length) }),
+          )
+        : null,
       h(
         'button',
         {
@@ -2597,6 +2714,10 @@ function FilesView(props: any) {
   const [recentOpen, setRecentOpen] = useState(false);
   const [recentQuery, setRecentQuery] = useState('');
   const [recentIndex, setRecentIndex] = useState(0);
+  const [bookmarks, setBookmarks] = useState<Record<string, number[]>>(readBookmarks);
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  const [bookmarksQuery, setBookmarksQuery] = useState('');
+  const [bookmarksIndex, setBookmarksIndex] = useState(0);
   const [tabs, setTabs] = useState<string[]>([]);
   const [closingTab, setClosingTab] = useState<string | null>(null);
 
@@ -3034,6 +3155,71 @@ function FilesView(props: any) {
   const jumpRecent = useCallback(function (entry: any) {
     if (entry === null || entry === undefined || typeof entry.path !== 'string') return;
     setRecentOpen(false);
+    if (entry.path === selected) {
+      applyLineJump(Number.isFinite(entry.line) ? entry.line : 1);
+      return;
+    }
+    openPath(entry.path, Number.isFinite(entry.line) ? entry.line : 1);
+  }, [selected, openPath]);
+
+  const toggleBookmark = useCallback(function () {
+    if (selected === null || file.status !== 'loaded') return;
+    const line = caret.line;
+    setBookmarks(function (previous: Record<string, number[]>) {
+      const next = Object.assign({}, previous);
+      const lines = typeof S.toggleBookmarkLine === 'function' ? S.toggleBookmarkLine(previous[selected], line) : [];
+      if (lines.length === 0) delete next[selected];
+      else next[selected] = lines;
+      writeBookmarks(next);
+      return next;
+    });
+  }, [selected, file.status, caret]);
+
+  const bookmarkResults = useMemo(
+    function () {
+      if (bookmarksOpen === false) return [];
+      const entries = typeof S.flattenBookmarks === 'function' ? S.flattenBookmarks(bookmarks) : [];
+      const query = bookmarksQuery.trim();
+      if (query.length === 0) return entries;
+      return entries
+        .map(function (entry: any) {
+          const score = typeof S.quickOpenScore === 'function' ? S.quickOpenScore(query, entry.path) : -1;
+          return { entry: entry, score: score };
+        })
+        .filter(function (row: any) { return row.score >= 0; })
+        .sort(function (left: any, right: any) { return right.score - left.score; })
+        .map(function (row: any) { return row.entry; })
+        .slice(0, 200);
+    },
+    [bookmarksOpen, bookmarksQuery, bookmarks],
+  );
+
+  const closeBookmarks = useCallback(function () {
+    setBookmarksOpen(false);
+  }, []);
+
+  const openBookmarks = useCallback(function () {
+    setBookmarksOpen(true);
+    setBookmarksQuery('');
+    setBookmarksIndex(0);
+  }, []);
+
+  const changeBookmarksQuery = useCallback(function (event: any) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    setBookmarksQuery(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
+    setBookmarksIndex(0);
+  }, []);
+
+  const moveBookmark = useCallback(function (delta: any) {
+    if (bookmarkResults.length === 0) return;
+    setBookmarksIndex(function (previous: number) {
+      return (previous + delta + bookmarkResults.length) % bookmarkResults.length;
+    });
+  }, [bookmarkResults]);
+
+  const jumpBookmark = useCallback(function (entry: any) {
+    if (entry === null || entry === undefined || typeof entry.path !== 'string') return;
+    setBookmarksOpen(false);
     if (entry.path === selected) {
       applyLineJump(Number.isFinite(entry.line) ? entry.line : 1);
       return;
@@ -3484,7 +3670,7 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom, recentOpen, openRecent, closeRecent]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind, quickOpen, openQuick, closeQuick, navigateHistory, closeTab, selected, symbolsOpen, openSymbols, closeSymbols, symbolResults, moveSymbol, jumpToSymbol, findOpen, nextFind, changeZoom, resetZoom, recentOpen, openRecent, closeRecent, bookmarksOpen, openBookmarks, closeBookmarks, toggleBookmark]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
@@ -3493,6 +3679,12 @@ function FilesView(props: any) {
     if (meta && (key === 'w' || key === 'W')) {
       event.preventDefault();
       if (selected !== null) closeTab(selected);
+      return;
+    }
+    if (key === 'F11') {
+      event.preventDefault();
+      if (event.shiftKey === true) openBookmarks();
+      else toggleBookmark();
       return;
     }
     if (meta && event.shiftKey === true && (key === 'e' || key === 'E')) {
@@ -3513,6 +3705,11 @@ function FilesView(props: any) {
     if (meta && event.altKey === true && (key === 'ArrowLeft' || key === 'ArrowRight')) {
       event.preventDefault();
       navigateHistory(key === 'ArrowLeft' ? -1 : 1);
+      return;
+    }
+    if (key === 'Escape' && bookmarksOpen === true) {
+      event.preventDefault();
+      closeBookmarks();
       return;
     }
     if (key === 'Escape' && recentOpen === true) {
@@ -3947,6 +4144,8 @@ function FilesView(props: any) {
       onToggleWrap: toggleWrap,
       zoom: zoom,
       onZoomReset: resetZoom,
+      bookmarkLines: selected === null ? [] : (bookmarks[selected] === undefined ? [] : bookmarks[selected]),
+      onBookmarksOpen: openBookmarks,
       gotoOpen: gotoOpen,
       gotoValue: gotoValue,
       onGotoOpen: openGoto,
@@ -3988,6 +4187,84 @@ function FilesView(props: any) {
   } else {
     viewer = h(S.EmptyState, { t: t, icon: S.Icons.Files, title: t('files.open.title'), body: t('files.open.body') });
   }
+
+  const bookmarksPanel = bookmarksOpen
+    ? h(
+        'div',
+        { style: ST_FILES.quickLayer, onMouseDown: function () { closeBookmarks(); } },
+        h(
+          'div',
+          {
+            style: ST_FILES.quickPanel,
+            onMouseDown: function (event: any) {
+              if (event !== null && event !== undefined && typeof event.stopPropagation === 'function') event.stopPropagation();
+            },
+          },
+          h(
+            'div',
+            { style: ST_FILES.quickInputRow },
+            h('span', { style: ST_FILES.quickIndexIcon }, h(S.Icons.Dot, { size: 10 })),
+            h('input', {
+              type: 'text',
+              value: bookmarksQuery,
+              placeholder: t('bookmarks.label'),
+              'aria-label': t('bookmarks.label'),
+              style: ST_FILES.quickInput,
+              autoFocus: true,
+              onChange: changeBookmarksQuery,
+              onKeyDown: function (event: any) {
+                if (event === null || event === undefined) return;
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  moveBookmark(1);
+                } else if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  moveBookmark(-1);
+                } else if (event.key === 'Enter') {
+                  event.preventDefault();
+                  const entry = bookmarkResults[bookmarksIndex];
+                  if (entry !== null && entry !== undefined) jumpBookmark(entry);
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  closeBookmarks();
+                }
+              },
+            }),
+            h('span', { style: ST_FILES.quickBadge }, t('bookmarks.toggleHint')),
+          ),
+          h(
+            'div',
+            { style: ST_FILES.quickList, role: 'listbox', 'aria-label': t('bookmarks.label') },
+            bookmarkResults.length === 0
+              ? h('div', { style: ST_FILES.quickEmpty }, t('bookmarks.empty'))
+              : bookmarkResults.map(function (entry: any, index: number) {
+                  const slash = entry.path.lastIndexOf('/');
+                  const directory = slash >= 0 ? entry.path.slice(0, slash + 1) : '';
+                  const basename = slash >= 0 ? entry.path.slice(slash + 1) : entry.path;
+                  return h(
+                    'div',
+                    {
+                      key: 'bookmark-row-' + entry.path + '-' + String(entry.line),
+                      role: 'option',
+                      'aria-selected': index === bookmarksIndex ? 'true' : 'false',
+                      style: Object.assign({}, ST_FILES.quickRow, index === bookmarksIndex ? ST_FILES.quickRowActive : null),
+                      title: entry.path + ':' + String(entry.line),
+                      onMouseDown: function (event: any) {
+                        if (event !== null && event !== undefined && typeof event.preventDefault === 'function') event.preventDefault();
+                        jumpBookmark(entry);
+                      },
+                    },
+                    directory.length > 0 ? h('span', { style: ST_FILES.quickPathDir }, directory) : null,
+                    h('span', { style: ST_FILES.quickPathFile }, basename),
+                    h('span', { style: { flex: '1 1 auto' } }),
+                    h('span', { style: ST_FILES.symbolLine }, ':' + String(entry.line)),
+                  );
+                }),
+          ),
+          h('div', { style: ST_FILES.quickHint }, t('bookmarks.hint')),
+        ),
+      )
+    : null;
 
   const recentPanel = recentOpen
     ? h(
@@ -4286,6 +4563,7 @@ function FilesView(props: any) {
       maxWidth: SPLIT_MAX,
       handleLabel: t('files.tree.label'),
     }),
+    bookmarksPanel,
     recentPanel,
     symbolPanel,
     quickPanel,

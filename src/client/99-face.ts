@@ -169,6 +169,8 @@ S.face = {
       moveLines: S.moveLines,
       toggleCaseEdit: S.toggleCaseEdit,
       joinLinesEdit: S.joinLinesEdit,
+      toggleBookmarkLine: S.toggleBookmarkLine,
+      flattenBookmarks: S.flattenBookmarks,
       bracketMatch: S.bracketMatch,
       autoPairEdit: S.autoPairEdit,
       smartIndentEdit: S.smartIndentEdit,

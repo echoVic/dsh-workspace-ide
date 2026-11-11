@@ -614,6 +614,12 @@ function run() {
   assert.equal(joined.selectionStart, 1, 'the caret lands at the join point');
   assert.equal(T.joinLinesEdit('a\n\nb', 0, 0).text, 'a\nb', 'joining an empty line removes it');
   assert.equal(T.joinLinesEdit('x', 0, 0), null, 'the last line has nothing to join');
+  assert.deepEqual(T.toggleBookmarkLine([5, 2], 3), [2, 3, 5], 'bookmark toggle inserts sorted');
+  assert.deepEqual(T.toggleBookmarkLine([2, 3, 5], 3), [2, 5], 'bookmark toggle removes an existing line');
+  assert.deepEqual(T.toggleBookmarkLine([2], 0), [2], 'invalid bookmark lines are ignored');
+  assert.deepEqual(T.flattenBookmarks({ 'b.ts': [2], 'a.ts': [3, 1] }), [
+    { path: 'a.ts', line: 1 }, { path: 'a.ts', line: 3 }, { path: 'b.ts', line: 2 },
+  ], 'bookmark palette rows are sorted by path and line');
   assert.deepEqual(T.bracketMatch('(a)', 1), { open: 0, close: 2 }, 'caret inside a bracket pair matches it');
   assert.deepEqual(T.bracketMatch('((x))', 2), { open: 1, close: 3 }, 'nested pairs balance');
   assert.equal(T.bracketMatch('abc', 1), null, 'no bracket next to the caret');
@@ -1131,6 +1137,10 @@ function run() {
     onSave: function () {}, onDismissNotice: function () {},
   };
   const plainViewer = renderTree(T.FileViewer(plainViewerProps));
+  const bookmarkViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { bookmarkLines: [2, 5], onBookmarksOpen: function () {} })));
+  assert.equal(bookmarkViewer.hosts.some(function (host) { return host.props['data-editor-bookmarks'] === '1'; }), true, 'bookmarked lines render gutter markers');
+  const bookmarkButton = bookmarkViewer.hosts.filter(function (host) { return host.props['data-bookmark-count'] !== undefined; })[0];
+  assert.equal(bookmarkButton.props['data-bookmark-count'], '2', 'the status bar reports the bookmark count');
   const zoomedViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { zoom: 1.5 })));
   const zoomedTextarea = findHost(zoomedViewer, 'textarea')[0];
   assert.equal(zoomedTextarea.props.style.fontSize, '18.8px', 'zoom scales the editor font');

@@ -1,6 +1,6 @@
 {
   "name": "dsh-workspace-ide",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": false,
   "description": "A JetBrains-inspired workspace IDE panel for DeepSeek Harness: file tree, TypeScript code editor with find & replace, Quick Open, tabs and syntax highlighting, full-text search, and git status / diff / history",
   "type": "module",

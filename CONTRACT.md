@@ -484,6 +484,10 @@ the top-left corner — see that package's README.)
     Cancel); the workspace root change resets the tab set.
   - Recent Locations (`Cmd/Ctrl+Shift+E`): the navigation history as a filterable
     palette (`path:line` rows); Enter jumps back to that location, Esc closes.
+  - Bookmarks (`F11` toggles the caret line, `Shift+F11` opens the palette): per-file
+    bookmark lines persist in `localStorage['dsh-workspace-ide:bookmarks']`, render as
+    accent marks in the gutter and as a `书签 N` status-bar button; the palette lists
+    every bookmark as `path:line` and jumps back (fuzzy path filter).
   - Go to Symbol (`Cmd/Ctrl+Shift+O`, or the list button in the editor toolbar): a
     centered palette fed by `S.extractSymbols` (regex-based functions/classes/types/
     constants/methods, Markdown headings, JSON keys) over the current draft; Up/Down +
@@ -508,8 +512,8 @@ the top-left corner — see that package's README.)
     hidden in soft-wrap/read-only/preview modes where visual lines no longer match).
   - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+D duplicates the current line / selected
     lines; Alt+Shift+Up/Down move them; Ctrl/Cmd+Shift+U toggles the selection's
-    case; Ctrl/Cmd+Shift+J joins the next line; Ctrl/Cmd+Shift+E opens Recent
-    Locations; Ctrl/Cmd+= / Ctrl/Cmd+- zoom the editor (Ctrl/Cmd+0 resets);
+    case; Ctrl/Cmd+Shift+J joins the next line; F11 toggles a bookmark and Shift+F11
+    lists them; Ctrl/Cmd+Shift+E opens Recent Locations; Ctrl/Cmd+= / Ctrl/Cmd+- zoom the editor (Ctrl/Cmd+0 resets);
     Ctrl/Cmd+Shift+O opens Go to Symbol; Ctrl/Cmd+W closes
     the active tab; Ctrl/Cmd+P opens
     Quick Open; Ctrl/Cmd+Alt+Left/Right walk
