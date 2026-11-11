@@ -304,7 +304,7 @@ const TS_TYPES = words(
 /** Config for html/xml/vue/svelte: a dedicated tag/attribute scanner. */
 const MARKUP_CONFIG = Object.freeze({ markup: true });
 
-const LANGUAGE_CONFIGS: Record<string, any> = Object.freeze({
+const LANGUAGE_CONFIGS: Record<string, any> = {
   javascript: makeConfig({
     keywords: JS_KEYWORDS,
     types: JS_TYPES,
@@ -619,7 +619,14 @@ const LANGUAGE_CONFIGS: Record<string, any> = Object.freeze({
     stringDefs: STRINGS_DOUBLE,
     propertyLookahead: true,
   }),
-});
+};
+
+// JSX/TSX reuse the JS/TS tokenizer for now: the markup pass is a different
+// scanner, but at least keywords/strings/comments/JSX-level identifiers get the
+// full token colours instead of the plain fallback.
+LANGUAGE_CONFIGS.jsx = LANGUAGE_CONFIGS.javascript;
+LANGUAGE_CONFIGS.tsx = LANGUAGE_CONFIGS.typescript;
+Object.freeze(LANGUAGE_CONFIGS);
 
 // ─── plain fallback ─────────────────────────────────────────────────────────
 

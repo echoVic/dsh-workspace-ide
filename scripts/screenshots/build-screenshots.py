@@ -678,9 +678,16 @@ def mock_data(git_empty: bool):
         workspaces.insert(0, {'id': 'ws-docs', 'path': AURORA + '/docs-site', 'title': 'docs-site',
                               'sessionCount': 1, 'live': True, 'git': False})
         workspaces = workspaces[:3]
+    quick_files = []
+    for entries in ENTRIES.values():
+        for entry in entries:
+            if entry.get('type') == 'file':
+                quick_files.append(entry['path'])
+    quick_files.sort()
     return {
         'workspaces': workspaces,
         'entries': ENTRIES,
+        'quickFiles': quick_files,
         'files': {path: {'content': meta['content'], 'language': meta['language'], 'size': file_size(path)}
                   for path, meta in FILES.items()},
         'search': search_results(),
@@ -757,9 +764,11 @@ DRIVER = r'''
   var MOCK = __MOCK__;
   var THEME_BY_SHOT = {
     files: 'light-plus', search: 'light-plus', git: 'one-dark-pro',
-    'theme-dark': 'one-dark-pro', 'theme-light': 'light-plus', themes: 'light-plus', 'git-empty': 'light-plus', markdown: 'light-plus', image: 'light-plus', svg: 'light-plus'
+    'theme-dark': 'one-dark-pro', 'theme-light': 'light-plus', themes: 'light-plus',
+    'git-empty': 'light-plus', markdown: 'light-plus', image: 'light-plus', svg: 'light-plus',
+    find: 'light-plus', 'quick-open': 'light-plus', tabs: 'one-dark-pro', brackets: 'one-dark-pro'
   };
-  var DARK_CHROME = ['git', 'theme-dark'];
+  var DARK_CHROME = ['git', 'theme-dark', 'tabs', 'brackets'];
   if (DARK_CHROME.indexOf(SHOT) !== -1) document.body.setAttribute('data-chrome', 'dark');
 
   var store = {};
@@ -833,6 +842,9 @@ DRIVER = r'''
       case 'list': return ok({
         ok: true, root: query.get('root'), path: query.get('path') || '',
         entries: MOCK.entries[query.get('path') || ''] || [], truncated: false
+      });
+      case 'files': return ok({
+        ok: true, root: query.get('root'), files: MOCK.quickFiles || Object.keys(MOCK.files), truncated: false
       });
       case 'file': return ok(mockFile(query.get('path') || ''));
       case 'image': return ok(mockImage(query.get('path') || ''));
@@ -914,6 +926,70 @@ DRIVER = r'''
       .then(function () { return waitFor(function () { return q('[data-kind]'); }); })
       .then(function () { return sleep(360); });
   }
+  function setInputValue(input, value) {
+    var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(input, value);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+  function pressKey(target, key, options) {
+    var init = Object.assign({ key: key, bubbles: true, cancelable: true, metaKey: true }, options || {});
+    target.dispatchEvent(new KeyboardEvent('keydown', init));
+  }
+  function findInput(label) {
+    var inputs = Array.prototype.slice.call(document.querySelectorAll('input'));
+    return inputs.filter(function (input) {
+      return (input.getAttribute('aria-label') || '') === label;
+    })[0];
+  }
+  function openFindBar() {
+    return openFile('src/app.tsx').then(function () {
+      var textarea = q('textarea');
+      if (!textarea) throw new Error('no textarea');
+      pressKey(textarea, 'f');
+      return waitFor(function () { return findInput('查找'); });
+    }).then(function (input) {
+      setInputValue(input, 'theme');
+      return waitFor(function () { return q('[data-find-highlight]'); });
+    }).then(function () { return sleep(360); });
+  }
+  function openQuickOpen() {
+    return openFile('src/app.tsx').then(function () {
+      var textarea = q('textarea');
+      if (!textarea) throw new Error('no textarea');
+      pressKey(textarea, 'p');
+      return waitFor(function () { return findInput('转到文件'); });
+    }).then(function (input) {
+      setInputValue(input, 'app');
+      return waitFor(function () { return document.querySelectorAll('[role="option"]').length > 0; });
+    }).then(function () { return sleep(360); });
+  }
+  function openTabsAndDirty() {
+    return openFile('src/app.tsx')
+      .then(function () { return openFile('src/theme.ts'); })
+      .then(function () { return openFile('README.md'); })
+      .then(function () {
+        var textarea = q('textarea');
+        if (!textarea) throw new Error('no textarea');
+        var setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+        setter.call(textarea, textarea.value + '\n');
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        return waitFor(function () { return document.querySelectorAll('[role="tab"]').length === 3; });
+      })
+      .then(function () { return sleep(380); });
+  }
+  function openBracketMatch() {
+    return openFile('src/app.tsx').then(function () {
+      var textarea = q('textarea');
+      if (!textarea) throw new Error('no textarea');
+      var value = textarea.value;
+      var at = value.indexOf('return (');
+      var caret = at === -1 ? value.indexOf('(') + 1 : value.indexOf('(', at) + 1;
+      textarea.focus();
+      textarea.setSelectionRange(caret, caret);
+      textarea.dispatchEvent(new KeyboardEvent('keyup', { key: 'ArrowRight', bubbles: true }));
+      return waitFor(function () { return q('[data-bracket-highlight]'); });
+    }).then(function () { return sleep(360); });
+  }
   function openThemePicker() {
     return waitFor(function () { return q('[data-theme-button]'); })
       .then(click)
@@ -954,7 +1030,11 @@ DRIVER = r'''
         .then(function () { return waitFor(function () { return q('[data-svg-image]'); }); })
         .then(function () { return sleep(400); });
     },
-    'git-empty': function () { return openGitEmpty(); }
+    'git-empty': function () { return openGitEmpty(); },
+    find: function () { return openFindBar(); },
+    'quick-open': function () { return openQuickOpen(); },
+    tabs: function () { return openTabsAndDirty(); },
+    brackets: function () { return openBracketMatch(); }
   };
 
   waitFor(function () { return q('[data-tab="files"]'); }, 9000)
@@ -979,6 +1059,10 @@ SHOTS = [
     ('image', 'screenshot-image.png'),
     ('svg', 'screenshot-svg.png'),
     ('git-empty', 'screenshot-git-empty.png'),
+    ('find', 'screenshot-find.png'),
+    ('quick-open', 'screenshot-quick-open.png'),
+    ('tabs', 'screenshot-tabs.png'),
+    ('brackets', 'screenshot-brackets.png'),
 ]
 
 

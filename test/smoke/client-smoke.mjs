@@ -644,6 +644,11 @@ function run() {
   ok('HIGHLIGHT_LANGUAGES maps all ' + String(hostLanguages.length) + ' Host language values + common aliases');
 
   const jsSample = 'const s = "x"; // hi';
+  const tsxLines = T.highlightLines('const mode: string = "dark";', 'tsx');
+  assert.equal(tsxLines.some(function (segments) { return segments.some(function (segment) { return segment[0] !== 'plain'; }); }), true, 'tsx reuses the TypeScript tokenizer');
+  const jsxLines = T.highlightLines('const el = <Chart value={1} />;', 'jsx');
+  assert.equal(jsxLines.some(function (segments) { return segments.some(function (segment) { return segment[0] !== 'plain'; }); }), true, 'jsx reuses the JavaScript tokenizer');
+  assert.equal(T.normalizeHighlightLanguage('tsx'), 'tsx', 'tsx keeps its language id');
   const jsLines = T.highlightLines(jsSample, 'javascript');
   assert.equal(jsLines.length, 1, 'one result entry per source line');
   const jsSegments = jsLines[0];

@@ -297,6 +297,11 @@ The theme picker glyphs are Lucide `palette` / `check`, vendored like every othe
 
 ### Syntax highlighting (`07-highlight.ts`)
 
+JSX/TSX currently reuse the JavaScript/TypeScript tokenizer (`LANGUAGE_CONFIGS.jsx` and
+`.tsx` alias the same config objects) so those files get full token colours instead of the
+plain fallback; the dedicated markup scanner is still used for HTML/XML/Vue/Svelte tag
+level.
+
 `S.highlightLines(code, language)` returns one entry per source line; each entry is an array
 of `[kind, text]` segments (`kind` ∈ keyword, string, comment, number, constant, function,
 type, variable, operator, punctuation, tag, attr, property, regexp, meta, plain). The

@@ -69,6 +69,30 @@ line or every selected line (the per-language token table covers `//`, `#`, `--`
 `/* */` / `<!-- -->` block wrapping for CSS, HTML, XML, Markdown, Vue and Svelte), and the
 toggle is reversible, indent-preserving and leaves blank lines untouched.
 
+### Editor: JetBrains-style workflow
+
+Beyond editing and saving, the viewer follows the interactions JetBrains IDEs made
+standard:
+
+- **Find & replace** (`Ctrl/Cmd+F` / `Ctrl/Cmd+H`) with match counter, previous/next,
+  case / whole-word / regex toggles, Replace and Replace All, and a highlight layer that
+  paints every match behind the text.
+- **Quick Open** (`Ctrl/Cmd+P`) ranks the whole workspace file index locally with a fuzzy
+  subsequence score; type, arrow, Enter.
+- **Tabs** keep one tab per open file with dirty markers; unsaved drafts and carets survive
+  tab switches, and closing a dirty tab asks before discarding.
+- **Bracket matching / auto-pair / smart indent / current line / indent guides** make the
+  same gestures feel native: matched brackets highlight, openers auto-close, Enter inherits
+  indentation, and Shift+Tab outdents.
+
+![Find & replace with match counter and all-match highlight](docs/screenshot-find.png)
+
+![Quick Open palette](docs/screenshot-quick-open.png)
+
+![Multi-tab editing with dirty marker and unsaved-change hint](docs/screenshot-tabs.png)
+
+![Bracket matching, current line and indent guides](docs/screenshot-brackets.png)
+
 ### Markdown preview
 
 `.md` files switch between editable source and a rendered preview from the file header, or
@@ -127,7 +151,7 @@ Or install straight from GitHub instead of a local checkout:
 ```text
 plugin_manager { action: "install_bundle", target: "echoVic/dsh-workspace-ide" }
 # or pin a release tarball:
-plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v0.3.0.tar.gz" }
+plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v1.0.0.tar.gz" }
 ```
 
 ## How it works
