@@ -830,6 +830,9 @@ DRIVER = r'''
   function mockGit(query) {
     if (MOCK.gitEmpty) return { ok: true, repo: false };
     var kind = query.get('kind') || 'status';
+    if (kind === 'diff' && query.get('path') !== 'src/theme.ts') {
+      return { ok: true, repo: true, path: query.get('path') || '', staged: false, commit: '', diff: '', truncated: false };
+    }
     return MOCK.git[kind] || { ok: true, repo: true };
   }
   window.fetch = function (input) {

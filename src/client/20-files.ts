@@ -834,6 +834,11 @@ const ST_FILES = {
     borderRadius: 2,
     background: C.accent,
   },
+  gitMarker: {
+    position: 'absolute',
+    left: 0,
+    width: 3,
+  },
   quickIndexIcon: {
     display: 'inline-flex',
     color: C.textTertiary,
@@ -1479,6 +1484,59 @@ function indentLines(text: any, start: number, end: number, dedent: boolean): an
 
 S.indentLines = indentLines;
 
+/**
+ * Parse a unified git diff into gutter decorations: `line -> added|deleted|modified`.
+ * Added lines come from `+` rows, deletions are pinned to the new-file line at
+ * which they occur, and a hunk that both removes and adds rows marks the added
+ * rows as `modified` (JetBrains green/red/blue gutter).
+ * @param diff - unified diff text from the Host `git` route.
+ * @returns line-number keyed decoration map.
+ */
+function parseGitGutter(diff: any): Record<number, string> {
+  const markers: Record<number, string> = {};
+  if (typeof diff !== 'string' || diff.length === 0) return markers;
+  const lines = diff.split('\n');
+  for (let index = 0; index < lines.length; index = index + 1) {
+    const header = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(lines[index]);
+    if (header === null) continue;
+    let newLine = Number(header[1]);
+    if (!Number.isFinite(newLine) || newLine < 1) newLine = 1;
+    let hadDeletion = false;
+    let hadAddition = false;
+    for (let cursor = index + 1; cursor < lines.length; cursor = cursor + 1) {
+      const line = lines[cursor];
+      if (/^@@ /.test(line) || line.indexOf('diff --git ') === 0) {
+        index = cursor - 1;
+        break;
+      }
+      if (line.length === 0) continue;
+      const first = line.charAt(0);
+      if (first === '+') {
+        if (line.indexOf('+++ ') !== 0) {
+          markers[newLine] = hadDeletion ? 'modified' : 'added';
+          hadAddition = true;
+          newLine = newLine + 1;
+        }
+      } else if (first === '-') {
+        if (line.indexOf('--- ') !== 0) {
+          hadDeletion = true;
+          if (markers[newLine] === undefined) markers[newLine] = 'deleted';
+        }
+      } else if (first === ' ') {
+        newLine = newLine + 1;
+      }
+    }
+    if (hadAddition === false && hadDeletion === true) {
+      // A pure deletion is shown on the line that now follows it.
+      const target = Math.max(1, newLine);
+      if (markers[target] === undefined) markers[target] = 'deleted';
+    }
+  }
+  return markers;
+}
+
+S.parseGitGutter = parseGitGutter;
+
 /** Sorted bookmark line numbers for one file after toggling `line`. */
 function toggleBookmarkLine(lines: any, line: any): number[] {
   const list: number[] = Array.isArray(lines)
@@ -1915,6 +1973,7 @@ function FileViewer(props: any) {
   const findCurrent = Number.isFinite(props.findCurrent) ? Math.max(0, Math.floor(props.findCurrent)) : 0;
   const findInvalidRegex = props.findInvalidRegex === true;
   const bookmarkLines: number[] = Array.isArray(props.bookmarkLines) ? props.bookmarkLines : [];
+  const gitMarkers: Array<{ line: number, kind: string }> = Array.isArray(props.gitMarkers) ? props.gitMarkers : [];
   const zoom = Number.isFinite(props.zoom) ? Math.min(2, Math.max(0.5, Number(props.zoom))) : 1;
   const zoomFont = Math.round(12.5 * zoom * 10) / 10;
   const zoomGutterFont = Math.round(11.5 * zoom * 10) / 10;
@@ -2550,6 +2609,25 @@ function FileViewer(props: any) {
                 'div',
                 { ref: props.gutterRef, style: editorGutterWrapStyle, 'aria-hidden': true },
                 h('pre', { style: editorGutterStyle }, numbersText),
+                gitMarkers.length > 0
+                  ? h(
+                      'div',
+                      { style: ST_FILES.bookmarkLayer, 'data-editor-git-markers': '1' },
+                      gitMarkers.map(function (marker: any) {
+                        const top = zoomPadTop + (marker.line - 1) * zoomLine - editorScrollTop;
+                        if (top < -zoomLine || top > 20000) return null;
+                        const color = marker.kind === 'added' ? C.diffAdd : marker.kind === 'deleted' ? C.diffDel : C.accent;
+                        return h('div', {
+                          key: 'git-marker-' + String(marker.line),
+                          style: Object.assign({}, ST_FILES.gitMarker, {
+                            top: top + 'px',
+                            height: Math.max(2, Math.round(zoomLine) - 2) + 'px',
+                            background: color,
+                          }),
+                        });
+                      }),
+                    )
+                  : null,
                 bookmarkLines.length > 0
                   ? h(
                       'div',
@@ -2754,6 +2832,7 @@ function FilesView(props: any) {
   const [recentQuery, setRecentQuery] = useState('');
   const [recentIndex, setRecentIndex] = useState(0);
   const [bookmarks, setBookmarks] = useState<Record<string, number[]>>(readBookmarks);
+  const [gitGutter, setGitGutter] = useState<Record<number, string>>({});
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const [bookmarksQuery, setBookmarksQuery] = useState('');
   const [bookmarksIndex, setBookmarksIndex] = useState(0);
@@ -2770,6 +2849,7 @@ function FilesView(props: any) {
   const quickFilesRef = useRef<string[] | null>(null);
   const tabStateRef = useRef<Record<string, any>>({});
   const closedTabsRef = useRef<Array<{ path: string, snapshot: any }>>([]);
+  const gitGutterRef = useRef(0);
 
   // Success / info notices fade after a moment; error notices stay until the
   // next action so a failed save is never missed.
@@ -3337,6 +3417,46 @@ function FilesView(props: any) {
       return isSvg && typeof S.buildSvgDataUrl === 'function' ? S.buildSvgDataUrl(draft) : null;
     },
     [draft, isSvg],
+  );
+
+  const gitMtime = file !== null && file !== undefined && file.data !== null && file.data !== undefined && Number.isFinite(file.data.mtimeMs)
+    ? file.data.mtimeMs
+    : null;
+
+  // Git change decorations: one diff read per opened file (and after saves,
+  // which update mtimeMs). Non-repo roots / errors clear the gutter silently.
+  useEffect(function () {
+    if (selected === null || file.status !== 'loaded') {
+      setGitGutter({});
+      return undefined;
+    }
+    const requestId = gitGutterRef.current + 1;
+    gitGutterRef.current = requestId;
+    S.requestJson(S.apiUrl(ROUTES.git, { root: root, kind: 'diff', path: selected }))
+      .then(function (payload: any) {
+        if (gitGutterRef.current !== requestId) return;
+        if (payload === null || payload === undefined || payload.repo === false || typeof payload.diff !== 'string') {
+          setGitGutter({});
+          return;
+        }
+        setGitGutter(typeof S.parseGitGutter === 'function' ? S.parseGitGutter(payload.diff) : {});
+      })
+      .catch(function (cause: any) {
+        if (gitGutterRef.current !== requestId) return;
+        setGitGutter({});
+      });
+    return function () {
+      gitGutterRef.current = gitGutterRef.current + 1;
+    };
+  }, [selected, file.status, root, gitMtime]);
+
+  const gitMarkers = useMemo(
+    function () {
+      return Object.keys(gitGutter).map(function (key) {
+        return { line: Number(key), kind: gitGutter[Number(key)] };
+      });
+    },
+    [gitGutter],
   );
 
   const bracketRanges = useMemo(
@@ -4182,6 +4302,7 @@ function FilesView(props: any) {
       zoom: zoom,
       onZoomReset: resetZoom,
       bookmarkLines: selected === null ? [] : (bookmarks[selected] === undefined ? [] : bookmarks[selected]),
+      gitMarkers: gitMarkers,
       onBookmarksOpen: openBookmarks,
       gotoOpen: gotoOpen,
       gotoValue: gotoValue,

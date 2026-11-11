@@ -624,6 +624,10 @@ function run() {
   assert.equal(dedentedBlock.text, 'a\nb', 'Shift+Tab outdents every selected line');
   assert.deepEqual([dedentedBlock.selectionStart, dedentedBlock.selectionEnd], [0, 5], 'the selection follows the outdent');
   assert.equal(T.indentLines('a', 0, 1, true), null, 'outdenting an unindented line is a no-op');
+  const gutterDiff = '@@ -1,2 +1,3 @@\n a\n+b\n c\n@@ -5 +5 @@\n-old\n+new\n';
+  assert.deepEqual(T.parseGitGutter(gutterDiff), { 2: 'added', 5: 'modified' }, 'git gutter parses added/modified lines');
+  assert.deepEqual(T.parseGitGutter(''), {}, 'empty diff has no gutter markers');
+  assert.deepEqual(T.parseGitGutter(undefined), {}, 'missing diff has no gutter markers');
   assert.deepEqual(T.flattenBookmarks({ 'b.ts': [2], 'a.ts': [3, 1] }), [
     { path: 'a.ts', line: 1 }, { path: 'a.ts', line: 3 }, { path: 'b.ts', line: 2 },
   ], 'bookmark palette rows are sorted by path and line');
@@ -1144,6 +1148,8 @@ function run() {
     onSave: function () {}, onDismissNotice: function () {},
   };
   const plainViewer = renderTree(T.FileViewer(plainViewerProps));
+  const gitMarkerViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { gitMarkers: [{ line: 2, kind: 'added' }, { line: 4, kind: 'deleted' }] })));
+  assert.equal(gitMarkerViewer.hosts.some(function (host) { return host.props['data-editor-git-markers'] === '1'; }), true, 'git gutter decorations render');
   const bookmarkViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { bookmarkLines: [2, 5], onBookmarksOpen: function () {} })));
   assert.equal(bookmarkViewer.hosts.some(function (host) { return host.props['data-editor-bookmarks'] === '1'; }), true, 'bookmarked lines render gutter markers');
   const bookmarkButton = bookmarkViewer.hosts.filter(function (host) { return host.props['data-bookmark-count'] !== undefined; })[0];

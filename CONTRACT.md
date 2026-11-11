@@ -472,6 +472,10 @@ the top-left corner — see that package's README.)
     selected/scrolled without stealing focus from the bar. Empty query / invalid regex
     answer no matches instead of throwing; an invalid regex shows a red error label, and
     F3 / Shift+F3 walk matches while the bar is open.
+  - Git change decorations: on every loaded file (and again after saves, keyed by mtime)
+    the viewer reads `api/dsh-workspace-ide.git?kind=diff&path=…` and paints green
+    (added) / red (deleted) / blue (modified) marks in the gutter via
+    `S.parseGitGutter`; non-repo roots and failures clear them silently.
   - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
     encoding, editor zoom (click resets to 100%), a clickable soft-wrap state and the
     read-only lock. `Ctrl/Cmd+=` / `-` zoom the editor (50–200%, persisted), `Ctrl/Cmd+0`
