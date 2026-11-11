@@ -7,6 +7,9 @@
  * defensively and treats every service as optional.
  */
 
+/** A validated workspace root: requested + canonical path. */
+type WorkspaceRoot = { requestedRoot: string, realRoot: string };
+
 /** A service exposing the two list-like shapes the plugin reads. */
 interface HostListService {
   list(): Array<Record<string, any>> | null | undefined;
@@ -39,4 +42,12 @@ interface HostContext {
   effect?(callback: () => (() => void) | void, label?: string): unknown;
   connection?: HostConnection | null;
   logger?: HostLogger | null;
+}
+
+/** One entry in the plugin route table. */
+interface RouteDefinition {
+  name: string;
+  path: string;
+  methods: ReadonlyArray<string>;
+  handler: Function;
 }

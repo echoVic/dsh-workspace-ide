@@ -21,6 +21,9 @@ jobs:
       - name: Type check (JS + JSDoc, strict)
         run: npm run typecheck
 
+      - name: Host noImplicitAny type check
+        run: npm run typecheck:host
+
       - name: Client bundle is up to date
         run: node scripts/build-client.mjs --check
 

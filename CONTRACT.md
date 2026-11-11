@@ -515,19 +515,21 @@ placeholders, empty states, errors, buttons, notices) must be in the dictionary.
 ### Type checking (`tsconfig.json` + `types/`)
 
 - Plain JavaScript stays the source of truth; TypeScript is a **dev-only checker**
-  (`allowJs + checkJs + noEmit`) with `strict: true`. No bundler, no emitted JS, no runtime
-  dependency. One gate: `npm run typecheck` covers `lib/`, `src/client/`, `scripts/` and
-  `test/`, and CI runs it after `npm ci`; it must exit 0.
-- Deferred strict flag: `noImplicitAny` stays **off** for now (696 diagnostics measured when
-  the rest of `strict` was enabled). Raise it per area in a dedicated PR — do not flip it
-  globally without fixing the surfaced diagnostics.
+  (`allowJs + checkJs + noEmit`). No bundler, no emitted JS, no runtime dependency.
+- Two gates, both must exit 0 in CI after `npm ci`:
+  1. `npm run typecheck` — `strict: true` over `lib/`, `src/client/`, `scripts/` and `test/`;
+  2. `npm run typecheck:host` — `lib/` additionally under `noImplicitAny`
+     (`tsconfig.host.json`).
+- Remaining `noImplicitAny` work is staged: `src/client` (252 diagnostics) and the test
+  suites (311). Extend the same pattern (scoped tsconfig + npm script + CI step) when the
+  client half and tests are typed; do not flip it globally before then.
 - `types/client-globals.d.ts` declares the factory-scope globals that
   `scripts/build-client.mjs` injects (`React`, `h` typed as `React.createElement`, the five
   hooks, the shared `S` namespace) so `src/client/*.js` is checked as one scope.
 - `types/dsh-services.d.ts` declares the optional DSH Host context subset (`get`, `effect`,
   `connection.fetch`, `logger`) as local ambient interfaces — never `@deepseek-ai/*`
-  imports. All members are optional because the Host half degrades gracefully and tests
-  pass partial contexts.
+  imports — plus the `WorkspaceRoot` and `RouteDefinition` shapes. All context members are
+  optional because the Host half degrades gracefully and tests pass partial contexts.
 
 ### Verification (`test/smoke/client-smoke.mjs`)
 

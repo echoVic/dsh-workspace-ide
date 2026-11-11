@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noImplicitAny": true
+  },
+  "include": ["lib/index.js", "lib/host/**/*.js", "types/**/*.d.ts"],
+  "exclude": ["lib/client.js", "node_modules"]
+}
