@@ -586,6 +586,19 @@ function run() {
   const quickRanked = T.rankQuickOpen('core', ['docs/readme.md', 'src/client/00-core.ts', 'src/client/99-face.ts'], 5);
   assert.equal(quickRanked[0].path, 'src/client/00-core.ts', 'basename hit ranks first');
   assert.deepEqual(T.rankQuickOpen('zzz', ['a.ts'], 5), [], 'no match returns no rows');
+  assert.deepEqual(T.bracketMatch('(a)', 1), { open: 0, close: 2 }, 'caret inside a bracket pair matches it');
+  assert.deepEqual(T.bracketMatch('((x))', 2), { open: 1, close: 3 }, 'nested pairs balance');
+  assert.equal(T.bracketMatch('abc', 1), null, 'no bracket next to the caret');
+  const parenPair = T.autoPairEdit('', 0, 0, '(');
+  assert.equal(parenPair.text, '()', 'typing an opener inserts its pair');
+  assert.equal(parenPair.selectionStart, 1, 'caret lands between the pair');
+  const wrapped = T.autoPairEdit('ab', 0, 2, '(');
+  assert.equal(wrapped.text, '(ab)', 'selection is wrapped by the pair');
+  assert.equal(T.autoPairEdit('a)', 1, 1, ')').skip, true, 'typing an existing closer only moves over it');
+  assert.equal(T.autoPairEdit('a b', 2, 2, "'"), null, 'no quote pairing before a word');
+  const indented = T.smartIndentEdit('if (x) {', 8, 8);
+  assert.equal(indented.text, 'if (x) {\n  ', 'Enter after an opener adds one indent level');
+  assert.equal(T.smartIndentEdit('foo', 3, 3).text, 'foo\n', 'Enter on a plain line keeps the indentation');
   ok('formatBytes / countLines / lineNumbersText / caretFromIndex / splitMatch / routes');
 
   const normal = T.normalizeWorkspaces({
@@ -1043,6 +1056,39 @@ function run() {
   closeButtons[2].props.onMouseDown({ preventDefault: function () {}, stopPropagation: function () {} });
   assert.deepEqual(closedTabs, ['docs/image.svg'], 'the close button closes that tab');
   ok('TabStrip: per-file tabs, active state, dirty dot and close buttons');
+
+  const feelRender = renderTree(T.FileViewer({
+    t: keyTranslator,
+    path: 'src/client/feel.ts',
+    value: 'function f() {\n  return 1;\n}\n',
+    lineCount: 3,
+    language: 'typescript',
+    size: 30,
+    mtimeMs: 0,
+    dirty: false,
+    saving: false,
+    readOnly: false,
+    tooBig: false,
+    truncated: false,
+    notice: null,
+    caret: { line: 2, column: 3 },
+    selection: 0,
+    eol: '\n',
+    bracketRanges: [{ start: 0, end: 1 }, { start: 13, end: 14 }],
+    textareaRef: { current: null },
+    gutterRef: { current: null },
+    onChange: function () {},
+    onKeyDown: function () {},
+    onScroll: function () {},
+    onSelect: function () {},
+    onSave: function () {},
+    onDismissNotice: function () {},
+  }));
+  assert.equal(feelRender.hosts.some(function (host) { return host.props['data-bracket-highlight'] === '1'; }), true, 'matched brackets paint a highlight layer');
+  const guides = feelRender.hosts.filter(function (host) { return host.props['data-editor-guides'] === '1'; });
+  assert.equal(guides.length, 1, 'the editor renders a current-line + indent-guide layer');
+  assert.equal(guides[0].props.children.length >= 2, true, 'the guide layer carries the current line plus indent guides');
+  ok('FileViewer: bracket highlight, current-line and indent-guide layers');
 
   const plainViewerProps = {
     t: keyTranslator, path: 'notes.txt', value: 'plain a\nplain b', lineCount: 2, language: 'text', size: 17,

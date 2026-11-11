@@ -631,6 +631,31 @@ const ST_FILES = {
     background: C.accent,
     borderRadius: 2,
   },
+  // Current-line highlight + indent guides sit behind the syntax text. The
+  // layer itself is pointer-transparent; positions are viewport-relative and
+  // recomputed from the textarea scrollTop.
+  guideLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+  guideLine: {
+    position: 'absolute',
+    width: 1,
+    background: C.border1,
+    opacity: 0.55,
+  },
+  currentLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    background: C.hover,
+  },
   findHint: {
     color: C.textTertiary,
     fontFamily: FONT_UI,
@@ -1005,6 +1030,129 @@ function rankQuickOpen(query: string, files: string[], limit?: number): Array<{ 
 
 S.quickOpenScore = quickOpenScore;
 S.rankQuickOpen = rankQuickOpen;
+
+/** Bracket pairs the editor understands for matching / auto-pairing. */
+const BRACKET_PAIRS: Record<string, string> = { '(': ')', '[': ']', '{': '}' };
+const BRACKET_CLOSERS: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+const QUOTE_CHARS = new Set(['"', "'", '`']);
+
+/** One matched bracket pair (absolute indices into the text). */
+interface BracketPair {
+  open: number;
+  close: number;
+}
+
+/**
+ * Find the bracket pair adjacent to the caret (JetBrains-style matching).
+ * Checks the character right before and right after the caret; nested pairs of
+ * the same kind are balanced. Returns null when no bracket touches the caret.
+ * @param text - editor text.
+ * @param index - caret offset.
+ * @returns the matched pair, or null.
+ */
+function bracketMatch(text: string, index: number): BracketPair | null {
+  if (typeof text !== 'string' || text.length === 0) return null;
+  const caret = Number.isFinite(index) ? Math.max(0, Math.min(text.length, Math.floor(index))) : 0;
+  const candidates = [caret - 1, caret];
+  for (let candidateIndex = 0; candidateIndex < candidates.length; candidateIndex += 1) {
+    const position = candidates[candidateIndex];
+    if (position < 0 || position >= text.length) continue;
+    const char = text.charAt(position);
+    const openerClose = BRACKET_PAIRS[char];
+    if (openerClose !== undefined) {
+      let depth = 0;
+      for (let cursor = position + 1; cursor < text.length; cursor = cursor + 1) {
+        const current = text.charAt(cursor);
+        if (current === char) depth = depth + 1;
+        else if (current === openerClose) {
+          if (depth === 0) return { open: position, close: cursor };
+          depth = depth - 1;
+        }
+      }
+      continue;
+    }
+    const closerOpen = BRACKET_CLOSERS[char];
+    if (closerOpen !== undefined) {
+      let depth = 0;
+      for (let cursor = position - 1; cursor >= 0; cursor = cursor - 1) {
+        const current = text.charAt(cursor);
+        if (current === char) depth = depth + 1;
+        else if (current === closerOpen) {
+          if (depth === 0) return { open: cursor, close: position };
+          depth = depth - 1;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Auto-pair / over-type edit for one typed character (JetBrains behaviour).
+ * @param text - current text.
+ * @param start - selection start.
+ * @param end - selection end.
+ * @param char - typed single character.
+ * @returns the edit (or null when the character is not paired/over-typed).
+ */
+function autoPairEdit(text: string, start: number, end: number, char: string): any {
+  if (typeof text !== 'string' || typeof char !== 'string' || char.length !== 1) return null;
+  const from = Number.isFinite(start) ? Math.max(0, Math.min(text.length, Math.floor(start))) : 0;
+  const to = Number.isFinite(end) ? Math.max(from, Math.min(text.length, Math.floor(end))) : from;
+  const selection = text.slice(from, to);
+  const closing = BRACKET_PAIRS[char];
+  const isQuote = QUOTE_CHARS.has(char);
+  if (closing === undefined && isQuote === false) {
+    // Over-type a closing bracket when the same character is already ahead.
+    if (BRACKET_CLOSERS[char] !== undefined && text.charAt(from) === char) {
+      return { text: text, selectionStart: from + 1, selectionEnd: from + 1, skip: true };
+    }
+    return null;
+  }
+  if (selection.length > 0) {
+    const pair = isQuote ? char : closing;
+    const next = text.slice(0, from) + char + selection + pair + text.slice(to);
+    return { text: next, selectionStart: from + 1, selectionEnd: from + 1 + selection.length, skip: false };
+  }
+  if (text.charAt(from) === char) {
+    return { text: text, selectionStart: from + 1, selectionEnd: from + 1, skip: true };
+  }
+  // No pairing inside words (typing `'` as an apostrophe, or directly before
+  // an identifier) — that is how a plain-text editor feels.
+  const previousChar = from > 0 ? text.charAt(from - 1) : '';
+  const nextChar = text.charAt(from);
+  if (/[A-Za-z0-9_$]/.test(previousChar) && (isQuote || char === '{')) return null;
+  if (/[A-Za-z0-9_$]/.test(nextChar)) return null;
+  const pair = isQuote ? char : closing;
+  const next = text.slice(0, from) + char + pair + text.slice(from);
+  return { text: next, selectionStart: from + 1, selectionEnd: from + 1, skip: false };
+}
+
+/**
+ * Smart-indent edit for Enter: keep the current line's indentation and add one
+ * level after an opening bracket/paren (JetBrains behaviour).
+ * @param text - current text.
+ * @param start - selection start.
+ * @param end - selection end.
+ * @returns the edit, or null when the text does not need custom handling.
+ */
+function smartIndentEdit(text: string, start: number, end: number): any {
+  if (typeof text !== 'string') return null;
+  const from = Number.isFinite(start) ? Math.max(0, Math.min(text.length, Math.floor(start))) : 0;
+  const to = Number.isFinite(end) ? Math.max(from, Math.min(text.length, Math.floor(end))) : from;
+  const lineStart = text.lastIndexOf('\n', from - 1) + 1;
+  const before = text.slice(lineStart, from);
+  const indentMatch = /^[ \t]*/.exec(before);
+  const indent = indentMatch === null ? '' : indentMatch[0];
+  const extra = /[{[(]\s*$/.test(before) ? '  ' : '';
+  const insert = '\n' + indent + extra;
+  const next = text.slice(0, from) + insert + text.slice(to);
+  return { text: next, selectionStart: from + insert.length, selectionEnd: from + insert.length };
+}
+
+S.bracketMatch = bracketMatch;
+S.autoPairEdit = autoPairEdit;
+S.smartIndentEdit = smartIndentEdit;
 
 /**
  * Build JetBrains-style breadcrumb nodes for one path. Intermediate segments
@@ -1401,12 +1549,67 @@ function FileViewer(props: any) {
   const findCase = props.findCase === true;
   const findWhole = props.findWhole === true;
   const findRegex = props.findRegex === true;
+  const bracketRanges: Array<{ start: number, end: number }> = Array.isArray(props.bracketRanges) ? props.bracketRanges : [];
+  const bracketRef = useRef<any>(null);
+  const [editorScrollTop, setEditorScrollTop] = useState(0);
+
   const findHighlight = useMemo(
     function () {
       if (findOpen === false || findMatches.length === 0 || readOnly === true) return null;
       return renderFindHighlights(props.value, findMatches, findCurrent);
     },
     [findOpen, props.value, findMatches, findCurrent, readOnly],
+  );
+
+  const bracketHighlight = useMemo(
+    function () {
+      if (findOpen === true || readOnly === true || bracketRanges.length === 0) return null;
+      return renderFindHighlights(props.value, bracketRanges, 0);
+    },
+    [findOpen, props.value, bracketRanges, readOnly],
+  );
+
+  // Current line + indent guides for the visible window (JetBrains shows the
+  // guides only where a line is actually indented). Hidden in wrap mode and
+  // for non-editable bodies, where visual lines no longer match logical lines.
+  const guideChildren = useMemo(
+    function () {
+      if (wrap === true || readOnly === true) return null;
+      if (props.language === 'markdown' && props.markdownMode === 'preview') return null;
+      if (props.isSvg === true && props.svgMode !== 'source') return null;
+      const lines = String(props.value === null || props.value === undefined ? '' : props.value).split('\n');
+      const children: any[] = [];
+      const caretLine = props.caret !== null && props.caret !== undefined && Number.isFinite(props.caret.line) ? Math.floor(props.caret.line) : 0;
+      if (caretLine > 0 && caretLine <= lines.length) {
+        children.push(h('div', {
+          key: 'current-line',
+          style: Object.assign({}, ST_FILES.currentLine, {
+            top: EDITOR_PADDING_TOP + (caretLine - 1) * EDITOR_LINE_HEIGHT + 'px',
+            height: EDITOR_LINE_HEIGHT + 'px',
+          }),
+        }));
+      }
+      const firstVisible = Math.max(1, Math.floor((editorScrollTop - EDITOR_PADDING_TOP) / EDITOR_LINE_HEIGHT) + 1);
+      const lastVisible = Math.min(lines.length, firstVisible + 80);
+      for (let lineNumber = firstVisible; lineNumber <= lastVisible; lineNumber = lineNumber + 1) {
+        const text = lines[lineNumber - 1];
+        const indentMatch = /^[ \t]*/.exec(text);
+        const indentChars = indentMatch === null ? 0 : indentMatch[0].replace(/\t/g, '  ').length;
+        const levels = Math.min(10, Math.floor(indentChars / 2));
+        for (let level = 1; level <= levels; level = level + 1) {
+          children.push(h('div', {
+            key: 'guide-' + String(lineNumber) + '-' + String(level),
+            style: Object.assign({}, ST_FILES.guideLine, {
+              top: EDITOR_PADDING_TOP + (lineNumber - 1) * EDITOR_LINE_HEIGHT + 'px',
+              left: 12 + level * 15 + 'px',
+              height: EDITOR_LINE_HEIGHT + 'px',
+            }),
+          }));
+        }
+      }
+      return children;
+    },
+    [props.value, props.caret, editorScrollTop, wrap, readOnly],
   );
 
   useEffect(function () {
@@ -1507,6 +1710,8 @@ function FileViewer(props: any) {
       layer.style.transform = transform;
       const highlights = findRef.current;
       if (highlights !== null && highlights !== undefined) highlights.style.transform = transform;
+      const brackets = bracketRef.current;
+      if (brackets !== null && brackets !== undefined) brackets.style.transform = transform;
     },
     [textareaRef],
   );
@@ -1517,10 +1722,12 @@ function FileViewer(props: any) {
   useEffect(function () {
     syncSyntaxScroll();
     return undefined;
-  }, [props.path, syncSyntaxScroll, findHighlight]);
+  }, [props.path, syncSyntaxScroll, findHighlight, bracketRanges]);
 
   function handleEditorScroll(event: any) {
     syncSyntaxScroll();
+    const target = event !== null && event !== undefined ? event.target : null;
+    if (target !== null && target !== undefined && Number.isFinite(target.scrollTop)) setEditorScrollTop(Math.max(0, Math.floor(target.scrollTop)));
     if (typeof props.onScroll === 'function') props.onScroll(event);
   }
 
@@ -1924,6 +2131,9 @@ function FileViewer(props: any) {
           h(
             'div',
             { style: ST_FILES.codeRegion },
+            guideChildren !== null && guideChildren.length > 0
+              ? h('div', { style: ST_FILES.guideLayer, 'aria-hidden': true, 'data-editor-guides': '1' }, guideChildren)
+              : null,
             syntaxActive
               ? h(
                   'div',
@@ -1936,6 +2146,22 @@ function FileViewer(props: any) {
                     'pre',
                     { ref: syntaxRef, style: wrap ? Object.assign({}, ST_FILES.syntaxCode, ST_FILES.syntaxCodeWrap) : ST_FILES.syntaxCode },
                     syntaxChildren,
+                  ),
+                )
+              : null,
+            bracketHighlight !== null && syntaxActive
+              ? h(
+                  'div',
+                  { style: ST_FILES.findLayer, 'aria-hidden': true, 'data-bracket-highlight': '1' },
+                  h(
+                    'pre',
+                    {
+                      ref: bracketRef,
+                      style: wrap
+                        ? Object.assign({}, ST_FILES.findCode, ST_FILES.syntaxCodeWrap)
+                        : ST_FILES.findCode,
+                    },
+                    bracketHighlight,
                   ),
                 )
               : null,
@@ -2035,6 +2261,7 @@ function FilesView(props: any) {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<any>(null);
   const [caret, setCaret] = useState({ line: 1, column: 1 });
+  const [caretIndex, setCaretIndex] = useState(0);
   const [pendingLine, setPendingLine] = useState<any>(null);
   const [markdownMode, setMarkdownMode] = useState('source');
   const [svgMode, setSvgMode] = useState('image');
@@ -2441,6 +2668,19 @@ function FilesView(props: any) {
     [draft, isSvg],
   );
 
+  const bracketRanges = useMemo(
+    function () {
+      if (file.status !== 'loaded' || readOnly === true) return [];
+      const pair = typeof S.bracketMatch === 'function' ? S.bracketMatch(draft, caretIndex) : null;
+      if (pair === null || pair === undefined) return [];
+      return [
+        { start: pair.open, end: pair.open + 1 },
+        { start: pair.close, end: pair.close + 1 },
+      ];
+    },
+    [draft, caretIndex, file.status, readOnly],
+  );
+
   const save = useCallback(function () {
     if (selected === null || file.status !== 'loaded' || saving === true) return;
     const snapshot = file.data;
@@ -2500,6 +2740,7 @@ function FilesView(props: any) {
     if (target === null || target === undefined) return;
     setCaret(caretFromIndex(typeof target.value === 'string' ? target.value : draft, target.selectionStart));
     const start = Number.isFinite(target.selectionStart) ? target.selectionStart : 0;
+    setCaretIndex(start);
     const end = Number.isFinite(target.selectionEnd) ? target.selectionEnd : start;
     setSelection(end > start ? end - start : 0);
   }, [draft]);
@@ -2550,6 +2791,7 @@ function FilesView(props: any) {
       }
     }
     setCaret({ line: line, column: 1 });
+    setCaretIndex(start);
   }
 
   useEffect(function () {
@@ -2720,6 +2962,7 @@ function FilesView(props: any) {
     setDraft(value);
     if (target !== null && target !== undefined) setCaret(caretFromIndex(value, target.selectionStart));
     const start = target !== null && target !== undefined && Number.isFinite(target.selectionStart) ? target.selectionStart : 0;
+    setCaretIndex(start);
     const end = target !== null && target !== undefined && Number.isFinite(target.selectionEnd) ? target.selectionEnd : start;
     setSelection(end > start ? end - start : 0);
   }, []);
@@ -2808,6 +3051,107 @@ function FilesView(props: any) {
       event.preventDefault();
       closeGoto();
       return;
+    }
+    if (readOnly === false && file.status === 'loaded' && meta === false && event.altKey !== true) {
+      const textarea = textareaRef.current;
+      if (textarea !== null && textarea !== undefined) {
+        const value = typeof textarea.value === 'string' ? textarea.value : draft;
+        const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : 0;
+        const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
+        if (key === 'Enter' && event.shiftKey !== true) {
+          const result = typeof S.smartIndentEdit === 'function' ? S.smartIndentEdit(value, start, end) : null;
+          if (result !== null && result !== undefined) {
+            event.preventDefault();
+            setDraft(result.text);
+            setCaret(caretFromIndex(result.text, result.selectionStart));
+            setCaretIndex(result.selectionStart);
+            try {
+              setTimeout(function () {
+                const current = textareaRef.current;
+                if (current === null || current === undefined) return;
+                try {
+                  current.focus();
+                  current.setSelectionRange(result.selectionStart, result.selectionEnd);
+                } catch (error) {
+                  /* selection is a nicety */
+                }
+              }, 0);
+            } catch (error) {
+              /* no timer */
+            }
+            return;
+          }
+        }
+        if (typeof key === 'string' && key.length === 1) {
+          const result = typeof S.autoPairEdit === 'function' ? S.autoPairEdit(value, start, end, key) : null;
+          if (result !== null && result !== undefined) {
+            event.preventDefault();
+            if (result.skip === true) {
+              try {
+                textarea.setSelectionRange(result.selectionStart, result.selectionEnd);
+              } catch (error) {
+                /* selection is a nicety */
+              }
+              setCaret(caretFromIndex(value, result.selectionStart));
+              setCaretIndex(result.selectionStart);
+              return;
+            }
+            setDraft(result.text);
+            setCaret(caretFromIndex(result.text, result.selectionStart));
+            setCaretIndex(result.selectionStart);
+            try {
+              setTimeout(function () {
+                const current = textareaRef.current;
+                if (current === null || current === undefined) return;
+                try {
+                  current.focus();
+                  current.setSelectionRange(result.selectionStart, result.selectionEnd);
+                } catch (error) {
+                  /* selection is a nicety */
+                }
+              }, 0);
+            } catch (error) {
+              /* no timer */
+            }
+            return;
+          }
+        }
+      }
+    }
+    if (key === 'Tab' && event.shiftKey === true) {
+      const textarea = textareaRef.current;
+      if (textarea !== null && textarea !== undefined) {
+        event.preventDefault();
+        const value = typeof textarea.value === 'string' ? textarea.value : draft;
+        const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : 0;
+        const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = value.indexOf('\n', end);
+        if (lineEnd === -1) lineEnd = value.length;
+        const block = value.slice(lineStart, lineEnd);
+        const updated = block.split('\n').map(function (lineText: string) { return lineText.replace(/^ {1,2}/, ''); }).join('\n');
+        if (updated !== block) {
+          const next = value.slice(0, lineStart) + updated + value.slice(lineEnd);
+          const removed = block.length - updated.length;
+          setDraft(next);
+          try {
+            setTimeout(function () {
+              const current = textareaRef.current;
+              if (current === null || current === undefined) return;
+              try {
+                const nextStart = Math.max(lineStart, start - 2);
+                current.focus();
+                current.setSelectionRange(nextStart, Math.max(nextStart, end - removed));
+              } catch (error) {
+                /* selection is a nicety */
+              }
+            }, 0);
+          } catch (error) {
+            /* no timer */
+          }
+        }
+        return;
+      }
     }
     if (meta && (key === '/' || (key === '?' && event.shiftKey === true))) {
       if (toggleComments()) {
@@ -3038,6 +3382,7 @@ function FilesView(props: any) {
       onFindReplaceOpen: function () { setFindReplace(function (previous: boolean) { return previous !== true; }); },
       onFindReplaceOne: replaceCurrent,
       onFindReplaceAll: replaceAll,
+      bracketRanges: bracketRanges,
     });
   } else {
     viewer = h(S.EmptyState, { t: t, icon: S.Icons.Files, title: t('files.open.title'), body: t('files.open.body') });

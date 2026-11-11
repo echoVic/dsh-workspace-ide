@@ -483,6 +483,14 @@ the top-left corner — see that package's README.)
     header gets back/forward buttons and `Cmd/Ctrl+Alt+←/→` walks the stack (history
     navigation itself does not push).
   - Markdown/HTML just shown as text (this is a code viewer).
+  - Editing feel (JetBrains-style): typing an opening bracket / quote inserts its
+    pair (`S.autoPairEdit`), a closing bracket over-types an existing one instead of
+    duplicating it, selections are wrapped by the pair, Enter keeps the current
+    indentation and adds one level after `{`/`[`/`(` (`S.smartIndentEdit`), and
+    Shift+Tab outdents the selected lines. The bracket pair touching the caret is
+    highlighted through a transparent overlay (`S.bracketMatch`); the current line
+    and indent guides render behind the text in the same character grid (guides are
+    hidden in soft-wrap/read-only/preview modes where visual lines no longer match).
   - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+W closes the active tab; Ctrl/Cmd+P opens
     Quick Open; Ctrl/Cmd+Alt+Left/Right walk
     the navigation history; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;
