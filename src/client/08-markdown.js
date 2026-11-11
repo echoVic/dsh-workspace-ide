@@ -379,6 +379,7 @@ function parseMarkdown(source) {
  */
 function mdParseList(lines, startIndex) {
   const first = /^(\s*)([-*+]|\d+[.)])\s+/.exec(lines[startIndex]);
+  if (first === null) return { block: { type: 'list', ordered: false, items: [] }, nextIndex: startIndex };
   const baseIndent = first[1].length;
   const ordered = /^\d/.test(first[2]);
   const items = [];
@@ -392,6 +393,7 @@ function mdParseList(lines, startIndex) {
     if (indent > baseIndent + 1) break;
 
     let itemText = marker[3];
+    /** @type {boolean|null} */
     let task = null;
     const taskMatch = /^\[([ xX])\]\s*(.*)$/.exec(itemText);
     if (taskMatch !== null) {
@@ -399,13 +401,15 @@ function mdParseList(lines, startIndex) {
       itemText = taskMatch[2];
     }
     const bodyLines = [itemText];
+    /** @type {BlockNode|null} */
     let nested = null;
     index += 1;
     while (index < lines.length) {
       const next = lines[index];
       if (/^\s*$/.test(next)) break;
       const markerNext = /^(\s*)([-*+]|\d+[.)])\s+/.exec(next);
-      const indentNext = /^\s*/.exec(next)[0].length;
+      const indentMatch = /^\s*/.exec(next);
+      const indentNext = indentMatch === null ? 0 : indentMatch[0].length;
       if (markerNext !== null && indentNext <= baseIndent + 1) break;
       if (markerNext !== null && indentNext > baseIndent + 1) {
         const parsedNested = mdParseList(lines, index);
@@ -519,26 +523,26 @@ function renderMarkdownInline(nodes, keyPrefix) {
       continue;
     }
     if (node.type === 'strong') {
-      out.push(h('strong', { key: key }, renderMarkdownInline(node.children, key)));
+      out.push(h('strong', { key: key }, renderMarkdownInline(node.children || [], key)));
       continue;
     }
     if (node.type === 'em') {
-      out.push(h('em', { key: key }, renderMarkdownInline(node.children, key)));
+      out.push(h('em', { key: key }, renderMarkdownInline(node.children || [], key)));
       continue;
     }
     if (node.type === 'del') {
-      out.push(h('del', { key: key }, renderMarkdownInline(node.children, key)));
+      out.push(h('del', { key: key }, renderMarkdownInline(node.children || [], key)));
       continue;
     }
     if (node.type === 'link') {
       const url = mdSafeUrl(node.url);
-      if (url === null) out.push(h('span', { key: key }, renderMarkdownInline(node.children, key)));
+      if (url === null) out.push(h('span', { key: key }, renderMarkdownInline(node.children || [], key)));
       else
         out.push(
           h(
             'a',
             { key: key, href: url, target: '_blank', rel: 'noreferrer noopener', style: MD_STYLE.link },
-            renderMarkdownInline(node.children, key),
+            renderMarkdownInline(node.children || [], key),
           ),
         );
       continue;
@@ -554,6 +558,7 @@ function renderMarkdownInline(nodes, keyPrefix) {
 }
 
 function renderMarkdownCode(block, key) {
+  /** @type {Array<Array<Array<string>>>|null} */
   let lines = null;
   try {
     if (typeof S.highlightLines === 'function' && block.text.length <= MD_MAX_SOURCE_CHARS) {
@@ -594,11 +599,11 @@ function renderMarkdownBlocks(blocks, keyPrefix) {
     const block = blocks[index];
     const key = keyPrefix + '-' + String(index);
     if (block.type === 'heading') {
-      out.push(h('h' + String(block.depth), { key: key, style: MD_STYLE.heading(block.depth) }, renderMarkdownInline(block.inline, key)));
+      out.push(h('h' + String(block.depth), { key: key, style: MD_STYLE.heading(block.depth) }, renderMarkdownInline(block.inline || [], key)));
       continue;
     }
     if (block.type === 'paragraph') {
-      out.push(h('p', { key: key, style: MD_STYLE.paragraph }, renderMarkdownInline(block.inline, key)));
+      out.push(h('p', { key: key, style: MD_STYLE.paragraph }, renderMarkdownInline(block.inline || [], key)));
       continue;
     }
     if (block.type === 'code') {
@@ -606,11 +611,11 @@ function renderMarkdownBlocks(blocks, keyPrefix) {
       continue;
     }
     if (block.type === 'blockquote') {
-      out.push(h('blockquote', { key: key, style: MD_STYLE.blockquote }, renderMarkdownBlocks(block.blocks, key)));
+      out.push(h('blockquote', { key: key, style: MD_STYLE.blockquote }, renderMarkdownBlocks(block.blocks || [], key)));
       continue;
     }
     if (block.type === 'list') {
-      const items = block.items.map(function (item, itemIndex) {
+      const items = (block.items || []).map(function (item, itemIndex) {
         const itemKey = key + '-i' + String(itemIndex);
         const children = [];
         if (item.task !== null && item.task !== undefined) {
@@ -641,19 +646,20 @@ function renderMarkdownBlocks(blocks, keyPrefix) {
       continue;
     }
     if (block.type === 'table') {
-      const headerCells = block.header.map(function (cell, cellIndex) {
+      const align = block.align || [];
+      const headerCells = (block.header || []).map(function (cell, cellIndex) {
         return h(
           'th',
-          { key: key + '-h' + String(cellIndex), style: Object.assign({}, MD_STYLE.tableHeadCell, block.align[cellIndex] ? { textAlign: block.align[cellIndex] } : null) },
+          { key: key + '-h' + String(cellIndex), style: Object.assign({}, MD_STYLE.tableHeadCell, align[cellIndex] ? { textAlign: align[cellIndex] } : null) },
           renderMarkdownInline(cell, key + '-h' + String(cellIndex)),
         );
       });
-      const bodyRows = block.rows.map(function (row, rowIndex) {
+      const bodyRows = (block.rows || []).map(function (row, rowIndex) {
         const rowKey = key + '-r' + String(rowIndex);
         const cells = row.map(function (cell, cellIndex) {
           return h(
             'td',
-            { key: rowKey + '-c' + String(cellIndex), style: Object.assign({}, MD_STYLE.tableCell, block.align[cellIndex] ? { textAlign: block.align[cellIndex] } : null) },
+            { key: rowKey + '-c' + String(cellIndex), style: Object.assign({}, MD_STYLE.tableCell, align[cellIndex] ? { textAlign: align[cellIndex] } : null) },
             renderMarkdownInline(cell, rowKey + '-c' + String(cellIndex)),
           );
         });

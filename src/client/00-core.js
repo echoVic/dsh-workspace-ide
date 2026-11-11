@@ -907,11 +907,14 @@ const THEME_DEFS = Object.freeze([
  * Ordered theme list for the picker: `auto` first (label from the dictionary),
  * then the six VSCode palettes with their override table attached.
  */
-S.THEMES = [{ id: 'auto', label: null, palette: null }].concat(
-  THEME_DEFS.map(function (definition) {
+/** @type {Array<{id: string, label: string|null, palette: Record<string, string>|null}>} */
+const THEMES = [
+  { id: 'auto', label: null, palette: null },
+  ...THEME_DEFS.map(function (definition) {
     return { id: definition[0], label: definition[1], palette: THEME_PALETTES[definition[0]] };
   }),
-);
+];
+S.THEMES = THEMES;
 
 /**
  * @param {unknown} id - candidate theme id.
@@ -1033,6 +1036,7 @@ async function requestJson(url, options) {
     const reason = cause !== null && cause !== undefined && typeof cause.message === 'string' ? cause.message : 'network error';
     throw new RequestFailure('network', reason);
   }
+  /** @type {any} */
   let payload = null;
   try {
     payload = await response.json();
@@ -1729,7 +1733,7 @@ function SplitPane(props) {
   });
   const [dragging, setDragging] = useState(false);
   const [hoverHandle, setHoverHandle] = useState(false);
-  const startRef = useRef(null);
+  const startRef = useRef(/** @type {{x: number, width: number}|null} */ (null));
   const latestRef = useRef(width);
   latestRef.current = width;
 

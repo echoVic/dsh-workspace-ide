@@ -991,6 +991,7 @@ function scanCodeLine(line, state, config) {
     }
 
     // Operators (longest match wins), then punctuation, then bare plain text.
+    /** @type {string|null} */
     let operator = null;
     for (let slot = 0; slot < CODE_OPERATORS.length; slot = slot + 1) {
       if (line.startsWith(CODE_OPERATORS[slot], index)) {
@@ -1337,8 +1338,9 @@ function scanMarkdownLine(line, state) {
       return segments;
     }
     if (state.fenceConfig !== null && state.fenceConfig !== undefined) {
-      if (state.fenceMarkup === true) return scanMarkupLine(line, state.fenceState);
-      return scanCodeLine(line, state.fenceState, state.fenceConfig);
+      const fenceState = state.fenceState === null ? createScanState() : state.fenceState;
+      if (state.fenceMarkup === true) return scanMarkupLine(line, fenceState);
+      return scanCodeLine(line, fenceState, state.fenceConfig);
     }
     push('plain', line);
     return segments;

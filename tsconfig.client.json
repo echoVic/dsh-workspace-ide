@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "strictNullChecks": true
+  },
+  "include": [
+    "src/client/00-core.js",
+    "src/client/05-icons.js",
+    "src/client/07-highlight.js",
+    "src/client/08-markdown.js",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "lib/client.js",
+    "node_modules"
+  ]
+}

@@ -107,7 +107,7 @@ const LUCIDE_ICONS = Object.freeze({
  * @returns {number} rendered pixel size.
  */
 function iconSize(props, fallback) {
-  const size = Number.isFinite(fallback) && fallback > 0 ? fallback : 16;
+  const size = typeof fallback === 'number' && Number.isFinite(fallback) && fallback > 0 ? fallback : 16;
   if (props !== null && props !== undefined && Number.isFinite(props.size) && props.size > 0) return props.size;
   return size;
 }
@@ -166,7 +166,7 @@ function renderLucide(name, props, options) {
  * Build one icon component from the registry.
  * @param {string} name - Lucide registry key.
  * @param {IconOptions} [options] - rendering options.
- * @returns {(props?: IconProps) => any} React component receiving `{size, active}`.
+ * @returns {import('react').FunctionComponent<IconProps>} React component receiving `{size, active}`.
  */
 function makeIcon(name, options) {
   return function LucideIcon(props) {
