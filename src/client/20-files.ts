@@ -536,6 +536,107 @@ const ST_FILES = {
     cursor: 'pointer',
     whiteSpace: 'nowrap',
   },
+  // In-file find / replace bar (⌘F / ⌘H), stacked rows: find, optional replace.
+  findBar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    flex: '0 0 auto',
+    padding: '6px 12px',
+    boxSizing: 'border-box',
+    borderBottom: '1px solid ' + C.border2,
+    background: C.platform,
+  },
+  findRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
+  },
+  findInput: {
+    width: 240,
+    padding: '3px 7px',
+    borderRadius: 4,
+    border: '1px solid ' + C.border1,
+    background: C.base,
+    color: C.text,
+    fontFamily: FONT_MONO,
+    fontSize: 12,
+    outline: 'none',
+  },
+  findToggle: {
+    border: '1px solid ' + C.border1,
+    background: 'transparent',
+    color: C.textTertiary,
+    fontFamily: FONT_MONO,
+    fontSize: 11,
+    lineHeight: '18px',
+    padding: '0 5px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  },
+  findToggleActive: {
+    background: C.activeBg,
+    color: C.text,
+    borderColor: C.border2,
+  },
+  findCount: {
+    color: C.textTertiary,
+    fontFamily: FONT_MONO,
+    fontSize: 11,
+    whiteSpace: 'nowrap',
+  },
+  findError: {
+    color: C.error,
+    fontFamily: FONT_UI,
+    fontSize: 11,
+    whiteSpace: 'nowrap',
+  },
+  // All-match highlight layer: same character grid as the textarea, text
+  // transparent, only the match spans paint a background. The current match
+  // uses the accent fill; the rest use the neutral active surface.
+  findLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    pointerEvents: 'none',
+    zIndex: 0,
+  },
+  findCode: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    margin: 0,
+    padding: EDITOR_PADDING_TOP + 'px 16px 24px 12px',
+    fontFamily: FONT_MONO,
+    fontSize: 12.5,
+    lineHeight: EDITOR_LINE_HEIGHT + 'px',
+    color: 'transparent',
+    whiteSpace: 'pre',
+    tabSize: 2,
+    fontVariantLigatures: 'none',
+    fontKerning: 'none',
+    boxSizing: 'border-box',
+    willChange: 'transform',
+  },
+  findMark: {
+    background: C.activeBg,
+    borderRadius: 2,
+  },
+  findMarkCurrent: {
+    background: C.accent,
+    borderRadius: 2,
+  },
+  findHint: {
+    color: C.textTertiary,
+    fontFamily: FONT_UI,
+    fontSize: 11,
+    whiteSpace: 'nowrap',
+  },
 };
 
 /**
@@ -553,6 +654,126 @@ function countLines(text: string): number {
   }
   return lines;
 }
+
+/** One in-file find hit: half-open `[start, end)` character range. */
+interface FindRange {
+  start: number;
+  end: number;
+}
+
+/** Find options mirrored by the find bar toggles. */
+interface FindOptions {
+  caseSensitive?: boolean;
+  whole?: boolean;
+  regex?: boolean;
+}
+
+/** Cap the match list so a pathological query cannot stall the render. */
+const FIND_MATCH_LIMIT = 5000;
+
+/** Escape a literal query so it is a valid RegExp source. */
+function escapeFindQuery(query: string): string {
+  return query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Find all query hits in `text` (JetBrains-style: literal or regex, optional
+ * case sensitivity and whole-word matching). Invalid regexes answer `[]`.
+ * @param text - haystack.
+ * @param query - needle / regex source.
+ * @param options - find toggles.
+ * @returns match ranges in document order (capped at FIND_MATCH_LIMIT).
+ */
+function findTextMatches(text: string, query: string, options?: FindOptions): FindRange[] {
+  if (typeof text !== 'string' || typeof query !== 'string' || query.length === 0) return [];
+  const opts: FindOptions = options !== null && typeof options === 'object' ? options : {};
+  let source = opts.regex === true ? query : escapeFindQuery(query);
+  if (opts.whole === true) source = '(?<![\\w])(?:' + source + ')(?![\\w])';
+  let pattern: RegExp;
+  try {
+    pattern = new RegExp(source, opts.caseSensitive === true ? 'g' : 'gi');
+  } catch (error) {
+    return [];
+  }
+  const matches: FindRange[] = [];
+  for (;;) {
+    const found = pattern.exec(text);
+    if (found === null) break;
+    if (found[0].length === 0) {
+      pattern.lastIndex = pattern.lastIndex + 1;
+      if (pattern.lastIndex > text.length) break;
+      continue;
+    }
+    matches.push({ start: found.index, end: found.index + found[0].length });
+    if (matches.length >= FIND_MATCH_LIMIT) break;
+  }
+  return matches;
+}
+
+/**
+ * Group document-order matches by line for the highlight layer.
+ * @param text - current editor text.
+ * @param matches - matches from findTextMatches.
+ * @returns per-line ranges with their original match index.
+ */
+function groupFindMatches(text: string, matches: FindRange[]): Array<Array<{ start: number, end: number, index: number }>> {
+  const groups: Array<Array<{ start: number, end: number, index: number }>> = [];
+  if (typeof text !== 'string' || !Array.isArray(matches) || matches.length === 0) return groups;
+  const lineStarts = [0];
+  for (let index = 0; index < text.length; index = index + 1) {
+    if (text.charCodeAt(index) === 10) lineStarts.push(index + 1);
+  }
+  let line = 0;
+  for (let index = 0; index < matches.length; index = index + 1) {
+    const match = matches[index];
+    while (line + 1 < lineStarts.length && lineStarts[line + 1] <= match.start) line = line + 1;
+    const start = match.start - lineStarts[line];
+    const end = Math.min(match.end - lineStarts[line], text.length - lineStarts[line]);
+    if (groups[line] === undefined) groups[line] = [];
+    groups[line].push({ start: start, end: end, index: index });
+  }
+  return groups;
+}
+
+/**
+ * Build the highlight-layer children: plain text runs are transparent, match
+ * runs paint a background, and the current match uses the accent fill.
+ * @param text - current editor text.
+ * @param matches - document-order matches.
+ * @param current - index of the current match.
+ * @returns React children for one absolute <pre>.
+ */
+function renderFindHighlights(text: string, matches: FindRange[], current: number): any[] {
+  const groups = groupFindMatches(text, matches);
+  const lines = text.split('\n');
+  const children: any[] = [];
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex = lineIndex + 1) {
+    const line = lines[lineIndex];
+    const ranges = groups[lineIndex] === undefined ? [] : groups[lineIndex];
+    let cursor = 0;
+    for (let rangeIndex = 0; rangeIndex < ranges.length; rangeIndex = rangeIndex + 1) {
+      const range = ranges[rangeIndex];
+      if (range.start > cursor) children.push(line.slice(cursor, range.start));
+      children.push(
+        h(
+          'span',
+          {
+            key: 'find-' + String(lineIndex) + '-' + String(range.index),
+            style: range.index === current ? ST_FILES.findMarkCurrent : ST_FILES.findMark,
+          },
+          line.slice(range.start, range.end),
+        ),
+      );
+      cursor = range.end;
+    }
+    if (cursor < line.length) children.push(line.slice(cursor));
+    if (lineIndex < lines.length - 1) children.push('\n');
+  }
+  return children;
+}
+
+S.findTextMatches = findTextMatches;
+S.groupFindMatches = groupFindMatches;
 
 /**
  * Build JetBrains-style breadcrumb nodes for one path. Intermediate segments
@@ -858,6 +1079,37 @@ function FileViewer(props: any) {
   const selection = Number.isFinite(props.selection) && props.selection > 0 ? Math.floor(props.selection) : 0;
   const eolLabel = props.eol === '\r\n' ? 'CRLF' : 'LF';
   const gotoInputRef = useRef<any>(null);
+  const findInputRef = useRef<any>(null);
+  const findRef = useRef<any>(null);
+  const findOpen = props.findOpen === true;
+  const findReplace = props.findReplace === true;
+  const findQuery = typeof props.findQuery === 'string' ? props.findQuery : '';
+  const findReplacement = typeof props.findReplacement === 'string' ? props.findReplacement : '';
+  const findMatches: FindRange[] = Array.isArray(props.findMatches) ? props.findMatches : [];
+  const findCurrent = Number.isFinite(props.findCurrent) ? Math.max(0, Math.floor(props.findCurrent)) : 0;
+  const findCase = props.findCase === true;
+  const findWhole = props.findWhole === true;
+  const findRegex = props.findRegex === true;
+  const findHighlight = useMemo(
+    function () {
+      if (findOpen === false || findMatches.length === 0 || readOnly === true) return null;
+      return renderFindHighlights(props.value, findMatches, findCurrent);
+    },
+    [findOpen, props.value, findMatches, findCurrent, readOnly],
+  );
+
+  useEffect(function () {
+    if (findOpen === false) return undefined;
+    const input = findInputRef.current;
+    if (input === null || input === undefined || typeof input.focus !== 'function') return undefined;
+    try {
+      input.focus();
+      input.select();
+    } catch (error) {
+      /* focus is a nicety */
+    }
+    return undefined;
+  }, [findOpen]);
 
   useEffect(function () {
     if (gotoOpen === false) return undefined;
@@ -940,7 +1192,10 @@ function FileViewer(props: any) {
       if (layer === null || layer === undefined || textarea === null || textarea === undefined) return;
       const left = Number.isFinite(textarea.scrollLeft) ? textarea.scrollLeft : 0;
       const top = Number.isFinite(textarea.scrollTop) ? textarea.scrollTop : 0;
-      layer.style.transform = 'translate(' + String(-left) + 'px, ' + String(-top) + 'px)';
+      const transform = 'translate(' + String(-left) + 'px, ' + String(-top) + 'px)';
+      layer.style.transform = transform;
+      const highlights = findRef.current;
+      if (highlights !== null && highlights !== undefined) highlights.style.transform = transform;
     },
     [textareaRef],
   );
@@ -951,7 +1206,7 @@ function FileViewer(props: any) {
   useEffect(function () {
     syncSyntaxScroll();
     return undefined;
-  }, [props.path, syncSyntaxScroll]);
+  }, [props.path, syncSyntaxScroll, findHighlight]);
 
   function handleEditorScroll(event: any) {
     syncSyntaxScroll();
@@ -1062,6 +1317,19 @@ function FileViewer(props: any) {
             h(S.Icons.GoToLine, { size: 13 }),
           )
         : null,
+      typeof props.onFindOpen === 'function'
+        ? h(
+            S.ToolButton,
+            {
+              title: t('find.label'),
+              ariaLabel: t('find.label'),
+              active: findOpen,
+              style: { width: 24, height: 24 },
+              onClick: props.onFindOpen,
+            },
+            h(S.Icons.Search, { size: 13 }),
+          )
+        : null,
       readOnly
         ? null
         : h(
@@ -1122,6 +1390,147 @@ function FileViewer(props: any) {
             { title: t('action.dismiss'), ariaLabel: t('action.dismiss'), style: { width: 24, height: 24 }, onClick: props.onGotoClose },
             h(S.Icons.Close, { size: 12 }),
           ),
+        )
+      : null,
+    findOpen
+      ? h(
+          'div',
+          { style: ST_FILES.findBar, role: 'search', 'aria-label': t('find.label') },
+          h(
+            'div',
+            { style: ST_FILES.findRow },
+            h('input', {
+              ref: findInputRef,
+              type: 'text',
+              value: findQuery,
+              placeholder: t('find.placeholder'),
+              'aria-label': t('find.placeholder'),
+              style: ST_FILES.findInput,
+              onChange: function (event: any) {
+                if (typeof props.onFindChange === 'function') props.onFindChange(event);
+              },
+              onKeyDown: function (event: any) {
+                if (event === null || event === undefined) return;
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  const handler = event.shiftKey === true ? props.onFindPrev : props.onFindNext;
+                  if (typeof handler === 'function') handler();
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  if (typeof props.onFindClose === 'function') props.onFindClose();
+                }
+              },
+            }),
+            h(
+              'span',
+              { style: ST_FILES.findCount },
+              findQuery.length === 0
+                ? ''
+                : findMatches.length === 0
+                  ? t('find.noMatches')
+                  : t('find.count', { current: String(findCurrent + 1), total: String(findMatches.length) }),
+            ),
+            h(
+              S.ToolButton,
+              { title: t('find.prev'), ariaLabel: t('find.prev'), style: { width: 24, height: 24 }, onClick: props.onFindPrev },
+              h('span', { style: { fontSize: 11 } }, '↑'),
+            ),
+            h(
+              S.ToolButton,
+              { title: t('find.next'), ariaLabel: t('find.next'), style: { width: 24, height: 24 }, onClick: props.onFindNext },
+              h('span', { style: { fontSize: 11 } }, '↓'),
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                title: t('find.case'),
+                'aria-label': t('find.case'),
+                'aria-pressed': findCase ? 'true' : 'false',
+                'data-find-toggle': 'case',
+                style: Object.assign({}, ST_FILES.findToggle, findCase ? ST_FILES.findToggleActive : null),
+                onClick: function () { if (typeof props.onFindOption === 'function') props.onFindOption('case'); },
+              },
+              'Aa',
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                title: t('find.whole'),
+                'aria-label': t('find.whole'),
+                'aria-pressed': findWhole ? 'true' : 'false',
+                'data-find-toggle': 'whole',
+                style: Object.assign({}, ST_FILES.findToggle, findWhole ? ST_FILES.findToggleActive : null),
+                onClick: function () { if (typeof props.onFindOption === 'function') props.onFindOption('whole'); },
+              },
+              'ab',
+            ),
+            h(
+              'button',
+              {
+                type: 'button',
+                title: t('find.regex'),
+                'aria-label': t('find.regex'),
+                'aria-pressed': findRegex ? 'true' : 'false',
+                'data-find-toggle': 'regex',
+                style: Object.assign({}, ST_FILES.findToggle, findRegex ? ST_FILES.findToggleActive : null),
+                onClick: function () { if (typeof props.onFindOption === 'function') props.onFindOption('regex'); },
+              },
+              '.*',
+            ),
+            h('span', { style: { flex: '1 1 auto' } }),
+            typeof props.onFindReplaceOpen === 'function'
+              ? h(
+                  S.ToolButton,
+                  { title: t('find.toggleReplace'), ariaLabel: t('find.toggleReplace'), active: findReplace, style: { width: 24, height: 24 }, onClick: props.onFindReplaceOpen },
+                  h('span', { style: { fontSize: 11 } }, '⇄'),
+                )
+              : null,
+            h(
+              S.ToolButton,
+              { title: t('find.close'), ariaLabel: t('find.close'), style: { width: 24, height: 24 }, onClick: props.onFindClose },
+              h(S.Icons.Close, { size: 12 }),
+            ),
+          ),
+          findReplace
+            ? h(
+                'div',
+                { style: ST_FILES.findRow },
+                h('input', {
+                  type: 'text',
+                  value: findReplacement,
+                  placeholder: t('find.replacePlaceholder'),
+                  'aria-label': t('find.replacePlaceholder'),
+                  style: ST_FILES.findInput,
+                  onChange: function (event: any) {
+                    if (typeof props.onFindReplacementChange === 'function') props.onFindReplacementChange(event);
+                  },
+                  onKeyDown: function (event: any) {
+                    if (event === null || event === undefined) return;
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      if (typeof props.onFindReplaceOne === 'function') props.onFindReplaceOne();
+                    } else if (event.key === 'Escape') {
+                      event.preventDefault();
+                      if (typeof props.onFindClose === 'function') props.onFindClose();
+                    }
+                  },
+                }),
+                h(
+                  S.GhostButton,
+                  { title: t('find.replace'), ariaLabel: t('find.replace'), onClick: props.onFindReplaceOne },
+                  t('find.replace'),
+                ),
+                h(
+                  S.GhostButton,
+                  { title: t('find.replaceAll'), ariaLabel: t('find.replaceAll'), onClick: props.onFindReplaceAll },
+                  t('find.replaceAll'),
+                ),
+                h('span', { style: { flex: '1 1 auto' } }),
+                h('span', { style: ST_FILES.findHint }, t('find.replaceHint')),
+              )
+            : null,
         )
       : null,
     svgImageMode
@@ -1190,6 +1599,22 @@ function FileViewer(props: any) {
                     'pre',
                     { ref: syntaxRef, style: wrap ? Object.assign({}, ST_FILES.syntaxCode, ST_FILES.syntaxCodeWrap) : ST_FILES.syntaxCode },
                     syntaxChildren,
+                  ),
+                )
+              : null,
+            findHighlight !== null && syntaxActive
+              ? h(
+                  'div',
+                  { style: ST_FILES.findLayer, 'aria-hidden': true, 'data-find-highlight': '1' },
+                  h(
+                    'pre',
+                    {
+                      ref: findRef,
+                      style: wrap
+                        ? Object.assign({}, ST_FILES.findCode, ST_FILES.syntaxCodeWrap)
+                        : ST_FILES.findCode,
+                    },
+                    findHighlight,
                   ),
                 )
               : null,
@@ -1282,6 +1707,14 @@ function FilesView(props: any) {
   const [gotoOpen, setGotoOpen] = useState(false);
   const [gotoValue, setGotoValue] = useState('');
   const [selection, setSelection] = useState(0);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findReplace, setFindReplace] = useState(false);
+  const [findQuery, setFindQuery] = useState('');
+  const [findReplacement, setFindReplacement] = useState('');
+  const [findCase, setFindCase] = useState(false);
+  const [findWhole, setFindWhole] = useState(false);
+  const [findRegex, setFindRegex] = useState(false);
+  const [findCurrent, setFindCurrent] = useState(0);
 
   const textareaRef = useRef<any>(null);
   const gutterRef = useRef<any>(null);
@@ -1600,6 +2033,120 @@ function FilesView(props: any) {
     applyLineJump(line);
   }, [gotoValue, lineCount, showNotice, t]);
 
+  const findMatches = useMemo(
+    function () {
+      if (findOpen === false || findQuery.length === 0) return [];
+      return typeof S.findTextMatches === 'function'
+        ? S.findTextMatches(draft, findQuery, { caseSensitive: findCase, whole: findWhole, regex: findRegex })
+        : [];
+    },
+    [findOpen, findQuery, findCase, findWhole, findRegex, draft],
+  );
+
+  /** Select one match in the textarea without taking focus away from the bar. */
+  function selectFindMatch(match: any) {
+    const textarea = textareaRef.current;
+    if (textarea === null || textarea === undefined || match === null || match === undefined) return;
+    try {
+      textarea.setSelectionRange(match.start, match.end);
+    } catch (error) {
+      /* selection is a nicety */
+    }
+    const value = typeof textarea.value === 'string' ? textarea.value : draft;
+    let line = 1;
+    for (let index = 0; index < match.start && index < value.length; index = index + 1) {
+      if (value.charCodeAt(index) === 10) line = line + 1;
+    }
+    const top = Math.max(0, (line - 1) * EDITOR_LINE_HEIGHT - 4 * EDITOR_LINE_HEIGHT);
+    try {
+      textarea.scrollTop = top;
+    } catch (error) {
+      /* scroll is a nicety */
+    }
+    const gutter = gutterRef.current;
+    if (gutter !== null && gutter !== undefined) {
+      try {
+        gutter.scrollTop = textarea.scrollTop;
+      } catch (error) {
+        /* ignore */
+      }
+    }
+  }
+
+  const openFind = useCallback(function (withReplace: any) {
+    setFindOpen(true);
+    if (withReplace === true) setFindReplace(true);
+    setFindQuery(function (previous: string) {
+      if (previous.length > 0) return previous;
+      const textarea = textareaRef.current;
+      if (textarea === null || textarea === undefined) return previous;
+      const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : 0;
+      const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
+      if (end <= start || end - start > 200) return previous;
+      const value = typeof textarea.value === 'string' ? textarea.value : draft;
+      return value.slice(start, end);
+    });
+  }, [draft]);
+
+  const closeFind = useCallback(function () {
+    setFindOpen(false);
+    setFindReplace(false);
+  }, []);
+
+  const changeFind = useCallback(function (event: any) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    setFindQuery(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
+    setFindCurrent(0);
+  }, []);
+
+  const changeReplacement = useCallback(function (event: any) {
+    const target = event !== null && event !== undefined ? event.target : null;
+    setFindReplacement(target !== null && target !== undefined && typeof target.value === 'string' ? target.value : '');
+  }, []);
+
+  const toggleFindOption = useCallback(function (name: any) {
+    if (name === 'case') setFindCase(function (previous: boolean) { return previous !== true; });
+    else if (name === 'whole') setFindWhole(function (previous: boolean) { return previous !== true; });
+    else if (name === 'regex') setFindRegex(function (previous: boolean) { return previous !== true; });
+    setFindCurrent(0);
+  }, []);
+
+  const nextFind = useCallback(function (direction: any) {
+    if (findMatches.length === 0) return;
+    const step = direction === -1 ? -1 : 1;
+    setFindCurrent(function (previous: number) {
+      const next = (previous + step + findMatches.length) % findMatches.length;
+      selectFindMatch(findMatches[next]);
+      return next;
+    });
+  }, [findMatches, draft]);
+
+  const replaceCurrent = useCallback(function () {
+    if (findOpen === false || findMatches.length === 0 || readOnly === true) return;
+    const match = findMatches[Math.min(findCurrent, findMatches.length - 1)];
+    if (match === null || match === undefined) return;
+    setDraft(draft.slice(0, match.start) + findReplacement + draft.slice(match.end));
+    showNotice({ kind: 'success', text: t('find.replaced') });
+  }, [findOpen, findMatches, findCurrent, draft, findReplacement, readOnly, showNotice, t]);
+
+  const replaceAll = useCallback(function () {
+    if (findOpen === false || findMatches.length === 0 || readOnly === true) return;
+    let next = draft;
+    for (let index = findMatches.length - 1; index >= 0; index = index - 1) {
+      const match = findMatches[index];
+      next = next.slice(0, match.start) + findReplacement + next.slice(match.end);
+    }
+    setDraft(next);
+    showNotice({ kind: 'success', text: t('find.replacedAll', { count: S.formatCount(findMatches.length) }) });
+  }, [findOpen, findMatches, draft, findReplacement, readOnly, showNotice, t]);
+
+  useEffect(function () {
+    if (findOpen === false || findMatches.length === 0) return undefined;
+    const index = findCurrent >= findMatches.length ? findMatches.length - 1 : findCurrent;
+    selectFindMatch(findMatches[index]);
+    return undefined;
+  }, [findOpen, findCurrent, findMatches]);
+
   const openToken =
     props.openRequest !== null && props.openRequest !== undefined && Number.isFinite(props.openRequest.token)
       ? props.openRequest.token
@@ -1656,12 +2203,27 @@ function FilesView(props: any) {
       /* no timer available */
     }
     return true;
-  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap]);
+  }, [draft, file.status, language, readOnly, gotoOpen, openGoto, closeGoto, toggleWrap, findOpen, openFind, closeFind]);
 
   const onKeyDown = useCallback(function (event: any) {
     if (event === null || event === undefined) return;
     const key = event.key;
     const meta = event.metaKey === true || event.ctrlKey === true;
+    if (meta && (key === 'f' || key === 'F')) {
+      event.preventDefault();
+      openFind(false);
+      return;
+    }
+    if (meta && (key === 'h' || key === 'H')) {
+      event.preventDefault();
+      openFind(true);
+      return;
+    }
+    if (key === 'Escape' && findOpen === true) {
+      event.preventDefault();
+      closeFind();
+      return;
+    }
     if (meta && (key === 'g' || key === 'G')) {
       event.preventDefault();
       openGoto();
@@ -1874,10 +2436,29 @@ function FilesView(props: any) {
       onGotoChange: changeGoto,
       onGotoSubmit: submitGoto,
       onGotoClose: closeGoto,
+      onFindOpen: function () { openFind(false); },
       selection: selection,
       eol: eol,
       onReload: reloadSelected,
       onBreadcrumb: revealPath,
+      findOpen: findOpen,
+      findReplace: findReplace,
+      findQuery: findQuery,
+      findReplacement: findReplacement,
+      findMatches: findMatches,
+      findCurrent: findCurrent,
+      findCase: findCase,
+      findWhole: findWhole,
+      findRegex: findRegex,
+      onFindChange: changeFind,
+      onFindReplacementChange: changeReplacement,
+      onFindOption: toggleFindOption,
+      onFindNext: function () { nextFind(1); },
+      onFindPrev: function () { nextFind(-1); },
+      onFindClose: closeFind,
+      onFindReplaceOpen: function () { setFindReplace(function (previous: boolean) { return previous !== true; }); },
+      onFindReplaceOne: replaceCurrent,
+      onFindReplaceAll: replaceAll,
     });
   } else {
     viewer = h(S.EmptyState, { t: t, icon: S.Icons.Files, title: t('files.open.title'), body: t('files.open.body') });

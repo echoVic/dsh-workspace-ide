@@ -158,6 +158,8 @@ S.face = {
       classifyDiffLine: S.classifyDiffLine,
       groupChanges: S.groupChanges,
       splitMatch: S.splitMatch,
+      findTextMatches: S.findTextMatches,
+      groupFindMatches: S.groupFindMatches,
       normalizeWorkspaces: S.normalizeWorkspaces,
       pickRoot: S.pickRoot,
       getCurrentSessionId: S.getCurrentSessionId,

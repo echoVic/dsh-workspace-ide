@@ -451,11 +451,22 @@ the top-left corner — see that package's README.)
     The preference is persisted in localStorage (`dsh-workspace-ide:editor-wrap`).
   - Go-to-line (`Cmd/Ctrl+G`, toolbar button): a slim bar above the editor takes a line
     number, Enter jumps (selects the line, scrolls it into view), Escape closes it.
+  - Find / Replace (`Cmd/Ctrl+F` / `Cmd/Ctrl+H` or the toolbar button): a two-row bar
+    with a query field, match counter (`n/m`), previous/next, case / whole-word / regex
+    toggles, and a replacement row (`Replace`, `Replace All`). `S.findTextMatches` is the
+    pure engine (literal or regex; lookbehind-based whole-word; capped at 5000 hits);
+    `S.groupFindMatches` maps hits to line-relative ranges. An absolute highlight layer
+    paints every match behind the transparent textarea (accent fill for the current hit),
+    follows the same scroll transform in both wrap modes, and the current match is
+    selected/scrolled without stealing focus from the bar. Empty query / invalid regex
+    answer no matches instead of throwing.
   - Status bar: caret line/column, selection size, language, EOL (`LF`/`CRLF`), line count,
     encoding, a clickable soft-wrap state and the read-only lock.
   - Markdown/HTML just shown as text (this is a code viewer).
-  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+G opens Go-to-Line; Alt+Z toggles soft-wrap;
-    Escape closes the Go-to-Line bar, otherwise cancels dirty state (reload from disk);
+  - Keyboard: Ctrl/Cmd+S saves; Ctrl/Cmd+G opens Go-to-Line; Ctrl/Cmd+F opens Find;
+    Ctrl/Cmd+H opens Find with the replace row; Alt+Z toggles soft-wrap; in the find bar
+    Enter/Shift+Enter walk matches and Escape closes it; Escape otherwise closes
+    Go-to-Line or cancels dirty state (reload from disk);
     Cmd/Ctrl+Shift+V toggles the Markdown preview (Markdown files) or the image/source
     view (SVG files); Cmd/Ctrl+/ toggles comments via
     `S.toggleLineComments(text, start, end, language)`.

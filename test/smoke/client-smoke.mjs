@@ -568,6 +568,16 @@ function run() {
   ]);
   assert.deepEqual(T.splitMatch('abc', 1, 9), [{ text: 'abc', hit: true }]);
   assert.deepEqual(T.splitMatch('abc', 0, 3), [{ text: 'abc', hit: false }]);
+  assert.equal(T.findTextMatches('aAa b a', 'a', {}).length, 4, 'case-insensitive find');
+  assert.equal(T.findTextMatches('aAa b a', 'a', { caseSensitive: true }).length, 3, 'case-sensitive find');
+  assert.equal(T.findTextMatches('a ab a', 'a', { whole: true }).length, 2, 'whole-word find');
+  assert.deepEqual(T.findTextMatches('x1 x22', 'x\\d+', { regex: true }).map(function (match) { return [match.start, match.end]; }), [[0, 2], [3, 6]], 'regex find');
+  assert.deepEqual(T.findTextMatches('abc', '(', { regex: true }), [], 'invalid regex answers no matches');
+  assert.deepEqual(T.findTextMatches('abc', '', {}), [], 'empty query answers no matches');
+  const groupedFind = T.groupFindMatches('ab\nab', [{ start: 0, end: 2 }, { start: 3, end: 5 }]);
+  assert.equal(groupedFind[0].length, 1, 'first line has one match');
+  assert.equal(groupedFind[1][0].start, 0, 'second match is line-relative');
+  assert.equal(groupedFind[1][0].index, 1, 'match index survives grouping');
   assert.equal(T.Routes.workspaces, 'api/dsh-workspace-ide.workspaces', 'routes must be browser-relative');
   ok('formatBytes / countLines / lineNumbersText / caretFromIndex / splitMatch / routes');
 
@@ -941,6 +951,64 @@ function run() {
   assert.equal(chromeRender.texts.includes('files.wrapOn'), true, 'status bar shows the soft-wrap state');
   assert.equal(chromeRender.texts.includes('typescript'), true, 'status bar shows the language chip');
   ok('FileViewer: soft-wrap, go-to-line bar and clickable breadcrumbs');
+
+  const findRender = renderTree(T.FileViewer({
+    t: keyTranslator,
+    path: 'src/client/00-core.ts',
+    value: 'const a = 1;\nconst b = a;\n',
+    lineCount: 2,
+    language: 'typescript',
+    size: 30,
+    mtimeMs: 0,
+    dirty: false,
+    saving: false,
+    readOnly: false,
+    tooBig: false,
+    truncated: false,
+    notice: null,
+    caret: { line: 1, column: 1 },
+    selection: 0,
+    eol: '\n',
+    textareaRef: { current: null },
+    gutterRef: { current: null },
+    onChange: function () {},
+    onKeyDown: function () {},
+    onScroll: function () {},
+    onSelect: function () {},
+    onSave: function () {},
+    onDismissNotice: function () {},
+    findOpen: true,
+    findReplace: true,
+    findQuery: 'a',
+    findReplacement: 'z',
+    findMatches: [{ start: 6, end: 7 }, { start: 23, end: 24 }],
+    findCurrent: 0,
+    findCase: true,
+    findWhole: true,
+    findRegex: false,
+    onFindChange: function () {},
+    onFindReplacementChange: function () {},
+    onFindOption: function () {},
+    onFindNext: function () {},
+    onFindPrev: function () {},
+    onFindClose: function () {},
+    onFindReplaceOpen: function () {},
+    onFindReplaceOne: function () {},
+    onFindReplaceAll: function () {},
+  }));
+  assert.equal(findHost(findRender, 'input').length, 2, 'find + replace inputs');
+  const findToggles = findHost(findRender, 'button').filter(function (host) {
+    return host.props['data-find-toggle'] !== undefined;
+  });
+  assert.equal(findToggles.length, 3, 'case / whole / regex toggles');
+  const caseToggle = findToggles.filter(function (host) { return host.props['data-find-toggle'] === 'case'; })[0];
+  assert.equal(caseToggle.props['aria-pressed'], 'true', 'the case toggle reflects the option');
+  const findHighlights = findRender.hosts.filter(function (host) {
+    return host.props['data-find-highlight'] === '1';
+  });
+  assert.equal(findHighlights.length, 1, 'the editor renders one all-match highlight layer');
+  assert.equal(findRender.texts.some(function (text) { return text.indexOf('find.count[current=1,total=2]') === 0; }), true, 'the bar shows the match counter');
+  ok('FileViewer: find bar with toggles, replacement row and match highlight layer');
 
   const plainViewerProps = {
     t: keyTranslator, path: 'notes.txt', value: 'plain a\nplain b', lineCount: 2, language: 'text', size: 17,

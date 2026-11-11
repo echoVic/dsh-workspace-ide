@@ -11,7 +11,7 @@ workspace, search it, and read its git state without leaving the conversation.
 
 | Surface | What it does |
 |---|---|
-| **Files** | Lazy directory tree for the whole workspace, resizable split, line-numbered **syntax-highlighted** code viewer with **clickable breadcrumbs**, **soft-wrap** (`Alt+Z`), **go-to-line** (`Ctrl/Cmd+G`) and a JetBrains-style status bar, inline editing with `Ctrl/Cmd+S` save and `Cmd/Ctrl+/` comment toggling, rendered **Markdown preview** with source toggle, **image / SVG preview**, large-file/binary guards |
+| **Files** | Lazy directory tree for the whole workspace, resizable split, line-numbered **syntax-highlighted** code viewer with **clickable breadcrumbs**, **soft-wrap** (`Alt+Z`), **go-to-line** (`Ctrl/Cmd+G`), **in-file find & replace** (`Ctrl/Cmd+F` / `Ctrl/Cmd+H`, case/whole-word/regex, all-match highlight) and a JetBrains-style status bar, inline editing with `Ctrl/Cmd+S` save and `Cmd/Ctrl+/` comment toggling, rendered **Markdown preview** with source toggle, **image / SVG preview**, large-file/binary guards |
 | **Search** | Full-text workspace search with case / regex / whole-word toggles and an include filter; hits are grouped per file, highlighted, and jump straight to the matching line in the viewer |
 | **Git** | Current branch with ahead/behind, staged / unstaged / untracked / conflicted groups with colourised unified diffs, and a commit history with per-commit diffs; a non-git workspace lists other git workspaces for one-click switching |
 
