@@ -281,6 +281,9 @@ type, variable, operator, punctuation, tag, attr, property, regexp, meta, plain)
 that source line exactly (including empty lines) — the editable overlay aligns the coloured
 layer with the textarea character by character.
 
+- Comment syntax for the editor shortcut lives here too: `S.COMMENT_LANGUAGES`,
+  `S.commentTokens(language)` and the pure `S.toggleLineComments(text, start, end,
+  language)` (line tokens for most languages, block wrapping for CSS/HTML/Markdown).
 - Coverage: `S.HIGHLIGHT_LANGUAGES` maps the Host's `file` route language ids plus common
   aliases to a language (JS/TS/JSX/TSX, JSON, Markdown, CSS, HTML/XML, Python, Go, Rust,
   Java, Kotlin, Swift, C/C++, C#, Ruby, PHP, Shell, PowerShell, YAML, TOML, INI, SQL,
@@ -405,7 +408,13 @@ the top-left corner — see that package's README.)
     spellCheck false, whiteSpace pre, no wrap, horizontal scroll, synced vertical scroll
     with the gutter). Files > 400 KB open read-only (pre, no textarea). Binary → notice.
   - Markdown/HTML just shown as text (this is a code viewer).
-  - Keyboard: Ctrl/Cmd+S saves; Escape cancels dirty state (reload from disk).
+  - Keyboard: Ctrl/Cmd+S saves; Escape cancels dirty state (reload from disk);
+    Cmd/Ctrl+/ toggles comments via `S.toggleLineComments(text, start, end, language)`.
+    Line comments use each language's token (`//`, `#`, `--`, `;`), block-only languages
+    (CSS/HTML/XML/Markdown/Vue/Svelte) wrap and unwrap `/* */` / `<!-- -->`. The pure
+    function returns `{text, selectionStart, selectionEnd, changed}`; the editor applies
+    the text and restores the returned selection. Blank lines are untouched, indentation
+    is preserved and a second press reverts the first.
   - Save via `POST api/dsh-workspace-ide.save`; show success/error notice inline.
   - The editor works on LF internally (the textarea API normalizes CRLF); the loaded file's
     original line ending is remembered and re-applied on save, so opening and saving a CRLF

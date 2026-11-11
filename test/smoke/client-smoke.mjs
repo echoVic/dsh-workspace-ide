@@ -741,6 +741,30 @@ function run() {
   assert.equal(/innerHTML|dangerouslySetInnerHTML/.test(readFileSync(path.join(SOURCE_DIR, '07-highlight.js'), 'utf8')), false, 'the highlighter only returns data');
   ok('SYN -> --ide-tok-* -> --shiki-token-* chain; 6 palettes x 15 token colours; auto inherits DSH; no innerHTML');
 
+  section('comment toggle (Cmd/Ctrl+/)');
+  assert.equal(typeof T.toggleLineComments, 'function', 'S.toggleLineComments must be exported');
+  const jsOne = T.toggleLineComments('const a = 1;', 3, 3, 'javascript');
+  assert.equal(jsOne.text, '// const a = 1;', 'JS single line is prefixed with //');
+  assert.equal(jsOne.changed, true, 'the JS toggle reports a change');
+  assert.equal(T.toggleLineComments(jsOne.text, jsOne.selectionStart, jsOne.selectionEnd, 'javascript').text, 'const a = 1;', 'JS toggle is reversible');
+  const multi = '  const a = 1;\n  const b = 2;';
+  const multiResult = T.toggleLineComments(multi, 0, multi.length, 'typescript');
+  assert.equal(multiResult.text, '  // const a = 1;\n  // const b = 2;', 'multi-line selection keeps indentation');
+  assert.equal(T.toggleLineComments(multiResult.text, multiResult.selectionStart, multiResult.selectionEnd, 'typescript').text, multi, 'multi-line toggle is reversible');
+  assert.equal(T.toggleLineComments('x = 1', 0, 0, 'python').text, '# x = 1', 'python uses #');
+  assert.equal(T.toggleLineComments('SELECT 1;', 0, 0, 'sql').text, '-- SELECT 1;', 'sql uses --');
+  const blank = 'a\n\nb';
+  assert.equal(T.toggleLineComments(blank, 0, blank.length, 'javascript').text, '// a\n\n// b', 'blank lines are left untouched');
+  const css = 'color: red;';
+  const cssWrapped = T.toggleLineComments(css, 0, css.length, 'css');
+  assert.equal(cssWrapped.text, '/* color: red; */', 'CSS wraps the selection in /* */');
+  assert.equal(T.toggleLineComments(cssWrapped.text, cssWrapped.selectionStart, cssWrapped.selectionEnd, 'css').text, css, 'CSS unwrap is reversible');
+  assert.equal(T.toggleLineComments('<div></div>', 5, 5, 'html').text, '<!-- <div></div> -->', 'HTML wraps the current line in <!-- -->');
+  const noComment = T.toggleLineComments('hello', 0, 5, 'text');
+  assert.equal(noComment.changed, false, 'plain text has no comment form');
+  assert.equal(noComment.text, 'hello', 'plain text is unchanged');
+  ok('comment toggle: JS/TS/Python/SQL tokens, indent kept, blank lines untouched, CSS/HTML block fallback, text unchanged');
+
   section('diff parser + change grouping');
   const sampleDiff = [
     'diff --git a/a.js b/a.js',

@@ -1397,3 +1397,262 @@ S.highlightLines = highlightLines;
 S.highlightColor = function highlightColor(kind) {
   return typeof S.SYN === 'object' && S.SYN !== null && typeof S.SYN[kind] === 'string' ? S.SYN[kind] : 'inherit';
 };
+
+
+// ─── line comment toggling (editor Cmd/Ctrl+/) ─────────────────────────────
+
+/**
+ * Per-language comment syntax used by the editor's comment toggle. Languages
+ * without an entry simply do not respond to the shortcut. `line` is the
+ * single-line token; `block` is `[open, close]` for languages whose only
+ * comment form is a block (CSS, HTML, Markdown, ...).
+ */
+const LANGUAGE_COMMENTS = Object.freeze({
+  javascript: { line: '//' },
+  jsx: { line: '//' },
+  typescript: { line: '//' },
+  tsx: { line: '//' },
+  json: { line: '//' },
+  go: { line: '//' },
+  rust: { line: '//' },
+  java: { line: '//' },
+  kotlin: { line: '//' },
+  swift: { line: '//' },
+  c: { line: '//' },
+  cpp: { line: '//' },
+  csharp: { line: '//' },
+  php: { line: '//' },
+  python: { line: '#' },
+  ruby: { line: '#' },
+  shell: { line: '#' },
+  powershell: { line: '#' },
+  yaml: { line: '#' },
+  toml: { line: '#' },
+  graphql: { line: '#' },
+  ini: { line: ';' },
+  sql: { line: '--' },
+  css: { block: ['/*', '*/'] },
+  html: { block: ['<!--', '-->'] },
+  xml: { block: ['<!--', '-->'] },
+  vue: { block: ['<!--', '-->'] },
+  svelte: { block: ['<!--', '-->'] },
+  markdown: { block: ['<!--', '-->'] },
+});
+
+/**
+ * Comment syntax for a Host language chip / alias, or `null` when the language
+ * has no comment form.
+ * @param {unknown} language - Host language id or alias.
+ * @returns {{line?: string, block?: Array<string>}|null} comment spec.
+ */
+function commentTokens(language) {
+  const id = normalizeLanguage(language);
+  const spec = LANGUAGE_COMMENTS[id];
+  return spec === undefined ? null : spec;
+}
+
+function isBlankLine(line) {
+  return line.replace(/[ \t]/g, '').length === 0;
+}
+
+function leadingWhitespaceLength(line) {
+  const match = /^[ \t]*/.exec(line);
+  return match === null ? 0 : match[0].length;
+}
+
+function clampOffset(value, length) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(length, Math.floor(value)));
+}
+
+function mapToggledOffset(offset, lines) {
+  const total = lines.length;
+  if (total === 0) return offset;
+  for (let index = 0; index < total; index = index + 1) {
+    const line = lines[index];
+    const oldEnd = line.oldStart + line.oldLength;
+    if (offset <= oldEnd) {
+      const column = Math.max(0, offset - line.oldStart);
+      const delta = line.newText.length - line.oldText.length;
+      let nextColumn;
+      if (column <= line.indent) nextColumn = column;
+      else nextColumn = Math.min(line.newText.length, Math.max(line.indent, column + delta));
+      return line.newStart + nextColumn;
+    }
+  }
+  const last = lines[total - 1];
+  return last.newStart + last.newText.length;
+}
+
+function buildLineRecords(regionStart, text, region) {
+  const sourceLines = region.split('\n');
+  const lines = [];
+  let oldStart = regionStart;
+  for (let index = 0; index < sourceLines.length; index = index + 1) {
+    const oldText = sourceLines[index];
+    lines.push({ oldText: oldText, oldStart: oldStart, oldLength: oldText.length, indent: leadingWhitespaceLength(oldText) });
+    oldStart = oldStart + oldText.length + 1;
+  }
+  return lines;
+}
+
+function joinLineRecords(lines) {
+  let text = '';
+  for (let index = 0; index < lines.length; index = index + 1) {
+    if (index > 0) text = text + '\n';
+    lines[index].newStart = text.length;
+    text = text + lines[index].newText;
+  }
+  return text;
+}
+
+function toggleLineToken(text, start, end, spec) {
+  const token = spec.line;
+  if (typeof token !== 'string' || token.length === 0) return null;
+
+  const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+  const lastIndex = end > start ? end - 1 : start;
+  const lineEndIndex = text.indexOf('\n', Math.min(text.length - 1, Math.max(0, lastIndex)));
+  const lineEnd = lineEndIndex === -1 ? text.length : lineEndIndex;
+
+  const lines = buildLineRecords(lineStart, text, text.slice(lineStart, lineEnd));
+  const relevant = lines.filter(function (line) { return isBlankLine(line.oldText) === false; });
+  if (relevant.length === 0) return { text: text, selectionStart: start, selectionEnd: end, changed: false };
+
+  const commented = relevant.every(function (line) {
+    const rest = line.oldText.slice(line.indent);
+    return rest.indexOf(token) === 0;
+  });
+
+  for (let index = 0; index < lines.length; index = index + 1) {
+    const line = lines[index];
+    if (isBlankLine(line.oldText)) {
+      line.newText = line.oldText;
+      continue;
+    }
+    const indent = line.oldText.slice(0, line.indent);
+    const rest = line.oldText.slice(line.indent);
+    if (commented) {
+      const withoutToken = rest.slice(token.length);
+      line.newText = indent + (withoutToken.charAt(0) === ' ' ? withoutToken.slice(1) : withoutToken);
+    } else {
+      line.newText = indent + token + ' ' + rest;
+    }
+  }
+
+  const nextText = text.slice(0, lineStart) + joinLineRecords(lines) + text.slice(lineEnd);
+  if (nextText === text) return { text: text, selectionStart: start, selectionEnd: end, changed: false };
+  return {
+    text: nextText,
+    selectionStart: mapToggledOffset(start, lines),
+    selectionEnd: mapToggledOffset(end, lines),
+    changed: true,
+  };
+}
+
+function toggleBlockToken(text, start, end, spec) {
+  const block = spec.block;
+  if (!Array.isArray(block) || block.length !== 2) return null;
+  const open = block[0];
+  const close = block[1];
+  const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+  const lineBreak = text.indexOf('\n', start);
+  const lineEnd = lineBreak === -1 ? text.length : lineBreak;
+
+  // Single-line target (caret or selection inside one line): the line itself is
+  // the comment scope, which keeps Cmd+/ reversible after the first press.
+  if (end <= lineEnd) {
+    const line = text.slice(lineStart, lineEnd);
+    const indent = leadingWhitespaceLength(line);
+    const content = line.slice(indent);
+    if (content.trim().length === 0) return { text: text, selectionStart: start, selectionEnd: end, changed: false };
+    const trimmedEnd = content.replace(/[ \t]+$/, '');
+    const wrapped =
+      trimmedEnd.indexOf(open) === 0 &&
+      trimmedEnd.length >= open.length + close.length &&
+      trimmedEnd.lastIndexOf(close) === trimmedEnd.length - close.length;
+    let nextLine;
+    let innerStart;
+    let innerEnd;
+    if (wrapped) {
+      let inner = content.slice(open.length, trimmedEnd.length - close.length);
+      if (inner.charAt(0) === ' ') inner = inner.slice(1);
+      if (inner.charAt(inner.length - 1) === ' ') inner = inner.slice(0, inner.length - 1);
+      nextLine = line.slice(0, indent) + inner;
+      innerStart = lineStart + indent;
+      innerEnd = innerStart + inner.length;
+    } else {
+      const body = content.replace(/[ \t]+$/, '');
+      nextLine = line.slice(0, indent) + open + ' ' + body + ' ' + close;
+      innerStart = lineStart + indent + open.length + 1;
+      innerEnd = innerStart + body.length;
+    }
+    const nextText = text.slice(0, lineStart) + nextLine + text.slice(lineEnd);
+    if (nextText === text) return { text: text, selectionStart: start, selectionEnd: end, changed: false };
+    return { text: nextText, selectionStart: innerStart, selectionEnd: innerEnd, changed: true };
+  }
+
+  // Multi-line selection: wrap / unwrap the exact selection.
+  const openPrefix = open + ' ';
+  const closeSuffix = ' ' + close;
+  const selection = text.slice(start, end);
+  const trimmed = selection.trim();
+  if (trimmed.length > 0 && trimmed.indexOf(open) === 0 && trimmed.lastIndexOf(close) === trimmed.length - close.length) {
+    const openIndex = start + selection.indexOf(trimmed);
+    const closeIndex = end - selection.length + trimmed.lastIndexOf(close);
+    const inner = text.slice(openIndex + open.length, closeIndex);
+    const body = inner.charAt(0) === ' ' ? inner.slice(1) : inner;
+    const normalized = body.charAt(body.length - 1) === ' ' ? body.slice(0, body.length - 1) : body;
+    const nextText = text.slice(0, openIndex) + normalized + text.slice(closeIndex + close.length);
+    return {
+      text: nextText,
+      selectionStart: openIndex,
+      selectionEnd: openIndex + normalized.length,
+      changed: nextText !== text,
+    };
+  }
+  const nextText = text.slice(0, start) + openPrefix + selection + closeSuffix + text.slice(end);
+  return {
+    text: nextText,
+    selectionStart: start + openPrefix.length,
+    selectionEnd: start + openPrefix.length + selection.length,
+    changed: true,
+  };
+}
+
+/**
+ * Toggle comments for the selected lines / text, mirroring VSCode's Cmd/Ctrl+/
+ * behaviour: languages with a line token comment each touched line, block-only
+ * languages wrap the selection. Pure function: the editor applies the returned
+ * text and selection.
+ *
+ * @param {string} text - full editor text.
+ * @param {number} start - selection start offset.
+ * @param {number} end - selection end offset.
+ * @param {unknown} language - Host language chip / alias.
+ * @returns {{text: string, selectionStart: number, selectionEnd: number, changed: boolean}} result.
+ */
+function toggleLineComments(text, start, end, language) {
+  const source = typeof text === 'string' ? text : '';
+  const safeStart = clampOffset(start, source.length);
+  const safeEnd = Math.max(safeStart, clampOffset(end, source.length));
+  const spec = commentTokens(language);
+  if (spec === null) return { text: source, selectionStart: safeStart, selectionEnd: safeEnd, changed: false };
+  try {
+    if (typeof spec.line === 'string') {
+      const result = toggleLineToken(source, safeStart, safeEnd, spec);
+      if (result !== null) return result;
+    }
+    if (Array.isArray(spec.block)) {
+      const result = toggleBlockToken(source, safeStart, safeEnd, spec);
+      if (result !== null) return result;
+    }
+  } catch (error) {
+    return { text: source, selectionStart: safeStart, selectionEnd: safeEnd, changed: false };
+  }
+  return { text: source, selectionStart: safeStart, selectionEnd: safeEnd, changed: false };
+}
+
+S.COMMENT_LANGUAGES = LANGUAGE_COMMENTS;
+S.commentTokens = commentTokens;
+S.toggleLineComments = toggleLineComments;

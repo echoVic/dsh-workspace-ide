@@ -783,6 +783,7 @@ function FileViewer(props) {
       h('span', null, t('files.caret', { line: props.caret.line, column: props.caret.column })),
       h('span', { style: { flex: '1 1 auto' } }),
       dirty ? h('span', { style: ST_FILES.statusHint }, t('files.dirtyHint')) : null,
+      readOnly ? null : h('span', { title: t('files.commentHint') }, t('files.commentShortcut')),
       h('span', null, t('files.lines', { count: S.formatCount(props.lineCount) })),
       h('span', null, t('files.encoding')),
       readOnly ? h('span', null, t('files.readonly')) : null,
@@ -1081,10 +1082,47 @@ function FilesView(props) {
     if (target !== null && target !== undefined) setCaret(caretFromIndex(value, target.selectionStart));
   }, []);
 
+  // Cmd/Ctrl+/ toggles line comments (VSCode's shortcut). The pure engine lives
+  // in 07-highlight.js next to the per-language comment syntax table.
+  const toggleComments = useCallback(function () {
+    const textarea = textareaRef.current;
+    if (textarea === null || textarea === undefined) return false;
+    if (file.status !== 'loaded' || readOnly === true) return false;
+    if (typeof S.toggleLineComments !== 'function') return false;
+    const value = typeof textarea.value === 'string' ? textarea.value : draft;
+    const start = Number.isFinite(textarea.selectionStart) ? textarea.selectionStart : 0;
+    const end = Number.isFinite(textarea.selectionEnd) ? textarea.selectionEnd : start;
+    const result = S.toggleLineComments(value, start, end, language);
+    if (result === null || result === undefined || result.changed !== true || typeof result.text !== 'string') return false;
+    setDraft(result.text);
+    setCaret(caretFromIndex(result.text, result.selectionStart));
+    try {
+      setTimeout(function () {
+        const current = textareaRef.current;
+        if (current === null || current === undefined) return;
+        try {
+          current.focus();
+          current.setSelectionRange(result.selectionStart, result.selectionEnd);
+        } catch (error) {
+          /* editor unmounted */
+        }
+      }, 0);
+    } catch (error) {
+      /* no timer available */
+    }
+    return true;
+  }, [draft, file.status, language, readOnly]);
+
   const onKeyDown = useCallback(function (event) {
     if (event === null || event === undefined) return;
     const key = event.key;
     const meta = event.metaKey === true || event.ctrlKey === true;
+    if (meta && (key === '/' || (key === '?' && event.shiftKey === true))) {
+      if (toggleComments()) {
+        event.preventDefault();
+        return;
+      }
+    }
     if (meta && (key === 's' || key === 'S')) {
       event.preventDefault();
       save();
