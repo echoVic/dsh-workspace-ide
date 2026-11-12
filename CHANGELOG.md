@@ -4,6 +4,17 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.9 — 2026-11-12
+
+### Changed
+- Git tab now mirrors VCS freshness like an IDE: while the tab is open it
+  silently refreshes status + history every 5 s, and refreshes once when the
+  window regains focus/visibility. Transient failures keep the last good
+  snapshot and never replace it with an error; the manual refresh button and
+  its retry path are unchanged. Editor gutter marks already refreshed after
+  each save; README documents the behavior and the stale host-test count is
+  corrected (122).
+
 ## 1.8.8 — 2026-11-12
 
 ### Fixed

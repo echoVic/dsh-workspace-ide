@@ -17,6 +17,9 @@ interface GitFileRow {
   from?: string;
 }
 
+/** Silent status/log refresh cadence while the Git tab is open. */
+const GIT_POLL_MS = 5000;
+
 const ST_GIT = {
   root: {
     display: 'flex',
@@ -1039,6 +1042,54 @@ function GitView(props: any) {
   const refresh = useCallback(function () {
     setVersion(function (value) { return value + 1; });
   }, []);
+
+  // JetBrains keeps VCS state fresh; mirror that by polling status/log while the
+  // Git tab is open and pulling once when the window regains focus. Failures are
+  // silent so a transient git error never replaces the last good snapshot; the
+  // manual refresh button remains the path that surfaces errors and retries.
+  useEffect(function () {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
+    let cancelled = false;
+    let inFlight = false;
+    const tick = function () {
+      if (cancelled || inFlight) return;
+      if (document.visibilityState === 'hidden') return;
+      inFlight = true;
+      Promise.all([
+        S.requestJson(S.apiUrl(ROUTES.git, { root: root, kind: 'status' })),
+        S.requestJson(S.apiUrl(ROUTES.git, { root: root, kind: 'log', limit: 30 })),
+      ])
+        .then(function (results: any[]) {
+          if (cancelled) return;
+          setStatus(function (previous: any) {
+            return JSON.stringify(previous) === JSON.stringify(results[0]) ? previous : results[0];
+          });
+          setLog(function (previous: any) {
+            return JSON.stringify(previous) === JSON.stringify(results[1]) ? previous : results[1];
+          });
+          setLoad(function (previous: any) {
+            return previous !== null && previous !== undefined && previous.status === 'loaded' ? previous : { status: 'loaded', error: null };
+          });
+        })
+        .catch(function () {
+          // Keep the last good snapshot; manual refresh reports failures.
+        })
+        .then(function () {
+          inFlight = false;
+        });
+    };
+    const interval = setInterval(tick, GIT_POLL_MS);
+    const onFocus = function () { tick(); };
+    const onVisibility = function () { if (document.visibilityState === 'visible') tick(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return function () {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [root]);
 
   const groups = useMemo(function () {
     return groupChanges(status !== null && status !== undefined && Array.isArray(status.files) ? status.files : []);
