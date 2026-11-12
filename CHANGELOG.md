@@ -4,6 +4,13 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.5 — 2026-11-12
+
+### Changed
+- README screenshots regenerated from the current client build: the bracket
+  matching shot now shows the current-symbol breadcrumb (`src › app.tsx › theme`),
+  and the find/theme/git-empty shots were re-rendered. Artifact unchanged.
+
 ## 1.8.4 — 2026-11-12
 
 ### Changed
