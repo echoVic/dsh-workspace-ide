@@ -4,6 +4,15 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.10 — 2026-11-12
+
+### Changed
+- Git tab live refresh is now adaptive and single-flight: a 5 s floor normally,
+  backing off (up to 30 s) when a status/log scan is slow, paused while the page
+  is hidden, immediate on window focus/visibility. This avoids piling up scans
+  on monorepos; the manual refresh button and last-good-snapshot behavior are
+  unchanged. README updated.
+
 ## 1.8.9 — 2026-11-12
 
 ### Changed

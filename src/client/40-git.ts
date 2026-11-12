@@ -17,7 +17,7 @@ interface GitFileRow {
   from?: string;
 }
 
-/** Silent status/log refresh cadence while the Git tab is open. */
+/** Floor for the adaptive Git status/log refresh interval. */
 const GIT_POLL_MS = 5000;
 
 const ST_GIT = {
@@ -1043,18 +1043,33 @@ function GitView(props: any) {
     setVersion(function (value) { return value + 1; });
   }, []);
 
-  // JetBrains keeps VCS state fresh; mirror that by polling status/log while the
-  // Git tab is open and pulling once when the window regains focus. Failures are
-  // silent so a transient git error never replaces the last good snapshot; the
-  // manual refresh button remains the path that surfaces errors and retries.
+  // JetBrains keeps VCS state fresh; mirror that with a single-flight refresh
+  // while the Git tab is open. The cadence is adaptive: a 5 s floor normally,
+  // backing off for slow monorepos so scans never pile up (and no polling at
+  // all while the page is hidden). Window focus re-runs it immediately. A failed
+  // poll keeps the last good snapshot; the manual button still surfaces errors.
   useEffect(function () {
     if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
     let cancelled = false;
     let inFlight = false;
+    let timer: any = null;
+    const schedule = function (delay: number) {
+      if (cancelled) return;
+      if (timer !== null) clearTimeout(timer);
+      timer = setTimeout(tick, delay);
+    };
     const tick = function () {
-      if (cancelled || inFlight) return;
-      if (document.visibilityState === 'hidden') return;
+      if (cancelled) return;
+      if (inFlight) {
+        schedule(1000);
+        return;
+      }
+      if (document.visibilityState === 'hidden') {
+        schedule(GIT_POLL_MS);
+        return;
+      }
       inFlight = true;
+      const startedAt = Date.now();
       Promise.all([
         S.requestJson(S.apiUrl(ROUTES.git, { root: root, kind: 'status' })),
         S.requestJson(S.apiUrl(ROUTES.git, { root: root, kind: 'log', limit: 30 })),
@@ -1076,16 +1091,30 @@ function GitView(props: any) {
         })
         .then(function () {
           inFlight = false;
+          if (cancelled) return;
+          const elapsed = Date.now() - startedAt;
+          schedule(Math.min(30000, Math.max(GIT_POLL_MS, elapsed * 4)));
         });
     };
-    const interval = setInterval(tick, GIT_POLL_MS);
-    const onFocus = function () { tick(); };
-    const onVisibility = function () { if (document.visibilityState === 'visible') tick(); };
+    schedule(GIT_POLL_MS);
+    const onFocus = function () {
+      if (cancelled || inFlight) return;
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+      tick();
+    };
+    const onVisibility = function () {
+      if (document.visibilityState !== 'visible') return;
+      if (cancelled || inFlight) return;
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+      tick();
+    };
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
     return function () {
       cancelled = true;
-      clearInterval(interval);
+      if (timer !== null) clearTimeout(timer);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
