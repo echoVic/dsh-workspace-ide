@@ -1,11 +1,16 @@
 # dsh-workspace-ide
 
 [![test](https://github.com/echoVic/dsh-workspace-ide/actions/workflows/test.yml/badge.svg)](https://github.com/echoVic/dsh-workspace-ide/actions/workflows/test.yml)
+[![npm](https://img.shields.io/npm/v/dsh-workspace-ide)](https://www.npmjs.com/package/dsh-workspace-ide)
 [![license](https://img.shields.io/github/license/echoVic/dsh-workspace-ide)](LICENSE)
 
 A VS Code-like workspace panel plugin for
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH): browse the
 workspace, search it, and read its git state without leaving the conversation.
+
+It is published on npm as [`dsh-workspace-ide`](https://www.npmjs.com/package/dsh-workspace-ide)
+(current: **1.8.3**), and every release is built and published by GitHub Actions through
+npm trusted publishing (OIDC) with a signed provenance statement.
 
 ![Files: tree + line-numbered editor with save](docs/screenshot-files.png)
 
@@ -137,10 +142,33 @@ that session.
 
 ## Install
 
-From a DSH session, install the bundle from this directory with the plugin manager
-(absolute path required):
+### Plugin Manager (recommended)
 
+From a DSH session, install the published npm package (version-pinnable):
+
+```text
+plugin_manager {
+  action: "install_bundle",
+  target: "dsh-workspace-ide@1.8.3"
+}
 ```
+
+Or install straight from GitHub — `main` or a pinned release:
+
+```text
+plugin_manager { action: "install_bundle", target: "echoVic/dsh-workspace-ide" }
+# or pin a release tarball:
+plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v1.8.3.tar.gz" }
+```
+
+Set `target` to the package name for the npm build, or to the GitHub repository/tarball
+when you want an unreleased commit.
+
+### Local checkout
+
+For plugin development, install the working directory (absolute path required):
+
+```text
 plugin_manager {
   action: "install_bundle",
   target: "/absolute/path/to/dsh-workspace-ide"
@@ -151,13 +179,13 @@ The bundle is profile-wide and survives restarts. `application: "applied"` in th
 means it activated immediately; client-side changes are picked up by DSH's client HMR,
 host-side changes load on the next Host start.
 
-Or install straight from GitHub instead of a local checkout:
+### Releases
 
-```text
-plugin_manager { action: "install_bundle", target: "echoVic/dsh-workspace-ide" }
-# or pin a release tarball:
-plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v1.0.0.tar.gz" }
-```
+Pushing a `v*` tag runs [`.github/workflows/publish.yml`](.github/workflows/publish.yml):
+the tag must match `package.json`, then `npm publish` runs through GitHub OIDC trusted
+publishing (no npm token in the repository) and npm records build provenance. The matching
+trusted-publisher configuration on npmjs.com grants `Allow npm publish` for repository
+`echoVic/dsh-workspace-ide` and workflow `publish.yml`.
 
 ## How it works
 
