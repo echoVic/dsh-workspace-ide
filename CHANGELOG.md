@@ -4,6 +4,12 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.7 — 2026-11-12
+
+### Changed
+- README: removed the hardcoded current version (the npm badge is authoritative)
+  and fixed the pinned release-tarball example. Artifact unchanged.
+
 ## 1.8.6 — 2026-11-12
 
 ### Fixed

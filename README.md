@@ -9,8 +9,8 @@ A VS Code-like workspace panel plugin for
 workspace, search it, and read its git state without leaving the conversation.
 
 It is published on npm as [`dsh-workspace-ide`](https://www.npmjs.com/package/dsh-workspace-ide)
-(current: **1.8.4**), and every release is built and published by GitHub Actions through
-npm trusted publishing (OIDC) with a signed provenance statement.
+(the npm badge above shows the current version), and every release is built and published
+by GitHub Actions through npm trusted publishing (OIDC) with a signed provenance statement.
 
 ![Files: tree + line-numbered editor with save](docs/screenshot-files.png)
 
@@ -158,7 +158,7 @@ Or install straight from GitHub — `main` or a pinned release:
 ```text
 plugin_manager { action: "install_bundle", target: "echoVic/dsh-workspace-ide" }
 # or pin a release tarball:
-plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v1.8.4.tar.gz" }
+plugin_manager { action: "install_bundle", target: "https://github.com/echoVic/dsh-workspace-ide/archive/refs/tags/v1.8.7.tar.gz" }
 ```
 
 Set `target` to the package name for the npm build, or to the GitHub repository/tarball
