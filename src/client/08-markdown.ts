@@ -37,6 +37,11 @@ interface BlockNode {
   rows?: Array<Array<Array<InlineNode>>>;
 }
 
+/** Optional render context: resolve workspace-relative image URLs. */
+interface MarkdownRenderOptions {
+  resolveImage?: (url: string) => string | null | undefined;
+}
+
 const MD_MAX_SOURCE_CHARS = 300 * 1024;
 const MD_HEADING_SIZES = [26, 21, 17.5, 15.5, 13.5, 13.5];
 
@@ -57,6 +62,108 @@ function mdSafeUrl(raw: unknown): string|null {
   if (/^(?:https?:\/\/|mailto:|\/|\.{1,2}\/|#|[A-Za-z0-9._~-]+\/)/.test(url)) return url;
   if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(url)) return null;
   return url;
+}
+
+/**
+ * Resolve a Markdown image URL to a workspace-relative file path. Remote/
+ * protocol-relative/anchor URLs answer null; `..` escaping the workspace root
+ * answers null. Query/fragment suffixes are ignored and percent escapes are
+ * decoded, so `![x](img/my%20shot.png?raw=1)` resolves to `img/my shot.png`.
+ * @param {unknown} raw - Markdown image URL.
+ * @param {unknown} filePath - Markdown file path relative to the workspace root.
+ * @returns {string|null} normalized workspace-relative path.
+ */
+function mdImagePath(raw: unknown, filePath: unknown): string | null {
+  if (typeof raw !== 'string' || typeof filePath !== 'string') return null;
+  let url = raw.trim();
+  if (url.length === 0 || /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url)) return null;
+  const suffix = url.search(/[?#]/);
+  if (suffix >= 0) url = url.slice(0, suffix);
+  if (url.length === 0) return null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(url);
+  } catch (error) {
+    return null;
+  }
+  if (decoded.indexOf('\u0000') !== -1) return null;
+  decoded = decoded.replace(/\\/g, '/');
+  if (decoded.length === 0) return null;
+  const directory = filePath.indexOf('/') >= 0 ? filePath.slice(0, filePath.lastIndexOf('/')) : '';
+  const source = decoded.charAt(0) === '/' ? decoded.slice(1) : (directory.length > 0 ? directory + '/' + decoded : decoded);
+  const parts: string[] = [];
+  const segments = source.split('/');
+  for (let index = 0; index < segments.length; index = index + 1) {
+    const segment = segments[index];
+    if (segment.length === 0 || segment === '.') continue;
+    if (segment === '..') {
+      if (parts.length === 0) return null;
+      parts.pop();
+      continue;
+    }
+    parts.push(segment);
+  }
+  return parts.length > 0 ? parts.join('/') : null;
+}
+
+/**
+ * Collect the workspace-relative images referenced by a Markdown document.
+ * Remote images, anchors and paths escaping the workspace are omitted. Rows are
+ * unique by resolved path, in document order.
+ * @param {unknown} source - Markdown source.
+ * @param {unknown} filePath - Markdown file path relative to the workspace root.
+ * @returns {Array<{url: string, path: string}>} image rows for the viewer to load.
+ */
+function collectMarkdownImages(source: unknown, filePath: unknown): Array<{ url: string, path: string }> {
+  const text = typeof source === 'string' ? source : '';
+  if (text.length === 0) return [];
+  const rows: Array<{ url: string, path: string }> = [];
+  const seen: Record<string, boolean> = {};
+  function visitInline(nodes: Array<any>) {
+    for (let index = 0; index < nodes.length; index = index + 1) {
+      const node = nodes[index];
+      if (node === null || typeof node !== 'object') continue;
+      if (node.type === 'image') {
+        const url = mdSafeUrl(node.url);
+        if (url !== null) {
+          const resolved = mdImagePath(url, filePath);
+          if (resolved !== null && seen[resolved] !== true) {
+            seen[resolved] = true;
+            rows.push({ url: url, path: resolved });
+          }
+        }
+      }
+      if (Array.isArray(node.children)) visitInline(node.children);
+    }
+  }
+  function visitBlocks(blocks: Array<any>) {
+    for (let index = 0; index < blocks.length; index = index + 1) {
+      const block = blocks[index];
+      if (block === null || typeof block !== 'object') continue;
+      if (Array.isArray(block.inline)) visitInline(block.inline);
+      if (Array.isArray(block.blocks)) visitBlocks(block.blocks);
+      if (Array.isArray(block.items)) {
+        for (let itemIndex = 0; itemIndex < block.items.length; itemIndex = itemIndex + 1) {
+          const item = block.items[itemIndex];
+          if (item === null || typeof item !== 'object') continue;
+          if (Array.isArray(item.inline)) visitInline(item.inline);
+          if (item.nested !== null && item.nested !== undefined && typeof item.nested === 'object') visitBlocks([item.nested]);
+        }
+      }
+      if (Array.isArray(block.header)) {
+        for (let cellIndex = 0; cellIndex < block.header.length; cellIndex = cellIndex + 1) visitInline(block.header[cellIndex]);
+      }
+      if (Array.isArray(block.rows)) {
+        for (let rowIndex = 0; rowIndex < block.rows.length; rowIndex = rowIndex + 1) {
+          const row = block.rows[rowIndex];
+          if (!Array.isArray(row)) continue;
+          for (let cellIndex = 0; cellIndex < row.length; cellIndex = cellIndex + 1) visitInline(row[cellIndex]);
+        }
+      }
+    }
+  }
+  visitBlocks(parseMarkdown(text));
+  return rows;
 }
 
 function mdPlainInline(nodes: any) {
@@ -493,6 +600,15 @@ const MD_STYLE = {
   taskBox: { marginRight: '6px', verticalAlign: 'middle' },
   link: { color: C.accent, textDecoration: 'underline' },
   image: { maxWidth: '100%', borderRadius: '6px', margin: '6px 0', display: 'block' },
+  imagePending: {
+    display: 'inline-block',
+    margin: '3px 0',
+    padding: '2px 7px',
+    border: '1px dashed ' + C.border1,
+    borderRadius: '4px',
+    color: C.textSecondary,
+    fontSize: '12px',
+  },
   table: { width: '100%', borderCollapse: 'collapse', margin: '0 0 14px', fontSize: '12.5px', lineHeight: '1.6' },
   tableCell: { border: '1px solid ' + C.border1, padding: '5px 10px', textAlign: 'left', verticalAlign: 'top' },
   tableHeadCell: { border: '1px solid ' + C.border1, padding: '5px 10px', textAlign: 'left', background: C.layer1, fontWeight: '600' },
@@ -505,7 +621,7 @@ const MD_STYLE = {
  * @param {string} keyPrefix - stable key prefix.
  * @returns {Array} React children.
  */
-function renderMarkdownInline(nodes: Array<InlineNode>, keyPrefix: string): any[] {
+function renderMarkdownInline(nodes: Array<InlineNode>, keyPrefix: string, options?: MarkdownRenderOptions): any[] {
   const out: any[] = [];
   for (let index = 0; index < nodes.length; index = index + 1) {
     const node = nodes[index];
@@ -523,34 +639,48 @@ function renderMarkdownInline(nodes: Array<InlineNode>, keyPrefix: string): any[
       continue;
     }
     if (node.type === 'strong') {
-      out.push(h('strong', { key: key }, renderMarkdownInline(node.children || [], key)));
+      out.push(h('strong', { key: key }, renderMarkdownInline(node.children || [], key, options)));
       continue;
     }
     if (node.type === 'em') {
-      out.push(h('em', { key: key }, renderMarkdownInline(node.children || [], key)));
+      out.push(h('em', { key: key }, renderMarkdownInline(node.children || [], key, options)));
       continue;
     }
     if (node.type === 'del') {
-      out.push(h('del', { key: key }, renderMarkdownInline(node.children || [], key)));
+      out.push(h('del', { key: key }, renderMarkdownInline(node.children || [], key, options)));
       continue;
     }
     if (node.type === 'link') {
       const url = mdSafeUrl(node.url);
-      if (url === null) out.push(h('span', { key: key }, renderMarkdownInline(node.children || [], key)));
+      if (url === null) out.push(h('span', { key: key }, renderMarkdownInline(node.children || [], key, options)));
       else
         out.push(
           h(
             'a',
             { key: key, href: url, target: '_blank', rel: 'noreferrer noopener', style: MD_STYLE.link },
-            renderMarkdownInline(node.children || [], key),
+            renderMarkdownInline(node.children || [], key, options),
           ),
         );
       continue;
     }
     if (node.type === 'image') {
       const url = mdSafeUrl(node.url);
-      if (url === null) out.push(h('span', { key: key, style: MD_STYLE.link }, String(node.alt)));
-      else out.push(h('img', { key: key, src: url, alt: String(node.alt), style: MD_STYLE.image, loading: 'lazy' }));
+      if (url === null) {
+        out.push(h('span', { key: key, style: MD_STYLE.link }, String(node.alt)));
+        continue;
+      }
+      // Remote images load directly; workspace-relative paths ask the Host,
+      // because a DSH page origin has no access to the user's workspace files.
+      if (options !== undefined && typeof options.resolveImage === 'function' && /^(?:https?:)?\/\//i.test(url) === false) {
+        const resolved = options.resolveImage(url);
+        if (typeof resolved === 'string' && resolved.length > 0) {
+          out.push(h('img', { key: key, src: resolved, alt: String(node.alt), style: MD_STYLE.image, loading: 'lazy' }));
+        } else {
+          out.push(h('span', { key: key, style: MD_STYLE.imagePending, 'data-md-image-pending': url }, String(node.alt)));
+        }
+        continue;
+      }
+      out.push(h('img', { key: key, src: url, alt: String(node.alt), style: MD_STYLE.image, loading: 'lazy' }));
       continue;
     }
   }
@@ -592,17 +722,17 @@ function renderMarkdownCode(block: any, key: any) {
  * @param {string} keyPrefix - stable key prefix.
  * @returns {Array} React children.
  */
-function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string): any[] {
+function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string, options?: MarkdownRenderOptions): any[] {
   const out: any[] = [];
   for (let index = 0; index < blocks.length; index = index + 1) {
     const block = blocks[index];
     const key = keyPrefix + '-' + String(index);
     if (block.type === 'heading') {
-      out.push(h('h' + String(block.depth), { key: key, style: MD_STYLE.heading(block.depth) }, renderMarkdownInline(block.inline || [], key)));
+      out.push(h('h' + String(block.depth), { key: key, style: MD_STYLE.heading(block.depth) }, renderMarkdownInline(block.inline || [], key, options)));
       continue;
     }
     if (block.type === 'paragraph') {
-      out.push(h('p', { key: key, style: MD_STYLE.paragraph }, renderMarkdownInline(block.inline || [], key)));
+      out.push(h('p', { key: key, style: MD_STYLE.paragraph }, renderMarkdownInline(block.inline || [], key, options)));
       continue;
     }
     if (block.type === 'code') {
@@ -610,7 +740,7 @@ function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string): any[
       continue;
     }
     if (block.type === 'blockquote') {
-      out.push(h('blockquote', { key: key, style: MD_STYLE.blockquote }, renderMarkdownBlocks(block.blocks || [], key)));
+      out.push(h('blockquote', { key: key, style: MD_STYLE.blockquote }, renderMarkdownBlocks(block.blocks || [], key, options)));
       continue;
     }
     if (block.type === 'list') {
@@ -629,13 +759,13 @@ function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string): any[
             }),
           );
         }
-        children.push.apply(children, renderMarkdownInline(item.inline, itemKey));
+        children.push.apply(children, renderMarkdownInline(item.inline, itemKey, options));
         if (item.nested !== null && item.nested !== undefined) {
           children.push(
             h(
               item.nested.ordered ? 'ol' : 'ul',
               { key: itemKey + '-nested', style: MD_STYLE.nestedList },
-              renderMarkdownListItems(item.nested, itemKey + '-nested'),
+              renderMarkdownListItems(item.nested, itemKey + '-nested', options),
             ),
           );
         }
@@ -650,7 +780,7 @@ function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string): any[
         return h(
           'th',
           { key: key + '-h' + String(cellIndex), style: Object.assign({}, MD_STYLE.tableHeadCell, align[cellIndex] ? { textAlign: align[cellIndex] } : null) },
-          renderMarkdownInline(cell, key + '-h' + String(cellIndex)),
+          renderMarkdownInline(cell, key + '-h' + String(cellIndex), options),
         );
       });
       const bodyRows = (block.rows || []).map(function (row, rowIndex) {
@@ -659,7 +789,7 @@ function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string): any[
           return h(
             'td',
             { key: rowKey + '-c' + String(cellIndex), style: Object.assign({}, MD_STYLE.tableCell, align[cellIndex] ? { textAlign: align[cellIndex] } : null) },
-            renderMarkdownInline(cell, rowKey + '-c' + String(cellIndex)),
+            renderMarkdownInline(cell, rowKey + '-c' + String(cellIndex), options),
           );
         });
         return h('tr', { key: rowKey }, cells);
@@ -683,14 +813,14 @@ function renderMarkdownBlocks(blocks: Array<BlockNode>, keyPrefix: string): any[
 }
 
 /** Shallow helper so nested lists reuse the item renderer without duplication. */
-function renderMarkdownListItems(listBlock: any, keyPrefix: any) {
+function renderMarkdownListItems(listBlock: any, keyPrefix: any, options?: MarkdownRenderOptions) {
   return listBlock.items.map(function (item: any, itemIndex: any) {
     const itemKey = keyPrefix + '-' + String(itemIndex);
     return h(
       'li',
       { key: itemKey, style: MD_STYLE.listItem },
-      renderMarkdownInline(item.inline, itemKey),
-      item.nested ? h(item.nested.ordered ? 'ol' : 'ul', { style: MD_STYLE.nestedList }, renderMarkdownListItems(item.nested, itemKey + '-n')) : null,
+      renderMarkdownInline(item.inline, itemKey, options),
+      item.nested ? h(item.nested.ordered ? 'ol' : 'ul', { style: MD_STYLE.nestedList }, renderMarkdownListItems(item.nested, itemKey + '-n', options)) : null,
     );
   });
 }
@@ -700,9 +830,9 @@ function renderMarkdownListItems(listBlock: any, keyPrefix: any) {
  * @param {unknown} source - markdown source.
  * @returns {Array} React children for the preview body.
  */
-function renderMarkdown(source: unknown): any[] {
+function renderMarkdown(source: unknown, options?: MarkdownRenderOptions): any[] {
   const text = typeof source === 'string' ? source : '';
-  return renderMarkdownBlocks(parseMarkdown(text), 'md');
+  return renderMarkdownBlocks(parseMarkdown(text), 'md', options);
 }
 
 S.MD_MAX_SOURCE_CHARS = MD_MAX_SOURCE_CHARS;
@@ -710,3 +840,5 @@ S.MD_STYLE = MD_STYLE;
 S.parseMarkdown = parseMarkdown;
 S.parseMarkdownInline = parseMarkdownInline;
 S.renderMarkdown = renderMarkdown;
+S.mdImagePath = mdImagePath;
+S.collectMarkdownImages = collectMarkdownImages;

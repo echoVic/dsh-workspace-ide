@@ -4,6 +4,18 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.8 — 2026-11-12
+
+### Fixed
+- Markdown preview could not display images that live in the workspace: relative
+  image paths were emitted as page-origin URLs and 404'd. The preview now collects
+  relative images, resolves them against the Markdown file's folder (decoding
+  escapes, rejecting paths that leave the workspace), loads them through the
+  authenticated Host image route and renders the returned data URL. Remote image
+  URLs keep their direct `https:` source; a dashed alt placeholder is shown while
+  an image loads or when it cannot be read. Workspace images also appear in the
+  README Markdown screenshot.
+
 ## 1.8.7 — 2026-11-12
 
 ### Changed

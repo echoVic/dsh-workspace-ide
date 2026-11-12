@@ -1267,6 +1267,34 @@ function run() {
   const unsafeRender = renderTree(T.FileViewer(Object.assign({}, mdProps, { value: '[x](javascript:alert(1))' })));
   assert.equal(findHost(unsafeRender, 'a').length, 0, 'javascript: URLs never become anchors');
 
+  // Relative workspace images are resolved by the FileViewer through the Host
+  // image route; without a loaded data URL the preview shows an alt placeholder
+  // instead of a broken image or a page-origin 404.
+  assert.equal(typeof T.mdImagePath, 'function', 'S.mdImagePath must be exported');
+  assert.equal(typeof T.collectMarkdownImages, 'function', 'S.collectMarkdownImages must be exported');
+  assert.equal(T.mdImagePath('img/shot.png', 'docs/README.md'), 'docs/img/shot.png', 'relative image resolves against the Markdown folder');
+  assert.equal(T.mdImagePath('./img/a%20b.png?raw=1', 'docs/README.md'), 'docs/img/a b.png', 'percent escapes and queries are normalized');
+  assert.equal(T.mdImagePath('/public/logo.png', 'docs/README.md'), 'public/logo.png', 'root-relative image resolves from the workspace root');
+  assert.equal(T.mdImagePath('../assets/logo.svg', 'docs/README.md'), 'assets/logo.svg', 'parent traversal stays inside the workspace');
+  assert.equal(T.mdImagePath('../../etc/passwd', 'a.md'), null, 'traversal escaping the workspace is rejected');
+  assert.equal(T.mdImagePath('https://example.com/x.png', 'docs/README.md'), null, 'remote images are not workspace paths');
+  assert.deepEqual(
+    T.collectMarkdownImages('![a](img/x.png)\n![b](https://example.com/y.png)\n![c](../z.png)', 'docs/README.md'),
+    [{ url: 'img/x.png', path: 'docs/img/x.png' }, { url: '../z.png', path: 'z.png' }],
+    'collector keeps unique workspace images in document order',
+  );
+  const mdImageProps = Object.assign({}, mdProps, { path: 'docs/README.md', root: '/workspace', value: '![shot](img/shot.png)' });
+  const mdPendingRender = renderTree(T.FileViewer(mdImageProps));
+  assert.equal(findHost(mdPendingRender, 'img').length, 0, 'a pending workspace image renders no broken img');
+  const mdPending = mdPendingRender.hosts.filter(function (host) { return host.props['data-md-image-pending'] === 'img/shot.png'; });
+  assert.equal(mdPending.length, 1, 'a pending workspace image renders an alt placeholder');
+  const mdResolvedTree = renderTree(T.renderMarkdown('![shot](img/shot.png)', {
+    resolveImage: function (url) { return url === 'img/shot.png' ? 'data:image/png;base64,AAA' : null; },
+  }));
+  assert.equal(findHost(mdResolvedTree, 'img')[0].props.src, 'data:image/png;base64,AAA', 'resolved workspace image uses the data URL');
+  const mdRemoteTree = renderTree(T.renderMarkdown('![x](https://example.com/x.png)', { resolveImage: function () { return null; } }));
+  assert.equal(findHost(mdRemoteTree, 'img')[0].props.src, 'https://example.com/x.png', 'remote images keep their direct URL');
+
   const mdSourceRender = renderTree(T.FileViewer(Object.assign({}, mdProps, { markdownMode: 'source' })));
   const mdToggleButtons = mdSourceRender.hosts.filter(function (host) {
     return host.type === 'button' && host.props['data-md-mode'] !== undefined;

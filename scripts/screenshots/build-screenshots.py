@@ -293,6 +293,9 @@ README_MD = """# Aurora
 A product analytics dashboard for the design team. Three token modes
 (`light`, `midtone`, `dark`) share one semantic palette.
 
+![Aurora dashboard](public/hero.png)
+
+
 > **Tip** — the dashboard runs fully on mock metrics, so `pnpm dev` works
 > offline and without a backend.
 

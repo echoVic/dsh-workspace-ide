@@ -123,6 +123,8 @@ S.face = {
       parseMarkdown: S.parseMarkdown,
       parseMarkdownInline: S.parseMarkdownInline,
       renderMarkdown: S.renderMarkdown,
+      mdImagePath: S.mdImagePath,
+      collectMarkdownImages: S.collectMarkdownImages,
       MD_STYLE: S.MD_STYLE,
       MD_MAX_SOURCE_CHARS: S.MD_MAX_SOURCE_CHARS,
       ST: { core: S.ST_CORE, shell: S.ST_SHELL, files: S.ST_FILES, search: S.ST_SEARCH, git: S.ST_GIT },

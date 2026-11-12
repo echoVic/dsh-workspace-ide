@@ -2086,6 +2086,9 @@ function FileViewer(props: any) {
   const bracketRanges: Array<{ start: number, end: number }> = Array.isArray(props.bracketRanges) ? props.bracketRanges : [];
   const bracketRef = useRef<any>(null);
   const [editorScrollTop, setEditorScrollTop] = useState(0);
+  const [mdImages, setMdImages] = useState<Record<string, string>>({});
+  const mdImagePendingRef = useRef<Record<string, boolean>>({});
+  const mdImageCacheRef = useRef<Record<string, string>>({});
 
   const findHighlight = useMemo(
     function () {
@@ -2175,6 +2178,60 @@ function FileViewer(props: any) {
   const isMarkdown = props.language === 'markdown';
   const markdownMode = props.markdownMode === 'preview' ? 'preview' : 'source';
   const previewMode = isMarkdown && markdownMode === 'preview';
+  const mdImageRoot = typeof props.root === 'string' ? props.root : '';
+  const mdImageEntries: Array<{ url: string, path: string }> = useMemo(function () {
+    if (previewMode !== true || typeof S.collectMarkdownImages !== 'function') return [];
+    return S.collectMarkdownImages(props.value, props.path);
+  }, [previewMode, props.value, props.path]);
+
+  // A different Markdown file resolves the same relative URL against another
+  // directory, so drop the per-file image cache when the open path changes.
+  useEffect(function () {
+    mdImagePendingRef.current = {};
+    mdImageCacheRef.current = {};
+    setMdImages({});
+  }, [props.path]);
+
+  // Markdown images that live in the workspace are read through the Host image
+  // route and turned into data URLs; a page origin cannot fetch file paths.
+  useEffect(function () {
+    if (previewMode !== true || mdImageEntries.length === 0) return undefined;
+    let cancelled = false;
+    for (let index = 0; index < mdImageEntries.length; index = index + 1) {
+      const entry = mdImageEntries[index];
+      if (entry === null || entry === undefined || typeof entry.path !== 'string' || entry.path.length === 0) continue;
+      const cacheKey = entry.path;
+      if (mdImageCacheRef.current[cacheKey] !== undefined || mdImagePendingRef.current[cacheKey] === true) continue;
+      mdImagePendingRef.current[cacheKey] = true;
+      S.requestJson(S.apiUrl(ROUTES.image, { root: mdImageRoot, path: cacheKey }))
+        .then(function (payload: any) {
+          if (cancelled) return;
+          const mime = payload !== null && payload !== undefined && typeof payload.mime === 'string' ? payload.mime : '';
+          const base64 = payload !== null && payload !== undefined && typeof payload.base64 === 'string' ? payload.base64 : '';
+          const src = mime.length > 0 && base64.length > 0 && typeof S.buildImageDataUrl === 'function'
+            ? S.buildImageDataUrl(mime, base64)
+            : null;
+          if (typeof src !== 'string' || src.length === 0) return;
+          mdImageCacheRef.current[cacheKey] = src;
+          setMdImages(function (previous: Record<string, string>) {
+            if (previous[cacheKey] === src) return previous;
+            const next: Record<string, string> = Object.assign({}, previous);
+            next[cacheKey] = src;
+            return next;
+          });
+        })
+        .catch(function () {
+          // Leave the dashed alt placeholder in place; a missing/permission-
+          // denied image must not blank the whole preview.
+          if (cancelled) return;
+          mdImageCacheRef.current[cacheKey] = '';
+        });
+    }
+    return function () {
+      cancelled = true;
+    };
+  }, [previewMode, mdImageEntries, mdImageRoot]);
+
   const isSvg = props.isSvg === true;
   const svgMode = props.svgMode === 'source' ? 'source' : 'image';
   const svgImageMode = isSvg && svgMode === 'image';
@@ -2654,7 +2711,16 @@ function FileViewer(props: any) {
           h(
             'div',
             { style: S.MD_STYLE.inner },
-            typeof S.renderMarkdown === 'function' ? S.renderMarkdown(props.value) : null,
+            typeof S.renderMarkdown === 'function'
+              ? S.renderMarkdown(props.value, {
+                  resolveImage: function (url: string) {
+                    const imagePath = typeof S.mdImagePath === 'function' ? S.mdImagePath(url, props.path) : null;
+                    if (imagePath === null) return null;
+                    const resolved = mdImages[imagePath];
+                    return typeof resolved === 'string' && resolved.length > 0 ? resolved : null;
+                  },
+                })
+              : null,
           ),
         )
       : readOnly
@@ -4370,6 +4436,7 @@ function FilesView(props: any) {
   } else if (file.status === 'loaded') {
     viewer = h(FileViewer, {
       t: t,
+      root: root,
       path: selected,
       value: draft,
       lineCount: lineCount,

@@ -109,8 +109,12 @@ standard:
 with `Cmd/Ctrl+Shift+V`. The preview is built from React elements — never injected HTML — and
 covers headings, fenced code blocks (highlighted by the same engine, in the selected theme),
 ordered/unordered and task lists, blockquotes, GFM tables, links, images and rules;
-`javascript:`/`data:` URLs are dropped. It renders the current draft, so unsaved edits
-preview immediately, and read-only/oversized Markdown files still preview.
+`javascript:`/`data:` URLs are dropped. Relative images are resolved against the
+Markdown file's folder and served through the authenticated Host image route, so
+`![shot](public/hero.png)` renders a real workspace file in the preview; remote `https:`
+images keep their direct URL, and paths escaping the workspace are rejected. It renders
+the current draft, so unsaved edits preview immediately, and read-only/oversized Markdown
+files still preview.
 
 ![Markdown preview with source toggle](docs/screenshot-markdown.png)
 
