@@ -1167,6 +1167,28 @@ function orderQuickFiles(recent: string[], files: string[], limit?: number): str
 
 S.orderQuickFiles = orderQuickFiles;
 
+/**
+ * Quick-open palette rows for one query. Empty queries are recent-first; typed
+ * queries use fuzzy ranking. Always returns `{path, score}` objects so the
+ * palette renderer has one shape.
+ * @param query - typed query.
+ * @param files - workspace index.
+ * @param recent - open history (oldest first).
+ * @param limit - maximum rows.
+ * @returns rows, best first.
+ */
+function quickOpenRows(query: string, files: string[], recent: string[], limit?: number): Array<{ path: string, score: number }> {
+  const max = typeof limit === 'number' && Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 50;
+  if (typeof query !== 'string' || query.trim().length === 0) {
+    return orderQuickFiles(recent, files, max).map(function (filePath: string) {
+      return { path: filePath, score: 0 };
+    });
+  }
+  return rankQuickOpen(query, files, max);
+}
+
+S.quickOpenRows = quickOpenRows;
+
 /** One navigable symbol in the current file. */
 interface FileSymbol {
   name: string;
@@ -3224,10 +3246,9 @@ function FilesView(props: any) {
   const quickResults = useMemo(
     function () {
       if (quickOpen === false || quickFiles === null) return [];
-      if (quickQuery.trim().length === 0) {
-        return typeof S.orderQuickFiles === 'function' ? S.orderQuickFiles(recentPaths, quickFiles, 50) : quickFiles.slice(0, 50);
-      }
-      return typeof S.rankQuickOpen === 'function' ? S.rankQuickOpen(quickQuery, quickFiles, 50) : [];
+      return typeof S.quickOpenRows === 'function'
+        ? S.quickOpenRows(quickQuery, quickFiles, recentPaths, 50)
+        : (typeof S.rankQuickOpen === 'function' ? S.rankQuickOpen(quickQuery, quickFiles, 50) : []);
     },
     [quickOpen, quickQuery, quickFiles, recentPaths],
   );

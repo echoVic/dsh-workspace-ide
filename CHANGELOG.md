@@ -4,6 +4,14 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.6 — 2026-11-12
+
+### Fixed
+- Quick Open with an empty query crashed the renderer: recent-first results were
+  bare path strings while the palette rows expect `{path, score}` objects. Added
+  `S.quickOpenRows` to normalize both query modes and fixed the README
+  `screenshot-quick-open.png` blank image. Smoke test covers both row shapes.
+
 ## 1.8.5 — 2026-11-12
 
 ### Changed

@@ -589,6 +589,8 @@ function run() {
   assert.deepEqual(T.orderQuickFiles(['b.ts', 'a.ts'], ['a.ts', 'b.ts', 'c.ts'], 5), ['a.ts', 'b.ts', 'c.ts'], 'recent files lead the empty query');
   assert.deepEqual(T.orderQuickFiles(['missing.ts'], ['a.ts'], 5), ['a.ts'], 'unknown recent paths are skipped');
   assert.deepEqual(T.orderQuickFiles([], ['b.ts', 'a.ts'], 1), ['b.ts'], 'the limit slices the ordered list');
+  assert.deepEqual(T.quickOpenRows('', ['b.ts', 'a.ts'], ['a.ts'], 5), [{ path: 'a.ts', score: 0 }, { path: 'b.ts', score: 0 }], 'empty quick-open rows are path objects with recent-first order');
+  assert.equal(T.quickOpenRows('a', ['a.ts', 'b.ts'], [], 5)[0].path, 'a.ts', 'typed quick-open rows stay ranked objects');
   const codeSymbols = T.extractSymbols('export function foo() {}\nclass Bar {}\n  method() {}\nconst baz = 1;', 'typescript');
   assert.deepEqual(codeSymbols.map(function (symbol) { return symbol.name; }), ['foo', 'Bar', 'method', 'baz'], 'code symbols keep document order');
   assert.deepEqual(codeSymbols.map(function (symbol) { return symbol.kind; }), ['function', 'class', 'method', 'constant'], 'symbol kinds are classified');
