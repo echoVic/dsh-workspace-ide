@@ -1,14 +1,10 @@
-# Stage a new package version on npm from a release tag.
-#
-# Staged publishing (npm 11.15+) uploads the tarball to npm's staging queue
-# without requiring 2FA; a maintainer then approves it on npmjs.com (or with
-# `npm stage approve <id>`), which is the human proof-of-presence step.
+# Publish a new package version to npm from a release tag.
 #
 # Authentication is trusted publishing (GitHub OIDC): no npm token is stored in
-# this repository. The matching trusted-publisher configuration must be created
-# on the npm package settings page with "Allow npm stage publish" (not direct
-# publish), repository echoVic/dsh-workspace-ide and workflow file publish.yml.
-name: Stage npm release
+# this repository. The matching trusted-publisher configuration on the npm
+# package settings page must grant "Allow npm publish" for repository
+# echoVic/dsh-workspace-ide and workflow file publish.yml.
+name: Publish npm release
 
 on:
   push:
@@ -30,9 +26,10 @@ jobs:
         with:
           node-version: '22'
 
-      # Staged publishing needs npm >= 11.15 (Node 22.14+); trusted publishing
-      # needs the id-token permission above.
-      - name: Use npm with staged publishing support
+      # Trusted publishing (OIDC) and provenance need a recent npm; the
+      # id-token permission above is what lets npm exchange the GitHub OIDC
+      # token for registry publish access.
+      - name: Use npm with trusted publishing support
         run: npm install --global npm@^11.15.0
 
       - name: Verify the tag matches package.json
@@ -47,5 +44,5 @@ jobs:
           fi
           echo "staging dsh-workspace-ide@$VERSION"
 
-      - name: Stage the package on npm
-        run: npm stage publish --access public
+      - name: Publish the package to npm
+        run: npm publish --access public

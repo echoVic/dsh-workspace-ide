@@ -4,6 +4,14 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.3 — 2026-11-12
+
+### Changed
+- Release workflow now runs a direct `npm publish` via trusted publishing
+  (GitHub OIDC) instead of staging, so a `v*` tag publishes without a manual
+  approval step. This requires the npm trusted-publisher permission
+  "Allow npm publish" for workflow `publish.yml`.
+
 ## 1.8.2 — 2026-11-12
 
 ### Added
