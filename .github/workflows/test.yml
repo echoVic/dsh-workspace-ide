@@ -30,6 +30,11 @@ jobs:
       - name: Client bundle is up to date
         run: node scripts/build-client.mjs --check
 
+      - name: Screenshots are rendered (not blank)
+        run: |
+          python3 -m pip install --quiet pillow
+          python3 scripts/check-screenshots.py
+
       - name: Syntax check
         run: |
           node --check lib/client.js

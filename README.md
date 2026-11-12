@@ -223,6 +223,7 @@ node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
 node --test test/host/                      # Host route unit tests (node:test, 118)
 node test/smoke/client-smoke.mjs            # headless client module/face smoke test (43 checks)
+python3 scripts/check-screenshots.py        # README screenshots are non-blank renders
 node --test test/review/*.test.mjs          # independent adversarial + contract suites (78)
 python3 scripts/screenshots/build-screenshots.py   # rebuild docs/ screenshots (mock data)
 ```
