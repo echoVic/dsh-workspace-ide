@@ -38,10 +38,12 @@ jobs:
       - name: Verify the tag matches package.json
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          TAG=${GITHUB_REF_NAME#v}
-          if [ "$VERSION" != "$TAG" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $VERSION"
-            exit 1
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            TAG=${GITHUB_REF_NAME#v}
+            if [ "$VERSION" != "$TAG" ]; then
+              echo "::error::tag $GITHUB_REF_NAME does not match package.json version $VERSION"
+              exit 1
+            fi
           fi
           echo "staging dsh-workspace-ide@$VERSION"
 

@@ -4,6 +4,19 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.2 — 2026-11-12
+
+### Added
+- GitHub Actions workflow `.github/workflows/publish.yml`: pushing a `v*` tag
+  now stages the matching package version on npm via trusted publishing (OIDC)
+  and `npm stage publish`; a maintainer approves the staged version on
+  npmjs.com as the human 2FA step. No npm token is stored in the repository.
+
+## 1.8.1 — 2026-11-12
+
+### Changed
+- Documentation refresh (CHANGELOG, README corrections).
+
 ## 1.8.0 — 2026-11-11
 
 ### Added
