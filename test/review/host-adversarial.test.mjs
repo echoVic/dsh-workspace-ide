@@ -90,7 +90,12 @@ async function postJson(app, name, payload) {
  * @returns {string} canonical directory path.
  */
 function tempDir(t, prefix = 'wsi-review-') {
-  const directory = realpathSync(mkdtempSync(join(realpathSync(tmpdir()), prefix)));
+  // GitHub's Windows runner exposes %TEMP% through an 8.3 short path; prefer
+  // RUNNER_TEMP (long form) so requested-root and realpath spellings agree.
+  const base = typeof process.env.RUNNER_TEMP === 'string' && process.env.RUNNER_TEMP.length > 0
+    ? process.env.RUNNER_TEMP
+    : tmpdir();
+  const directory = realpathSync(mkdtempSync(join(realpathSync(base), prefix)));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   return directory;
 }
@@ -254,7 +259,10 @@ describe('route-level path safety', () => {
     }
 
     // No registry service: any existing absolute directory is admitted.
-    const etc = await get(app, 'list', { root: '/etc' });
+    const existingAbsolute = process.platform === 'win32'
+      ? (process.env.SystemRoot || 'C:\\Windows')
+      : '/etc';
+    const etc = await get(app, 'list', { root: existingAbsolute });
     assert.equal(etc.status, 200);
     assert.ok(Array.isArray(etc.body.entries));
 
@@ -663,6 +671,7 @@ describe('search route adversarial behaviour', () => {
   });
 
   it('skips binary, oversized, unreadable files and never follows symlinks out of the workspace', async (t) => {
+    if (process.platform === 'win32') return t.skip('Windows chmod does not remove read access');
     const { base, ws } = fixture(t);
     const outside = join(base, 'outside');
     mkdirSync(outside);
