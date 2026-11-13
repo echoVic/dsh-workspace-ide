@@ -144,6 +144,17 @@ that session.
 
 ![Git: a non-repository workspace offers git workspaces to switch to](docs/screenshot-git-empty.png)
 
+## Platform notes
+
+The Host half is cross-platform: workspace roots are validated against the
+platform's native spelling, so Windows drive (`C:\...`) and UNC roots work,
+win32 backslashes in relative paths are normalized to POSIX separators, and
+canonical containment checks use `path.relative` instead of string prefixes.
+Shortcut hints say **Cmd/Ctrl** rather than hardcoding `⌘`. Typography follows
+DSH: interface text uses `--dsw-font-family` (the composed DSH text-font stack)
+and code/editor text uses `--ds-font-family-code` (the composed DSH code-font
+stack), so the DSH font-family settings apply to the panel too.
+
 ## Install
 
 ### Plugin Manager (recommended)
@@ -225,7 +236,7 @@ npm run typecheck:client               # all client sources under noImplicitAny 
 node scripts/build-client.mjs          # rebuild lib/client.js from src/client/ (.js + compiled .ts)
 node scripts/build-client.mjs --check  # fail when lib/client.js is stale
 node --check lib/client.js
-node --test test/host/                      # Host route unit tests (node:test, 122)
+node --test test/host/                      # Host route unit tests (node:test, 126)
 node test/smoke/client-smoke.mjs            # headless client module/face smoke test (43 checks)
 python3 scripts/check-screenshots.py        # README screenshots are non-blank renders
 node --test test/review/*.test.mjs          # independent adversarial + contract suites (78)
@@ -264,7 +275,7 @@ src/client/              browser sources (TS): core, icons (vendored Lucide), hi
 THIRD_PARTY_NOTICES.md   icon license attribution
 licenses/                full third-party license texts
 scripts/build-client.mjs  concatenating build + staleness check
-test/host/               node:test suites (122 tests)
+test/host/               node:test suites (126 tests)
 test/smoke/              headless client-module smoke test (43 checks)
 test/review/             independent adversarial + client-contract suites (78 tests)
 docs/                    screenshots

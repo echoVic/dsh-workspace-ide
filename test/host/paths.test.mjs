@@ -9,8 +9,10 @@ import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
 import {
+  isNativeAbsolutePath,
   joinRelative,
   normalizeRelativePath,
+  normalizeRelativePathForPlatform,
   optionalService,
   resolveExistingTarget,
   resolveWorkspaceRoot,
@@ -60,6 +62,35 @@ describe('normalizeRelativePath', () => {
 
   it('rejects non-string values', async () => {
     await rejectsWith(Promise.resolve().then(() => normalizeRelativePath(42)), 400, 'bad-request');
+  });
+});
+
+describe('platform path spellings', () => {
+  it('accepts native absolute roots for the requested platform', () => {
+    assert.equal(isNativeAbsolutePath('/Users/me/repo', 'darwin'), true);
+    assert.equal(isNativeAbsolutePath('C:\\Users\\me\\repo', 'win32'), true);
+    assert.equal(isNativeAbsolutePath('\\\\server\\share', 'win32'), true);
+    assert.equal(isNativeAbsolutePath('C:\\Users\\me\\repo', 'darwin'), false);
+    assert.equal(isNativeAbsolutePath('\\\\server\\share', 'darwin'), false);
+    assert.equal(isNativeAbsolutePath('relative/dir', 'win32'), false);
+    assert.equal(isNativeAbsolutePath('C:relative', 'win32'), false);
+  });
+
+  it('normalizes Windows separators for win32 requests', () => {
+    assert.equal(normalizeRelativePathForPlatform('src\\app.ts', 'win32'), 'src/app.ts');
+    assert.equal(normalizeRelativePathForPlatform('.\\src\\a.js', 'win32'), 'src/a.js');
+    assert.equal(normalizeRelativePathForPlatform('src\\nested\\..\\app.ts', 'win32'), 'src/app.ts');
+    assert.equal(normalizeRelativePathForPlatform('src/app.ts', 'win32'), 'src/app.ts');
+  });
+
+  it('rejects absolute and escaping Windows spellings', async () => {
+    for (const value of ['C:\\Windows', '\\\\server\\share\\x', '/etc/passwd', '..\\secret', 'src\\..\\..\\secret']) {
+      await rejectsWith(Promise.resolve().then(() => normalizeRelativePathForPlatform(value, 'win32')), 403, 'outside-workspace');
+    }
+  });
+
+  it('keeps POSIX backslashes as literal filename characters', () => {
+    assert.equal(normalizeRelativePathForPlatform('dir\\file', 'darwin'), 'dir\\file');
   });
 });
 

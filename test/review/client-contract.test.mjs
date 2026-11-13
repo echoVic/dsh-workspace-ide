@@ -862,7 +862,7 @@ describe('pure helpers', () => {
     assert.equal(S.clamp(Number.NaN, 2, 10), 2);
   });
 
-  it('exposes only --dsw theme tokens for colours and fonts', () => {
+  it('exposes DSH theme tokens for colours and fonts', () => {
     const artifact = readFileSync(ARTIFACT, 'utf8');
     const colourLines = artifact.split('\n').filter((line) => /#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/.test(line));
     assert.ok(colourLines.length > 0, 'colour fallbacks are present');
@@ -873,8 +873,9 @@ describe('pure helpers', () => {
       );
     }
     const { S } = loadClient();
-    assert.match(S.FONT_UI, /^var\(--dsw-/);
-    assert.match(S.FONT_MONO, /^var\(--dsw-/);
+    assert.match(S.FONT_UI, /^var\(--dsw-font-family/);
+    assert.match(S.FONT_MONO, /^var\(--ds-font-family-code/);
+    assert.equal(S.FONT_MONO.includes('--dsh-font-family-code'), true, 'raw DSH code font family is the fallback');
     for (const value of Object.values(S.C)) {
       assert.match(value, /^var\(--dsw-alias-/, `theme colour token: ${value}`);
     }

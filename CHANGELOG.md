@@ -4,6 +4,24 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.8.11 — 2026-11-13
+
+### Fixed
+- Windows: workspace roots with drive (`C:\...`) or UNC (`\\server\share`)
+  spellings were rejected on every platform because the Host treated them as
+  foreign absolute paths. Roots are now validated against the native platform
+  spelling (win32 accepts drive/UNC; POSIX still rejects them), win32 relative
+  paths accept backslashes and normalize them to POSIX separators, and the
+  canonical containment check uses path.relative instead of a case-sensitive
+  string prefix. This unblocked every route on Windows.
+- Fonts: editor/code text now uses DSH's composed code-font token
+  `--ds-font-family-code` (falling back to `--dsh-font-family-code` and its
+  default stack) instead of a non-existent `--dsw-font-mono`, so DSH code-font
+  settings apply. UI text keeps `--dsw-font-family`.
+- Shortcut hints no longer hardcode `⌘`; they say Cmd/Ctrl so Windows readers see
+  the right key.
+- Host unit tests: 126 (platform path spellings + Windows normalization).
+
 ## 1.8.10 — 2026-11-12
 
 ### Changed

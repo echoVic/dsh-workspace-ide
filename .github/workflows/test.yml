@@ -49,3 +49,47 @@ jobs:
 
       - name: Adversarial and contract suites
         run: node --test test/review/*.test.mjs
+
+  windows:
+    # Windows compatibility gate: native drive/UNC workspace roots, path
+    # normalization, Font/theme tokens and the browser artifact all run here.
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dev tooling
+        run: npm ci
+
+      - name: Type check (JS + JSDoc, strict)
+        run: npm run typecheck
+
+      - name: Host noImplicitAny type check
+        run: npm run typecheck:host
+
+      - name: Client noImplicitAny type check (all client sources)
+        run: npm run typecheck:client
+
+      - name: Client bundle is up to date
+        run: node scripts/build-client.mjs --check
+
+      - name: Syntax check
+        run: |
+          node --check lib/client.js
+          node --check lib/index.js
+          for file in lib/host/*.js; do node --check "$file"; done
+
+      - name: Host route tests
+        run: node --test test/host/index.js
+
+      - name: Client module smoke test
+        run: node test/smoke/client-smoke.mjs
+
+      - name: Adversarial and contract suites
+        run: node --test test/review/*.test.mjs

@@ -48,6 +48,7 @@ Reference material already in this workspace (read if unsure):
   Chinese/English strings in JSX. Prefer the Client locale service when present, fall back
   to the built-in dictionary (`navigator.language`).
 - All colors/spacing/fonts use DSH theme tokens: `var(--dsw-alias-bg-base)`,
+  `var(--dsw-font-family)` for interface text, `var(--ds-font-family-code)` for code,
   `var(--dsw-alias-bg-layer-1|2)`, `var(--dsw-alias-border-l1|l2)`,
   `var(--dsw-alias-label-primary|secondary|tertiary)`, `var(--dsw-alias-brand-primary)`,
   `var(--dsw-alias-state-error-primary|success-primary|warn-primary)`,
