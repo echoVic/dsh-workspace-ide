@@ -180,7 +180,10 @@ describe('GET workspaces', () => {
       assert.equal(flags.get('git-dir'), true);
       assert.equal(flags.get('git-file'), true);
       assert.equal(flags.get('plain'), false);
-      assert.equal(flags.get('locked'), false);
+      // Windows ignores POSIX directory permission bits, so the "locked"
+      // workspace stays readable there; the non-Windows runners still prove
+      // that an unreadable .git marker is reported as false.
+      if (process.platform !== 'win32') assert.equal(flags.get('locked'), false);
       assert.equal(flags.get('missing'), false);
       assert.equal(flags.get('relative'), false);
     } finally {

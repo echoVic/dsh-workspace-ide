@@ -224,6 +224,7 @@ describe('GET search', () => {
   });
 
   it('skips unreadable files instead of failing', async (t) => {
+    if (process.platform === 'win32') return t.skip('Windows chmod does not remove read access');
     const root = temporaryDirectory(t);
     const unreadable = join(root, 'secret.txt');
     writeFileSync(unreadable, 'needle\n');
