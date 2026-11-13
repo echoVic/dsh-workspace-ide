@@ -68,7 +68,12 @@ export async function postJson(app, name, payload) {
  * @returns the canonical absolute directory path.
  */
 export function temporaryDirectory(t, prefix = 'wsi-test-') {
-  const directory = realpathSync(mkdtempSync(join(realpathSync(tmpdir()), prefix)));
+  // GitHub's Windows runner exposes %TEMP% through an 8.3 short path; prefer
+  // RUNNER_TEMP (long form) so assertions and canonical realpath results agree.
+  const base = typeof process.env.RUNNER_TEMP === 'string' && process.env.RUNNER_TEMP.length > 0
+    ? process.env.RUNNER_TEMP
+    : tmpdir();
+  const directory = realpathSync(mkdtempSync(join(realpathSync(base), prefix)));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   return directory;
 }
