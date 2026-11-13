@@ -1,0 +1,11 @@
+# Keep authored text files LF on every checkout so the generated client
+# artifact is byte-identical between macOS, Linux and Windows.
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.py text eol=lf

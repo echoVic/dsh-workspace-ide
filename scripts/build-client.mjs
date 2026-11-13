@@ -135,11 +135,13 @@ async function compose() {
     if (problems.length > 0) {
       throw new Error(`invalid client source:\n  - ${problems.join('\n  - ')}`);
     }
-    const normalized = text.replace(/\s+$/, '');
+    // Normalize checkout/compiler line endings so the committed artifact is
+    // byte-identical on macOS, Linux and Windows (tsc emits CRLF on win32).
+    const normalized = text.replace(/\r\n?/g, '\n').replace(/\s+$/, '');
     chunks.push(`\n/* ─── src/client/${file} ${'─'.repeat(Math.max(3, 62 - file.length))} */\n${normalized}\n`);
   }
   chunks.push(FOOTER);
-  return chunks.join('');
+  return chunks.join('').replace(/\r\n?/g, '\n');
 }
 
 async function readArtifact() {
@@ -175,16 +177,19 @@ async function main() {
   }
 
   const current = await readArtifact();
+  // Windows checkouts may materialize lib/client.js with CRLF; compare and
+  // rewrite on LF so the --check result does not depend on git line endings.
+  const currentText = current === null ? null : current.replace(/\r\n?/g, '\n');
   if (check) {
-    if (current === artifact) {
+    if (currentText === artifact) {
       process.stdout.write(`build-client: lib/client.js is up to date (${Buffer.byteLength(artifact, 'utf8')} bytes)\n`);
       return;
     }
-    const reason = current === null ? 'lib/client.js is missing' : 'lib/client.js is stale';
+    const reason = currentText === null ? 'lib/client.js is missing' : 'lib/client.js is stale';
     process.stderr.write(`build-client: ${reason}; run "node scripts/build-client.mjs" to regenerate it\n`);
     process.exit(1);
   }
-  if (current === artifact) {
+  if (currentText === artifact) {
     process.stdout.write(`build-client: lib/client.js unchanged (${Buffer.byteLength(artifact, 'utf8')} bytes)\n`);
     return;
   }

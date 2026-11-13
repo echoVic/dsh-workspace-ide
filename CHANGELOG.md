@@ -21,6 +21,11 @@ installing needs no build step and no runtime dependency beyond DSH and React.
 - Shortcut hints no longer hardcode `⌘`; they say Cmd/Ctrl so Windows readers see
   the right key.
 - Host unit tests: 126 (platform path spellings + Windows normalization).
+- Build: `scripts/build-client.mjs` normalizes CRLF from Windows checkouts
+  before composing and before comparing `--check`, and `.gitattributes` keeps
+  authored text LF, so `lib/client.js` is byte-identical across platforms.
+- CI: a `windows-latest` job now runs the type gates, bundle check, syntax,
+  Host/client/contract suites alongside the Linux verify job.
 
 ## 1.8.10 — 2026-11-12
 
