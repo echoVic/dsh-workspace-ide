@@ -25,7 +25,7 @@ const ST_SHELL = {
     background: C.base,
     color: C.text,
     fontFamily: FONT_UI,
-    fontSize: 13,
+    fontSize: uiPx(13),
     lineHeight: 1.4,
     position: 'relative',
     boxSizing: 'border-box',
@@ -62,7 +62,7 @@ const ST_SHELL = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    height: 27,
+    height: uiPx(27),
     maxWidth: 320,
     minWidth: 120,
     padding: '0 8px',
@@ -72,7 +72,7 @@ const ST_SHELL = {
     background: C.platform,
     color: C.text,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
     cursor: 'pointer',
     overflow: 'hidden',
   },
@@ -117,14 +117,134 @@ const ST_SHELL = {
     WebkitAppearance: 'none',
     background: 'transparent',
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
     cursor: 'pointer',
   },
   workspaceHint: {
-    fontSize: 11,
+    fontSize: uiPx(11),
     color: C.textTertiary,
     padding: '0 2px',
     maxWidth: 300,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  // ── font-size picker (toolbar button + popover) ──
+  fontMenu: {
+    position: 'absolute',
+    top: 'calc(100% + 6px)',
+    right: 0,
+    zIndex: 60,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    width: 268,
+    padding: '8px 10px 10px',
+    boxSizing: 'border-box',
+    border: '1px solid ' + C.border2,
+    borderRadius: 9,
+    background: C.platform,
+    color: C.text,
+    boxShadow: '0 12px 30px color-mix(in srgb, ' + C.text + ' 20%, transparent)',
+  },
+  fontSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  fontSectionRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  fontLabel: {
+    fontSize: uiPx(12),
+    fontWeight: 500,
+    color: C.text,
+    whiteSpace: 'nowrap',
+  },
+  fontStepper: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    flex: '0 0 auto',
+  },
+  fontStepButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 24,
+    height: 24,
+    padding: 0,
+    border: '1px solid ' + C.border1,
+    borderRadius: 5,
+    background: C.base,
+    color: C.text,
+    cursor: 'pointer',
+    outline: 'none',
+    flex: '0 0 auto',
+  },
+  fontStepButtonDisabled: {
+    opacity: 0.4,
+    cursor: 'default',
+  },
+  fontInput: {
+    width: 48,
+    height: 24,
+    padding: '0 4px',
+    boxSizing: 'border-box',
+    border: '1px solid ' + C.border1,
+    borderRadius: 5,
+    background: C.base,
+    color: C.text,
+    fontFamily: FONT_MONO,
+    fontSize: uiPx(12),
+    textAlign: 'center',
+    outline: 'none',
+  },
+  fontUnit: {
+    fontSize: uiPx(11),
+    color: C.textTertiary,
+    fontFamily: FONT_MONO,
+  },
+  fontPresets: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  fontPreset: {
+    flex: '1 1 0',
+    height: 22,
+    padding: '0 4px',
+    border: '1px solid ' + C.border1,
+    borderRadius: 5,
+    background: 'transparent',
+    color: C.textSecondary,
+    fontFamily: FONT_MONO,
+    fontSize: uiPx(11),
+    cursor: 'pointer',
+    outline: 'none',
+  },
+  fontPresetActive: {
+    background: C.activeBg,
+    borderColor: C.accent,
+    color: C.text,
+    fontWeight: 600,
+  },
+  fontFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingTop: 8,
+    borderTop: '1px solid ' + C.border1,
+  },
+  fontHint: {
+    fontSize: uiPx(10.5),
+    color: C.textTertiary,
+    flex: '1 1 auto',
+    minWidth: 0,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -169,7 +289,7 @@ const ST_SHELL = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     color: C.textTertiary,
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
     fontWeight: 600,
     letterSpacing: '0.06em',
   },
@@ -185,7 +305,7 @@ const ST_SHELL = {
     alignItems: 'center',
     gap: 8,
     width: '100%',
-    height: 30,
+    height: uiPx(30),
     padding: '0 8px',
     boxSizing: 'border-box',
     border: 'none',
@@ -193,7 +313,7 @@ const ST_SHELL = {
     background: 'transparent',
     color: C.textSecondary,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
     textAlign: 'left',
     cursor: 'pointer',
     outline: 'none',
@@ -257,7 +377,7 @@ const ST_SHELL = {
     background: C.base,
     color: C.text,
     fontFamily: FONT_UI,
-    fontSize: 13,
+    fontSize: uiPx(13),
   },
   boundaryWrap: {
     display: 'flex',
@@ -281,21 +401,21 @@ const ST_SHELL = {
   },
   boundaryTitle: {
     margin: 0,
-    fontSize: 13.5,
+    fontSize: uiPx(13.5),
     fontWeight: 600,
   },
   boundaryBody: {
     margin: 0,
     maxWidth: 460,
-    fontSize: 12,
-    lineHeight: '18px',
+    fontSize: uiPx(12),
+    lineHeight: 1.5,
     color: C.textSecondary,
     wordBreak: 'break-word',
   },
   boundaryHint: {
     margin: 0,
     maxWidth: 460,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     color: C.textTertiary,
   },
 };
@@ -638,9 +758,341 @@ function ThemePicker(props: any) {
 }
 
 /**
+ * Font-size picker: one borderless toolbar button plus a themed popover that
+ * adjusts the interface font size (`--ide-ui-scale`) and the code editor base
+ * font size independently, with stepper buttons, direct numeric input, quick
+ * presets and a one-click reset to defaults.
+ */
+function FontSizePicker(props: any) {
+  const t = typeof props.t === 'function' ? props.t : S.translate;
+  const uiFontSize = S.normalizeUiFontSize(props.uiFontSize);
+  const editorFontSize = S.normalizeEditorFontSize(props.editorFontSize);
+  const [open, setOpen] = useState(props.initialOpen === true);
+  const [uiDraft, setUiDraft] = useState(String(uiFontSize));
+  const [editorDraft, setEditorDraft] = useState(String(editorFontSize));
+  const wrapRef = useRef<any>(null);
+
+  useEffect(function () {
+    setUiDraft(String(uiFontSize));
+  }, [uiFontSize]);
+
+  useEffect(function () {
+    setEditorDraft(String(editorFontSize));
+  }, [editorFontSize]);
+
+  const focusTrigger = useCallback(function () {
+    const wrapper = wrapRef.current;
+    if (wrapper === null || wrapper === undefined || typeof wrapper.querySelector !== 'function') return;
+    const trigger = wrapper.querySelector('button');
+    if (trigger !== null && trigger !== undefined && typeof trigger.focus === 'function') trigger.focus();
+  }, []);
+
+  const closeMenu = useCallback(function (refocus: any) {
+    setOpen(false);
+    if (refocus === true) focusTrigger();
+  }, [focusTrigger]);
+
+  useEffect(function () {
+    if (!open) return undefined;
+    const onPointerDown = function (event: any) {
+      const wrapper = wrapRef.current;
+      const target = event !== null && event !== undefined ? event.target : null;
+      if (wrapper !== null && wrapper !== undefined && typeof wrapper.contains === 'function' && target !== null && target !== undefined && wrapper.contains(target)) return;
+      setOpen(false);
+    };
+    const onKeyDown = function (event: any) {
+      if (event === null || event === undefined || event.key !== 'Escape') return;
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      closeMenu(true);
+    };
+    try {
+      if (typeof document === 'undefined' || document === null || typeof document.addEventListener !== 'function') return undefined;
+      document.addEventListener('mousedown', onPointerDown, true);
+      document.addEventListener('keydown', onKeyDown, true);
+    } catch (error) {
+      return undefined;
+    }
+    return function () {
+      try {
+        document.removeEventListener('mousedown', onPointerDown, true);
+        document.removeEventListener('keydown', onKeyDown, true);
+      } catch (error) {
+        /* no DOM */
+      }
+    };
+  }, [open, closeMenu]);
+
+  const applyUi = function (next: number) {
+    const clamped = S.normalizeUiFontSize(next);
+    setUiDraft(String(clamped));
+    if (typeof props.onSelectUiFontSize === 'function') props.onSelectUiFontSize(clamped);
+  };
+
+  const applyEditor = function (next: number) {
+    const clamped = S.normalizeEditorFontSize(next);
+    setEditorDraft(String(clamped));
+    if (typeof props.onSelectEditorFontSize === 'function') props.onSelectEditorFontSize(clamped);
+  };
+
+  const onUiInputChange = function (event: any) {
+    const raw = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? String(event.target.value) : '';
+    setUiDraft(raw);
+    const parsed = Number.parseInt(raw.trim(), 10);
+    if (Number.isFinite(parsed) && parsed >= S.UI_FONT_SIZE_MIN && parsed <= S.UI_FONT_SIZE_MAX) {
+      if (typeof props.onSelectUiFontSize === 'function') props.onSelectUiFontSize(parsed);
+    }
+  };
+
+  const commitUiDraft = function () {
+    const parsed = Number.parseInt(uiDraft.trim(), 10);
+    if (!Number.isFinite(parsed)) {
+      setUiDraft(String(uiFontSize));
+      return;
+    }
+    applyUi(parsed);
+  };
+
+  const onEditorInputChange = function (event: any) {
+    const raw = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? String(event.target.value) : '';
+    setEditorDraft(raw);
+    const parsed = Number.parseInt(raw.trim(), 10);
+    if (Number.isFinite(parsed) && parsed >= S.EDITOR_FONT_SIZE_MIN && parsed <= S.EDITOR_FONT_SIZE_MAX) {
+      if (typeof props.onSelectEditorFontSize === 'function') props.onSelectEditorFontSize(parsed);
+    }
+  };
+
+  const commitEditorDraft = function () {
+    const parsed = Number.parseInt(editorDraft.trim(), 10);
+    if (!Number.isFinite(parsed)) {
+      setEditorDraft(String(editorFontSize));
+      return;
+    }
+    applyEditor(parsed);
+  };
+
+  const isDefault = uiFontSize === S.UI_FONT_SIZE_DEFAULT && editorFontSize === S.EDITOR_FONT_SIZE_DEFAULT;
+
+  return h(
+    'div',
+    { style: ST_SHELL.themeWrap, ref: wrapRef, 'data-font-size-picker': '1' },
+    h(
+      S.ToolButton,
+      {
+        title: t('fontSize.label'),
+        ariaLabel: t('fontSize.label'),
+        active: open,
+        'aria-haspopup': 'dialog',
+        'aria-expanded': open ? 'true' : 'false',
+        'data-font-size-button': '1',
+        onClick: function () {
+          setOpen(function (value) {
+            return value !== true;
+          });
+        },
+      },
+      h(S.Icons.FontSize, { size: 16, active: open }),
+    ),
+    open
+      ? h(
+          'div',
+          { style: ST_SHELL.fontMenu, role: 'dialog', 'aria-label': t('fontSize.title'), 'data-font-size-popover': '1' },
+          h(
+            'div',
+            { style: ST_SHELL.themeMenuHead },
+            h('span', { style: ST_SHELL.themeMenuTitle }, t('fontSize.title')),
+            h(
+              S.ToolButton,
+              {
+                title: t('fontSize.close'),
+                ariaLabel: t('fontSize.close'),
+                style: { width: 20, height: 20, borderRadius: 5 },
+                onClick: function (event) { closeMenu(event !== null && event !== undefined && event.detail === 0); },
+              },
+              h(S.Icons.Close, { size: 11 }),
+            ),
+          ),
+          h(
+            'div',
+            { style: ST_SHELL.fontSection },
+            h(
+              'div',
+              { style: ST_SHELL.fontSectionRow },
+              h('span', { style: ST_SHELL.fontLabel }, t('fontSize.ui')),
+              h(
+                'div',
+                { style: ST_SHELL.fontStepper },
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    title: t('fontSize.decrease'),
+                    'aria-label': t('fontSize.ui') + ' — ' + t('fontSize.decrease'),
+                    disabled: uiFontSize <= S.UI_FONT_SIZE_MIN,
+                    'data-font-ui-dec': '1',
+                    style: Object.assign({}, ST_SHELL.fontStepButton, uiFontSize <= S.UI_FONT_SIZE_MIN ? ST_SHELL.fontStepButtonDisabled : null),
+                    onClick: function () { applyUi(uiFontSize - 1); },
+                  },
+                  h(S.Icons.Minus, { size: 12 }),
+                ),
+                h('input', {
+                  type: 'number',
+                  min: S.UI_FONT_SIZE_MIN,
+                  max: S.UI_FONT_SIZE_MAX,
+                  step: 1,
+                  value: uiDraft,
+                  'aria-label': t('fontSize.ui'),
+                  'data-font-ui-input': '1',
+                  style: ST_SHELL.fontInput,
+                  onChange: onUiInputChange,
+                  onBlur: commitUiDraft,
+                  onKeyDown: function (event: any) {
+                    if (event !== null && event !== undefined && event.key === 'Enter') commitUiDraft();
+                  },
+                }),
+                h('span', { style: ST_SHELL.fontUnit }, 'px'),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    title: t('fontSize.increase'),
+                    'aria-label': t('fontSize.ui') + ' — ' + t('fontSize.increase'),
+                    disabled: uiFontSize >= S.UI_FONT_SIZE_MAX,
+                    'data-font-ui-inc': '1',
+                    style: Object.assign({}, ST_SHELL.fontStepButton, uiFontSize >= S.UI_FONT_SIZE_MAX ? ST_SHELL.fontStepButtonDisabled : null),
+                    onClick: function () { applyUi(uiFontSize + 1); },
+                  },
+                  h(S.Icons.Plus, { size: 12 }),
+                ),
+              ),
+            ),
+            h(
+              'div',
+              { style: ST_SHELL.fontPresets },
+              S.FONT_SIZE_PRESETS.map(function (size: number) {
+                const active = uiFontSize === size;
+                return h(
+                  'button',
+                  {
+                    key: 'ui-' + String(size),
+                    type: 'button',
+                    'aria-pressed': active ? 'true' : 'false',
+                    'data-font-ui-preset': String(size),
+                    style: Object.assign({}, ST_SHELL.fontPreset, active ? ST_SHELL.fontPresetActive : null),
+                    onClick: function () { applyUi(size); },
+                  },
+                  String(size),
+                );
+              }),
+            ),
+          ),
+          h(
+            'div',
+            { style: ST_SHELL.fontSection },
+            h(
+              'div',
+              { style: ST_SHELL.fontSectionRow },
+              h('span', { style: ST_SHELL.fontLabel }, t('fontSize.editor')),
+              h(
+                'div',
+                { style: ST_SHELL.fontStepper },
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    title: t('fontSize.decrease'),
+                    'aria-label': t('fontSize.editor') + ' — ' + t('fontSize.decrease'),
+                    disabled: editorFontSize <= S.EDITOR_FONT_SIZE_MIN,
+                    'data-font-editor-dec': '1',
+                    style: Object.assign({}, ST_SHELL.fontStepButton, editorFontSize <= S.EDITOR_FONT_SIZE_MIN ? ST_SHELL.fontStepButtonDisabled : null),
+                    onClick: function () { applyEditor(editorFontSize - 1); },
+                  },
+                  h(S.Icons.Minus, { size: 12 }),
+                ),
+                h('input', {
+                  type: 'number',
+                  min: S.EDITOR_FONT_SIZE_MIN,
+                  max: S.EDITOR_FONT_SIZE_MAX,
+                  step: 1,
+                  value: editorDraft,
+                  'aria-label': t('fontSize.editor'),
+                  'data-font-editor-input': '1',
+                  style: ST_SHELL.fontInput,
+                  onChange: onEditorInputChange,
+                  onBlur: commitEditorDraft,
+                  onKeyDown: function (event: any) {
+                    if (event !== null && event !== undefined && event.key === 'Enter') commitEditorDraft();
+                  },
+                }),
+                h('span', { style: ST_SHELL.fontUnit }, 'px'),
+                h(
+                  'button',
+                  {
+                    type: 'button',
+                    title: t('fontSize.increase'),
+                    'aria-label': t('fontSize.editor') + ' — ' + t('fontSize.increase'),
+                    disabled: editorFontSize >= S.EDITOR_FONT_SIZE_MAX,
+                    'data-font-editor-inc': '1',
+                    style: Object.assign({}, ST_SHELL.fontStepButton, editorFontSize >= S.EDITOR_FONT_SIZE_MAX ? ST_SHELL.fontStepButtonDisabled : null),
+                    onClick: function () { applyEditor(editorFontSize + 1); },
+                  },
+                  h(S.Icons.Plus, { size: 12 }),
+                ),
+              ),
+            ),
+            h(
+              'div',
+              { style: ST_SHELL.fontPresets },
+              S.FONT_SIZE_PRESETS.map(function (size: number) {
+                const active = editorFontSize === size;
+                return h(
+                  'button',
+                  {
+                    key: 'editor-' + String(size),
+                    type: 'button',
+                    'aria-pressed': active ? 'true' : 'false',
+                    'data-font-editor-preset': String(size),
+                    style: Object.assign({}, ST_SHELL.fontPreset, active ? ST_SHELL.fontPresetActive : null),
+                    onClick: function () { applyEditor(size); },
+                  },
+                  String(size),
+                );
+              }),
+            ),
+          ),
+          h(
+            'div',
+            { style: ST_SHELL.fontFooter },
+            h('span', { style: ST_SHELL.fontHint }, t('fontSize.hint')),
+            h(
+              S.GhostButton,
+              {
+                title: t('fontSize.reset'),
+                ariaLabel: t('fontSize.reset'),
+                'data-font-size-reset': '1',
+                disabled: isDefault && props.canResetEditorZoom !== true,
+                style: {
+                  height: uiPx(24),
+                  padding: '0 8px',
+                  fontSize: uiPx(11),
+                  opacity: isDefault && props.canResetEditorZoom !== true ? 0.5 : 1,
+                },
+                onClick: function () {
+                  if (typeof props.onResetFontSizes === 'function') props.onResetFontSizes();
+                },
+              },
+              h(S.Icons.Reset, { size: 11 }),
+              t('fontSize.reset'),
+            ),
+          ),
+        )
+      : null,
+  );
+}
+
+/**
  * Toolbar: three view icons on the left, the workspace picker and refresh on
- * the right, plus the colour-theme picker at the far right. Icons only (no
- * labels) with aria-label + title, exactly like the reference rail.
+ * the right, plus the font-size and colour-theme pickers at the far right.
+ * Icons only (no labels) with aria-label + title, exactly like the reference rail.
  */
 function ShellToolbar(props: any) {
   const t = props.t;
@@ -735,6 +1187,14 @@ function ShellToolbar(props: any) {
       },
       h(S.Icons.Refresh, { size: 16 }),
     ),
+    h(FontSizePicker, {
+      t: t,
+      uiFontSize: props.uiFontSize,
+      editorFontSize: props.editorFontSize,
+      onSelectUiFontSize: typeof props.onSelectUiFontSize === 'function' ? props.onSelectUiFontSize : null,
+      onSelectEditorFontSize: typeof props.onSelectEditorFontSize === 'function' ? props.onSelectEditorFontSize : null,
+      onResetFontSizes: typeof props.onResetFontSizes === 'function' ? props.onResetFontSizes : null,
+    }),
     h(ThemePicker, {
       t: t,
       theme: typeof props.theme === 'string' ? props.theme : 'auto',
@@ -757,6 +1217,13 @@ function Shell(props: any) {
     // Persisted colour theme; `auto` (no overrides) is the default.
     return S.readTheme();
   });
+  const [uiFontSize, setUiFontSize] = useState(function () {
+    return S.readUiFontSize();
+  });
+  const [editorFontSize, setEditorFontSize] = useState(function () {
+    return S.readEditorFontSize();
+  });
+  const [fontResetToken, setFontResetToken] = useState(0);
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [root, setRoot] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -867,6 +1334,24 @@ function Shell(props: any) {
     S.ping('theme', stored);
   }, []);
 
+  const selectUiFontSize = useCallback(function (next: any) {
+    const stored = S.writeUiFontSize(next);
+    setUiFontSize(stored);
+  }, []);
+
+  const selectEditorFontSize = useCallback(function (next: any) {
+    const stored = S.writeEditorFontSize(next);
+    setEditorFontSize(stored);
+  }, []);
+
+  const resetFontSizes = useCallback(function () {
+    const defaultUi = S.writeUiFontSize(S.UI_FONT_SIZE_DEFAULT);
+    const defaultEditor = S.writeEditorFontSize(S.EDITOR_FONT_SIZE_DEFAULT);
+    setUiFontSize(defaultUi);
+    setEditorFontSize(defaultEditor);
+    setFontResetToken(function (value) { return value + 1; });
+  }, []);
+
   const openFile = useCallback(function (path: any, line: any) {
     openTokenRef.current = openTokenRef.current + 1;
     setTab('files');
@@ -919,19 +1404,24 @@ function Shell(props: any) {
       onOpenFile: openFile,
       reloadToken: reloadToken,
       openRequest: openRequest,
+      editorFontSize: editorFontSize,
+      fontResetToken: fontResetToken,
     });
   }
 
-  // The selected colour theme is pure CSS custom properties on the root: the
-  // whole subtree's `var(--dsw-alias-*)` references resolve to the theme, and
-  // `auto` contributes an empty table so the panel follows DSH itself.
+  // The selected colour theme and interface font scale are pure CSS custom
+  // properties on the root: the whole subtree's `var(--dsw-alias-*)` and
+  // `var(--ide-ui-scale)` references update immediately.
   const themeStyle = S.themeVars(theme);
+  const fontStyle = S.uiFontVars(uiFontSize);
 
   return h(
     'div',
     {
-      style: Object.assign({}, ST_SHELL.root, themeStyle),
+      style: Object.assign({}, ST_SHELL.root, themeStyle, fontStyle),
       'data-ide-theme': theme,
+      'data-ide-ui-font-size': String(uiFontSize),
+      'data-ide-editor-font-size': String(editorFontSize),
     },
     h(ShellToolbar, {
       t: t,
@@ -940,10 +1430,15 @@ function Shell(props: any) {
       workspaces: workspaces,
       loading: loading,
       theme: theme,
+      uiFontSize: uiFontSize,
+      editorFontSize: editorFontSize,
       onSelectTab: selectTab,
       onSelectRoot: selectRoot,
       onRefresh: refresh,
       onSelectTheme: selectTheme,
+      onSelectUiFontSize: selectUiFontSize,
+      onSelectEditorFontSize: selectEditorFontSize,
+      onResetFontSizes: resetFontSizes,
     }),
     rootError !== null && root !== null
       ? h(S.NoticeBar, { t: t, kind: 'error', text: t('common.request', { message: S.errorText(rootError) }) })
@@ -1000,6 +1495,7 @@ class PanelBoundary extends React.Component<any, any> {
 S.Shell = Shell;
 S.ShellToolbar = ShellToolbar;
 S.ThemePicker = ThemePicker;
+S.FontSizePicker = FontSizePicker;
 S.themeName = themeName;
 S.themeSwatches = themeSwatches;
 S.PanelBoundary = PanelBoundary;

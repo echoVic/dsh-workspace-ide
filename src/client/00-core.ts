@@ -32,6 +32,7 @@ const ROUTES = Object.freeze({
   image: 'api/dsh-workspace-ide.image',
   search: 'api/dsh-workspace-ide.search',
   git: 'api/dsh-workspace-ide.git',
+  gitAction: 'api/dsh-workspace-ide.git-action',
   save: 'api/dsh-workspace-ide.save',
   ping: 'api/dsh-workspace-ide.ping',
 });
@@ -322,10 +323,44 @@ const DICT: Record<string, Record<string, string>> = {
     'git.aheadHint': '本地领先上游 {count} 个提交',
     'git.behindHint': '本地落后上游 {count} 个提交',
     'git.upstream': '上游 {branch}',
+    'git.commit.tab': '提交',
+    'git.commit.placeholder': '输入提交说明…（Cmd/Ctrl + Enter 提交）',
+    'git.commit.messageLabel': '提交说明',
+    'git.commit.button': '提交',
+    'git.commit.submitting': '提交中…',
+    'git.commit.scope': '已选 {count} 个文件',
+    'git.commit.scopeUntracked': '已选 {count} 个文件（含 {untracked} 个未跟踪）',
+    'git.commit.scopeNone': '未选择要提交的文件',
+    'git.commit.conflictHint': '存在未解决的冲突文件，需先解决后再提交',
+    'git.commit.success': '已提交 {short}',
+    'git.commit.successNoHash': '提交成功',
+    'git.commit.error': '提交失败：{message}',
+    'git.stage': '暂存',
+    'git.stageAdd': '加入 Git',
+    'git.stageAll': '全部暂存',
+    'git.stageAddAll': '全部加入 Git',
+    'git.stageSelected': '暂存所选',
+    'git.unstage': '取消暂存',
+    'git.unstageAll': '全部取消暂存',
+    'git.unstageSelected': '取消暂存',
+    'git.actionError': 'Git 操作失败：{message}',
+    'git.selectAll': '全选',
+    'git.selectCount': '{selected} / {total}',
+    'git.selectGroup': '勾选或取消勾选「{group}」分组',
+    'git.selectFile': '勾选 {path}',
     'theme.label': '主题',
     'theme.title': '界面主题',
     'theme.auto': '跟随 DSH 主题',
     'theme.close': '关闭',
+    'fontSize.label': '字体大小',
+    'fontSize.title': '字体大小',
+    'fontSize.ui': '界面字号',
+    'fontSize.editor': '编辑器字号',
+    'fontSize.decrease': '减小字号',
+    'fontSize.increase': '增大字号',
+    'fontSize.reset': '恢复默认',
+    'fontSize.close': '关闭',
+    'fontSize.hint': '即时生效并自动保存',
   },
   en: {
     panel: 'Workspace',
@@ -525,10 +560,44 @@ const DICT: Record<string, Record<string, string>> = {
     'git.aheadHint': '{count} commits ahead of the upstream',
     'git.behindHint': '{count} commits behind the upstream',
     'git.upstream': 'Upstream {branch}',
+    'git.commit.tab': 'Commit',
+    'git.commit.placeholder': 'Commit message… (Cmd/Ctrl + Enter to commit)',
+    'git.commit.messageLabel': 'Commit message',
+    'git.commit.button': 'Commit',
+    'git.commit.submitting': 'Committing…',
+    'git.commit.scope': '{count} file(s) selected',
+    'git.commit.scopeUntracked': '{count} selected ({untracked} untracked)',
+    'git.commit.scopeNone': 'No files selected',
+    'git.commit.conflictHint': 'Resolve conflicted files before committing',
+    'git.commit.success': 'Committed {short}',
+    'git.commit.successNoHash': 'Commit created',
+    'git.commit.error': 'Commit failed: {message}',
+    'git.stage': 'Stage',
+    'git.stageAdd': 'Add to Git',
+    'git.stageAll': 'Stage all',
+    'git.stageAddAll': 'Add all',
+    'git.stageSelected': 'Stage',
+    'git.unstage': 'Unstage',
+    'git.unstageAll': 'Unstage all',
+    'git.unstageSelected': 'Unstage',
+    'git.actionError': 'Git action failed: {message}',
+    'git.selectAll': 'Select all',
+    'git.selectCount': '{selected} / {total}',
+    'git.selectGroup': 'Toggle all files in {group}',
+    'git.selectFile': 'Select {path} for commit',
     'theme.label': 'Theme',
     'theme.title': 'Color theme',
     'theme.auto': 'Follow DSH theme',
     'theme.close': 'Close',
+    'fontSize.label': 'Font size',
+    'fontSize.title': 'Font size',
+    'fontSize.ui': 'Interface',
+    'fontSize.editor': 'Editor',
+    'fontSize.decrease': 'Decrease font size',
+    'fontSize.increase': 'Increase font size',
+    'fontSize.reset': 'Reset to defaults',
+    'fontSize.close': 'Close',
+    'fontSize.hint': 'Applies immediately and persists across restarts',
   },
 };
 
@@ -1108,6 +1177,100 @@ S.readTheme = readTheme;
 S.writeTheme = writeTheme;
 S.themeVars = themeVars;
 
+// ─── typography / font size ──────────────────────────────────────────────────
+//
+// Interface font scaling uses a single `--ide-ui-scale` custom property placed
+// on the panel root (`uiFontSize / UI_FONT_SIZE_DEFAULT`). Every chrome font
+// size reads `uiPx(px)` -> `calc(<px>px * var(--ide-ui-scale, 1))`, so tree
+// rows, tabs, search results, git lists, diffs and dialogs resize together
+// without touching the pixel-aligned code editor overlay. The code editor keeps
+// its own persisted base font size (`editorFontSize`, combined with Cmd/Ctrl+
+// zoom).
+
+/** Persisted interface base font size (px). */
+const STORAGE_UI_FONT_SIZE = 'dsh-workspace-ide:ui-font-size';
+/** Persisted code editor base font size (px). */
+const STORAGE_EDITOR_FONT_SIZE = 'dsh-workspace-ide:editor-font-size';
+const UI_FONT_SIZE_DEFAULT = 13;
+const UI_FONT_SIZE_MIN = 10;
+const UI_FONT_SIZE_MAX = 24;
+const EDITOR_FONT_SIZE_DEFAULT = 13;
+const EDITOR_FONT_SIZE_MIN = 10;
+const EDITOR_FONT_SIZE_MAX = 28;
+const FONT_SIZE_PRESETS = Object.freeze([12, 13, 14, 16, 18]);
+
+/** Clamp a candidate interface font size into the supported px range. */
+function normalizeUiFontSize(value: unknown): number {
+  const num = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(num) || num <= 0) return UI_FONT_SIZE_DEFAULT;
+  return clampNumber(Math.round(num), UI_FONT_SIZE_MIN, UI_FONT_SIZE_MAX);
+}
+
+/** Read the persisted interface font size (defaults to 13 px). */
+function readUiFontSize(): number {
+  const stored = readStoredNumber(STORAGE_UI_FONT_SIZE);
+  return stored === null ? UI_FONT_SIZE_DEFAULT : normalizeUiFontSize(stored);
+}
+
+/** Persist the interface font size and return the clamped value. */
+function writeUiFontSize(value: unknown): number {
+  const next = normalizeUiFontSize(value);
+  writeStoredNumber(STORAGE_UI_FONT_SIZE, next);
+  return next;
+}
+
+/** Clamp a candidate editor font size into the supported px range. */
+function normalizeEditorFontSize(value: unknown): number {
+  const num = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(num) || num <= 0) return EDITOR_FONT_SIZE_DEFAULT;
+  return clampNumber(Math.round(num), EDITOR_FONT_SIZE_MIN, EDITOR_FONT_SIZE_MAX);
+}
+
+/** Read the persisted editor font size (defaults to 13 px). */
+function readEditorFontSize(): number {
+  const stored = readStoredNumber(STORAGE_EDITOR_FONT_SIZE);
+  return stored === null ? EDITOR_FONT_SIZE_DEFAULT : normalizeEditorFontSize(stored);
+}
+
+/** Persist the editor font size and return the clamped value. */
+function writeEditorFontSize(value: unknown): number {
+  const next = normalizeEditorFontSize(value);
+  writeStoredNumber(STORAGE_EDITOR_FONT_SIZE, next);
+  return next;
+}
+
+/** Inline custom-property table applied to the panel root for interface font scaling. */
+function uiFontVars(uiFontSize: unknown): Record<string, string> {
+  const size = normalizeUiFontSize(uiFontSize);
+  const scale = size === UI_FONT_SIZE_DEFAULT
+    ? 1
+    : Math.round((size / UI_FONT_SIZE_DEFAULT) * 10000) / 10000;
+  return { '--ide-ui-scale': String(scale) };
+}
+
+/** Scale a base px metric by the panel's active `--ide-ui-scale`. */
+function uiPx(px: number): string {
+  return 'calc(' + String(px) + 'px * var(--ide-ui-scale, 1))';
+}
+
+S.STORAGE_UI_FONT_SIZE = STORAGE_UI_FONT_SIZE;
+S.STORAGE_EDITOR_FONT_SIZE = STORAGE_EDITOR_FONT_SIZE;
+S.UI_FONT_SIZE_DEFAULT = UI_FONT_SIZE_DEFAULT;
+S.UI_FONT_SIZE_MIN = UI_FONT_SIZE_MIN;
+S.UI_FONT_SIZE_MAX = UI_FONT_SIZE_MAX;
+S.EDITOR_FONT_SIZE_DEFAULT = EDITOR_FONT_SIZE_DEFAULT;
+S.EDITOR_FONT_SIZE_MIN = EDITOR_FONT_SIZE_MIN;
+S.EDITOR_FONT_SIZE_MAX = EDITOR_FONT_SIZE_MAX;
+S.FONT_SIZE_PRESETS = FONT_SIZE_PRESETS;
+S.normalizeUiFontSize = normalizeUiFontSize;
+S.readUiFontSize = readUiFontSize;
+S.writeUiFontSize = writeUiFontSize;
+S.normalizeEditorFontSize = normalizeEditorFontSize;
+S.readEditorFontSize = readEditorFontSize;
+S.writeEditorFontSize = writeEditorFontSize;
+S.uiFontVars = uiFontVars;
+S.uiPx = uiPx;
+
 // ─── http ────────────────────────────────────────────────────────────────────
 
 /** A failed Host request carrying the contract's error code. */
@@ -1428,14 +1591,14 @@ const ST_CORE = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    height: 28,
+    height: uiPx(28),
     padding: '0 12px',
     border: '1px solid transparent',
     borderRadius: 7,
     background: C.brand,
     color: C.inverted,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
     fontWeight: 600,
     cursor: 'pointer',
     outline: 'none',
@@ -1454,14 +1617,14 @@ const ST_CORE = {
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    height: 26,
+    height: uiPx(26),
     padding: '0 10px',
     border: '1px solid ' + C.border1,
     borderRadius: 6,
     background: C.platform,
     color: C.textSecondary,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
     cursor: 'pointer',
     outline: 'none',
     flex: '0 0 auto',
@@ -1564,14 +1727,14 @@ const ST_CORE = {
     color: C.textTertiary,
   },
   emptyTitle: {
-    fontSize: 13.5,
+    fontSize: uiPx(13.5),
     fontWeight: 600,
     color: C.text,
     margin: 0,
   },
   emptyBody: {
-    fontSize: 12,
-    lineHeight: '18px',
+    fontSize: uiPx(12),
+    lineHeight: 1.5,
     color: C.textSecondary,
     maxWidth: 380,
     margin: 0,
@@ -1599,14 +1762,14 @@ const ST_CORE = {
     color: C.error,
   },
   errorTitle: {
-    fontSize: 13,
+    fontSize: uiPx(13),
     fontWeight: 600,
     color: C.text,
     margin: 0,
   },
   errorBody: {
-    fontSize: 12,
-    lineHeight: '18px',
+    fontSize: uiPx(12),
+    lineHeight: 1.5,
     color: C.textSecondary,
     maxWidth: 440,
     margin: 0,
@@ -1621,7 +1784,7 @@ const ST_CORE = {
     padding: '28px 24px',
     minHeight: 60,
     color: C.textTertiary,
-    fontSize: 12,
+    fontSize: uiPx(12),
   },
   loadingText: {
     display: 'flex',
@@ -1638,8 +1801,8 @@ const ST_CORE = {
     border: '1px solid ' + C.border1,
     background: C.platform,
     fontFamily: FONT_UI,
-    fontSize: 12,
-    lineHeight: '17px',
+    fontSize: uiPx(12),
+    lineHeight: 1.45,
     color: C.textSecondary,
     flex: '0 0 auto',
   },
@@ -1652,14 +1815,14 @@ const ST_CORE = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 4,
-    height: 19,
+    height: uiPx(19),
     padding: '0 7px',
     borderRadius: 999,
     border: '1px solid ' + C.border1,
     background: C.platform,
     color: C.textSecondary,
     fontFamily: FONT_UI,
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
     fontWeight: 500,
     whiteSpace: 'nowrap',
     flex: '0 0 auto',
@@ -1755,20 +1918,20 @@ function PrimaryButton(props: any) {
     hover && !disabled ? ST_CORE.primaryButtonHover : null,
     props.style !== null && props.style !== undefined ? props.style : null,
   );
-  return h(
-    'button',
-    {
-      type: 'button',
-      title: props.title,
-      'aria-label': props.ariaLabel || props.title,
-      disabled: disabled,
-      onClick: disabled ? undefined : props.onClick,
-      onMouseEnter: function () { setHover(true); },
-      onMouseLeave: function () { setHover(false); },
-      style: style,
-    },
-    props.children,
-  );
+  const buttonProps: any = {};
+  Object.keys(props).forEach(function (key) {
+    if (['title', 'ariaLabel', 'disabled', 'onClick', 'children', 'style'].indexOf(key) !== -1) return;
+    /** @type {Record<string, any>} */ (buttonProps)[key] = /** @type {Record<string, any>} */ (props)[key];
+  });
+  buttonProps.type = 'button';
+  buttonProps.title = props.title;
+  buttonProps['aria-label'] = props.ariaLabel || props.title;
+  buttonProps.disabled = disabled;
+  buttonProps.onClick = disabled ? undefined : props.onClick;
+  buttonProps.onMouseEnter = function () { setHover(true); };
+  buttonProps.onMouseLeave = function () { setHover(false); };
+  buttonProps.style = style;
+  return h('button', buttonProps, props.children);
 }
 
 /**
@@ -1821,7 +1984,7 @@ function LoadingIndicator(props: any) {
       'span',
       { style: ST_CORE.loadingText },
       h('span', null, typeof props.label === 'string' ? props.label : S.translate('action.loading')),
-      typeof props.hint === 'string' ? h('span', { style: { fontSize: 11, color: C.textTertiary } }, props.hint) : null,
+      typeof props.hint === 'string' ? h('span', { style: { fontSize: uiPx(11), color: C.textTertiary } }, props.hint) : null,
     ),
   );
 }

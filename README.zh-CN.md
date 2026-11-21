@@ -16,7 +16,8 @@
 
 - **文件**：整个工作区的懒加载目录树，可拖动分栏；带行号、语法高亮的查看器，装订线里显示 git 变更标记。快速打开（`Ctrl/Cmd+P`）、文件内查找替换（`Ctrl/Cmd+F` / `Ctrl/Cmd+H`，支持大小写、全词和正则）、多标签编辑（每个标签保留草稿并拦截未保存关闭）、前进后退（`Ctrl/Cmd+Alt+←/→`）、编辑器缩放、括号匹配、自动配对、缩进参考线和整行移动、`Cmd/Ctrl+/` 切换注释、Markdown 预览与源码切换、图片和 SVG 预览，以及大文件和二进制保护。`Ctrl/Cmd+S` 保存。
 - **搜索**：全工作区全文搜索，支持大小写、正则、全词和 include 过滤；命中按文件分组、高亮，点击直接跳到对应行。
-- **Git**：当前分支和 ahead/behind，暂存、未暂存、未跟踪和冲突四组彩色 unified diff，以及带逐提交 diff 的历史。标签页打开时状态和日志静默刷新，隐藏时暂停；保存后刷新装订线标记。非 git 工作区会列出其他工作区，一键切换。
+- **Git**：类 PyCharm 的提交（Commit）面板，支持勾选本次要提交的文件（已跟踪改动默认勾选、未跟踪文件默认不勾选）、点击预览彩色 unified diff、单文件/分组/批量暂存、取消暂存和将未跟踪文件加入 Git，以及仅提交已选改动的本地提交流程（`Cmd/Ctrl+Enter` 快捷提交，保留未勾选改动）；同时展示当前分支、ahead/behind 和带逐提交 diff 的历史。标签页打开时状态和日志静默刷新，隐藏时暂停；保存后刷新装订线标记。非 git 工作区会列出其他工作区，一键切换。
+- **字体大小**：工具栏提供「字体大小」弹出面板，可分别调整界面字号（覆盖文件树、标签页、搜索结果、Git 面板和弹窗）与编辑器字号，支持加减步进、直接输入、快捷预设、即时生效、重启保留和一键恢复默认。
 
 ### 配色主题
 
@@ -58,7 +59,7 @@ Host 端按平台原生写法校验工作区根目录，Windows 盘符和 UNC �
 
 ## 实现
 
-- **Host**（`lib/index.js`、`lib/host/*.js`）通过 `ctx.connection.fetch.register` 注册 9 条需要认证的 fetch 路由；文件系统访问会做路径检查，除 `save`（只原子覆盖已存在的普通文件）和 `ping` 外都是只读。Git 通过 `child_process.execFile` 执行并限制输出。
+- **Host**（`lib/index.js`、`lib/host/*.js`）通过 `ctx.connection.fetch.register` 注册 10 条需要认证的 fetch 路由；文件系统访问会做路径检查，除 `save`（只原子覆盖已存在的普通文件）、`git-action`（本地暂存/取消暂存/提交）和 `ping` 外都是只读。Git 通过 `child_process.execFile` 执行并限制输出。
 - **Client**（`lib/client.js`，由 `scripts/build-client.mjs` 从 `src/client/` 生成）是一个 `window.__ModuleLoader__.load(...)` 模块，注册 `sidebar.panellist` 图标和对应的 `main` 面板，只依赖 `require('react')`、DSH 主题 token 和内置的中英文字典。
 - **图标**来自开源 [Lucide](https://lucide.dev)，以 SVG 数据内置，没有运行时依赖；许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 和 [licenses/lucide-LICENSE.txt](licenses/lucide-LICENSE.txt)。
 

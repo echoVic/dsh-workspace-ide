@@ -16,7 +16,8 @@ It is published on npm as [`dsh-workspace-ide`](https://www.npmjs.com/package/ds
 
 - **Files**: a lazy tree for the whole workspace with a resizable split and a line-numbered, syntax-highlighted viewer with git change marks in the gutter. Quick open (`Ctrl/Cmd+P`), in-file find and replace (`Ctrl/Cmd+F` / `Ctrl/Cmd+H`, with case, whole-word and regex modes), multi-tab editing with per-tab drafts and unsaved-change guards, back and forward navigation (`Ctrl/Cmd+Alt+←/→`), editor zoom, bracket matching, auto-pair, indent guides and line moves, comment toggling (`Cmd/Ctrl+/`), Markdown preview with a source toggle, image and SVG preview, and large-file and binary guards. `Ctrl/Cmd+S` saves.
 - **Search**: full-text workspace search with case, regex and whole-word toggles plus an include filter; hits are grouped per file, highlighted, and jump to the matching line.
-- **Git**: current branch with ahead/behind, staged, unstaged, untracked and conflicted groups with colourised unified diffs, and a commit history with per-commit diffs. Status and log refresh silently while the tab is open and pause when it is hidden; gutter marks refresh after each save. A non-git workspace lists other workspaces for one-click switching.
+- **Git**: PyCharm-inspired Commit panel with file checkboxes (tracked changes checked by default, untracked files unchecked), click-to-preview colourised unified diffs, per-file/group/batch stage, unstage and add-to-Git actions, selective local commit (`Cmd/Ctrl+Enter`) that preserves unselected changes, branch and ahead/behind status, and a commit history with per-commit diffs. Status and log refresh silently while the tab is open and pause when it is hidden; gutter marks refresh after each save. A non-git workspace lists other workspaces for one-click switching.
+- **Font size**: a toolbar font-size popover adjusts the interface font size (file tree, tabs, search results, Git panel and dialogs) and the editor base font size independently, with `-`/`+` steppers, direct numeric input, presets, instant preview, persistence across restarts, and one-click reset to defaults.
 
 ### Colour themes
 
@@ -58,7 +59,7 @@ The host half validates workspace roots against the platform's native spelling, 
 
 ## How it works
 
-- **Host** (`lib/index.js`, `lib/host/*.js`) registers nine authenticated fetch routes through `ctx.connection.fetch.register`; filesystem access is path-checked, and everything is read-only except `save` (an atomic overwrite of an existing regular file) and `ping`. Git runs through `child_process.execFile` with bounded output.
+- **Host** (`lib/index.js`, `lib/host/*.js`) registers ten authenticated fetch routes through `ctx.connection.fetch.register`; filesystem access is path-checked, and everything is read-only except `save` (an atomic overwrite of an existing regular file), `git-action` (local stage/unstage/commit) and `ping`. Git runs through `child_process.execFile` with bounded output.
 - **Client** (`lib/client.js`, generated from `src/client/` by `scripts/build-client.mjs`) is one `window.__ModuleLoader__.load(...)` module that registers a `sidebar.panellist` icon and the keyed `main` panel, using only `require('react')`, the DSH theme tokens and a built-in zh/en dictionary.
 - **Icons** come from the open-source [Lucide](https://lucide.dev) set, vendored as SVG data with no runtime dependency; licenses are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [licenses/lucide-LICENSE.txt](licenses/lucide-LICENSE.txt).
 

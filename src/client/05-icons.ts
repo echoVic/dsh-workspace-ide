@@ -126,6 +126,28 @@ const LUCIDE_ICONS: Record<string, LucideArc[]> = Object.freeze({
     ['line', { 'x1': 10, 'x2': 8, 'y1': 3, 'y2': 21 }],
     ['line', { 'x1': 16, 'x2': 14, 'y1': 3, 'y2': 21 }],
   ],
+  'a-large-small': [
+    ['path', { 'd': "M21 14h-5" }],
+    ['path', { 'd': "M16 16v-3.5a2.5 2.5 0 0 1 5 0V16" }],
+    ['path', { 'd': "M4.5 13h6" }],
+    ['path', { 'd': "m3 16 4.5-9 4.5 9" }],
+  ],
+  'plus': [
+    ['path', { 'd': "M5 12h14" }],
+    ['path', { 'd': "M12 5v14" }],
+  ],
+  'minus': [
+    ['path', { 'd': "M5 12h14" }],
+  ],
+  'git-commit-horizontal': [
+    ['circle', { 'cx': 12, 'cy': 12, 'r': 3 }],
+    ['line', { 'x1': 3, 'x2': 9, 'y1': 12, 'y2': 12 }],
+    ['line', { 'x1': 15, 'x2': 21, 'y1': 12, 'y2': 12 }],
+  ],
+  'rotate-ccw': [
+    ['path', { 'd': "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" }],
+    ['path', { 'd': "M3 3v5h5" }],
+  ],
 });
 
 /** Rendered pixel size from owner props, falling back when absent. */
@@ -240,6 +262,21 @@ const GoToLineIcon = makeIcon('hash');
 /** Go-to-symbol action in the editor toolbar. */
 const SymbolIcon = makeIcon('list');
 
+/** Font-size settings trigger in the shell toolbar. */
+const FontSizeIcon = makeIcon('a-large-small');
+
+/** Stage / add / increment glyph. */
+const PlusIcon = makeIcon('plus');
+
+/** Unstage / decrement glyph. */
+const MinusIcon = makeIcon('minus');
+
+/** Git commit glyph. */
+const GitCommitIcon = makeIcon('git-commit-horizontal');
+
+/** Reset-to-default glyph. */
+const ResetIcon = makeIcon('rotate-ccw');
+
 /** Indeterminate spinner (SMIL, so no stylesheet is needed). */
 function SpinnerIcon(props: IconProps): any {
   const size = iconSize(props, 14);
@@ -300,5 +337,10 @@ S.Icons = {
   Wrap: WrapIcon,
   GoToLine: GoToLineIcon,
   Symbol: SymbolIcon,
+  FontSize: FontSizeIcon,
+  Plus: PlusIcon,
+  Minus: MinusIcon,
+  GitCommit: GitCommitIcon,
+  Reset: ResetIcon,
   Spinner: SpinnerIcon,
 };

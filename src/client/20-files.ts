@@ -131,8 +131,8 @@ const ST_FILES = {
     background: 'transparent',
     color: C.textSecondary,
     fontFamily: S.FONT_UI,
-    fontSize: 11.5,
-    lineHeight: '20px',
+    fontSize: uiPx(11.5),
+    lineHeight: uiPx(20),
     padding: '0 9px',
     borderRadius: 4,
     cursor: 'pointer',
@@ -173,14 +173,14 @@ const ST_FILES = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    height: 30,
+    height: uiPx(30),
     flex: '0 0 auto',
     padding: '0 6px 0 12px',
     color: C.textTertiary,
     boxSizing: 'border-box',
   },
   treeHeaderTitle: {
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
     fontWeight: 600,
     letterSpacing: '0.07em',
     color: C.textTertiary,
@@ -201,7 +201,7 @@ const ST_FILES = {
     gap: 7,
     padding: '7px 12px',
     color: C.textTertiary,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
   },
   treeError: {
     display: 'flex',
@@ -209,29 +209,29 @@ const ST_FILES = {
     gap: 6,
     padding: '6px 10px 6px 12px',
     color: C.error,
-    fontSize: 11.5,
-    lineHeight: '16px',
+    fontSize: uiPx(11.5),
+    lineHeight: 1.4,
   },
   treeEmpty: {
     padding: '5px 12px 5px 30px',
     color: C.textTertiary,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     fontStyle: 'italic',
   },
   treeTruncated: {
     padding: '6px 12px',
     color: C.warnLabel,
-    fontSize: 11,
+    fontSize: uiPx(11),
   },
   row: {
     display: 'flex',
     alignItems: 'center',
     gap: 5,
-    height: 24,
+    height: uiPx(24),
     paddingRight: 8,
     cursor: 'pointer',
     color: C.text,
-    fontSize: 12.5,
+    fontSize: uiPx(12.5),
     whiteSpace: 'nowrap',
     boxSizing: 'border-box',
     borderRadius: 4,
@@ -288,7 +288,7 @@ const ST_FILES = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    height: 38,
+    height: uiPx(38),
     flex: '0 0 auto',
     padding: '0 12px',
     boxSizing: 'border-box',
@@ -304,7 +304,7 @@ const ST_FILES = {
     overflow: 'hidden',
     whiteSpace: 'nowrap',
     fontFamily: FONT_UI,
-    fontSize: 12.5,
+    fontSize: uiPx(12.5),
   },
   crumb: {
     color: C.textTertiary,
@@ -327,13 +327,13 @@ const ST_FILES = {
     alignItems: 'center',
     gap: 4,
     color: C.warnLabel,
-    fontSize: 11,
+    fontSize: uiPx(11),
     fontWeight: 500,
     flex: '0 0 auto',
   },
   meta: {
     color: C.textTertiary,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
     flex: '0 0 auto',
   },
@@ -486,14 +486,14 @@ const ST_FILES = {
     display: 'flex',
     alignItems: 'center',
     gap: 12,
-    height: 24,
+    height: uiPx(24),
     flex: '0 0 auto',
     padding: '0 12px',
     boxSizing: 'border-box',
     borderTop: '1px solid ' + C.border2,
     background: C.base,
     color: C.textTertiary,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
     overflow: 'hidden',
   },
@@ -531,7 +531,7 @@ const ST_FILES = {
     padding: 0,
     margin: 0,
     fontFamily: FONT_UI,
-    fontSize: 12.5,
+    fontSize: uiPx(12.5),
     color: C.textTertiary,
     cursor: 'pointer',
     overflow: 'hidden',
@@ -543,7 +543,7 @@ const ST_FILES = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    height: 32,
+    height: uiPx(32),
     flex: '0 0 auto',
     padding: '0 12px',
     boxSizing: 'border-box',
@@ -552,7 +552,7 @@ const ST_FILES = {
   },
   gotoLabel: {
     color: C.textTertiary,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     fontFamily: FONT_UI,
     whiteSpace: 'nowrap',
   },
@@ -564,12 +564,12 @@ const ST_FILES = {
     background: C.base,
     color: C.text,
     fontFamily: FONT_MONO,
-    fontSize: 12,
+    fontSize: uiPx(12),
     outline: 'none',
   },
   gotoHint: {
     color: C.textTertiary,
-    fontSize: 11,
+    fontSize: uiPx(11),
     fontFamily: FONT_UI,
     whiteSpace: 'nowrap',
   },
@@ -580,7 +580,7 @@ const ST_FILES = {
     margin: 0,
     color: C.textTertiary,
     fontFamily: FONT_UI,
-    fontSize: 11,
+    fontSize: uiPx(11),
     cursor: 'pointer',
     whiteSpace: 'nowrap',
   },
@@ -609,7 +609,7 @@ const ST_FILES = {
     background: C.base,
     color: C.text,
     fontFamily: FONT_MONO,
-    fontSize: 12,
+    fontSize: uiPx(12),
     outline: 'none',
   },
   findToggle: {
@@ -617,8 +617,8 @@ const ST_FILES = {
     background: 'transparent',
     color: C.textTertiary,
     fontFamily: FONT_MONO,
-    fontSize: 11,
-    lineHeight: '18px',
+    fontSize: uiPx(11),
+    lineHeight: uiPx(18),
     padding: '0 5px',
     borderRadius: 4,
     cursor: 'pointer',
@@ -632,13 +632,13 @@ const ST_FILES = {
   findCount: {
     color: C.textTertiary,
     fontFamily: FONT_MONO,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
   },
   findError: {
     color: C.error,
     fontFamily: FONT_UI,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
   },
   // All-match highlight layer: same character grid as the textarea, text
@@ -707,7 +707,7 @@ const ST_FILES = {
   findHint: {
     color: C.textTertiary,
     fontFamily: FONT_UI,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
   },
   // Cmd/Ctrl+P quick-open palette: centered panel over a transparent scrim.
@@ -751,7 +751,7 @@ const ST_FILES = {
     background: 'transparent',
     color: C.text,
     fontFamily: FONT_UI,
-    fontSize: 13.5,
+    fontSize: uiPx(13.5),
   },
   quickList: {
     overflow: 'auto',
@@ -765,7 +765,7 @@ const ST_FILES = {
     padding: '5px 14px',
     cursor: 'pointer',
     fontFamily: FONT_UI,
-    fontSize: 12.5,
+    fontSize: uiPx(12.5),
   },
   quickRowActive: {
     background: C.activeBg,
@@ -785,7 +785,7 @@ const ST_FILES = {
     padding: '14px',
     color: C.textTertiary,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
   },
   quickHint: {
     flex: '0 0 auto',
@@ -793,20 +793,20 @@ const ST_FILES = {
     borderTop: '1px solid ' + C.border1,
     color: C.textTertiary,
     fontFamily: FONT_UI,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
   },
   quickBadge: {
     color: C.textTertiary,
     fontFamily: FONT_UI,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
   },
   symbolKind: {
     minWidth: 62,
     color: C.textTertiary,
     fontFamily: FONT_UI,
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
     flex: '0 0 auto',
@@ -820,13 +820,13 @@ const ST_FILES = {
     whiteSpace: 'nowrap',
     color: C.textSecondary,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
     flex: '0 1 auto',
   },
   symbolLine: {
     color: C.textTertiary,
     fontFamily: FONT_MONO,
-    fontSize: 11,
+    fontSize: uiPx(11),
     whiteSpace: 'nowrap',
     flex: '0 0 auto',
   },
@@ -862,7 +862,7 @@ const ST_FILES = {
     display: 'flex',
     alignItems: 'stretch',
     flex: '0 0 auto',
-    height: 32,
+    height: uiPx(32),
     minWidth: 0,
     overflowX: 'auto',
     overflowY: 'hidden',
@@ -877,14 +877,14 @@ const ST_FILES = {
     flex: '0 0 auto',
     maxWidth: 220,
     minWidth: 0,
-    height: 32,
+    height: uiPx(32),
     padding: '0 6px 0 12px',
     borderRight: '1px solid ' + C.border1,
     borderTop: '2px solid transparent',
     boxSizing: 'border-box',
     color: C.textSecondary,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
     cursor: 'pointer',
     userSelect: 'none',
   },
@@ -932,7 +932,7 @@ const ST_FILES = {
     borderBottom: '1px solid ' + C.border1,
     color: C.warnLabel,
     fontFamily: FONT_UI,
-    fontSize: 12,
+    fontSize: uiPx(12),
   },
 };
 
@@ -2042,12 +2042,16 @@ function FileViewer(props: any) {
   const gitMarkers: Array<{ line: number, kind: string }> = Array.isArray(props.gitMarkers) ? props.gitMarkers : [];
   const currentSymbol: any = props.currentSymbol !== null && props.currentSymbol !== undefined ? props.currentSymbol : null;
   const zoom = Number.isFinite(props.zoom) ? Math.min(2, Math.max(0.5, Number(props.zoom))) : 1;
-  const zoomFont = Math.round(12.5 * zoom * 10) / 10;
-  const zoomGutterFont = Math.round(11.5 * zoom * 10) / 10;
-  const zoomLine = Math.round(EDITOR_LINE_HEIGHT * zoom * 100) / 100;
-  const zoomPadTop = Math.round(EDITOR_PADDING_TOP * zoom * 100) / 100;
-  const zoomPadBottom = Math.round(24 * zoom * 100) / 100;
-  const zoomGutterWidth = Math.round(58 * zoom);
+  const baseEditorFont = Number.isFinite(props.editorFontSize)
+    ? S.normalizeEditorFontSize(props.editorFontSize)
+    : 12.5;
+  const editorScale = (baseEditorFont / 12.5) * zoom;
+  const zoomFont = Math.round(baseEditorFont * zoom * 10) / 10;
+  const zoomGutterFont = Math.round(11.5 * editorScale * 10) / 10;
+  const zoomLine = Math.round(EDITOR_LINE_HEIGHT * editorScale * 100) / 100;
+  const zoomPadTop = Math.round(EDITOR_PADDING_TOP * editorScale * 100) / 100;
+  const zoomPadBottom = Math.round(24 * editorScale * 100) / 100;
+  const zoomGutterWidth = Math.round(58 * editorScale);
   const editorTextStyle = Object.assign({}, ST_FILES.textarea, wrap === true ? ST_FILES.textareaWrap : null, {
     fontSize: zoomFont + 'px',
     lineHeight: zoomLine + 'px',
@@ -2138,7 +2142,7 @@ function FileViewer(props: any) {
             key: 'guide-' + String(lineNumber) + '-' + String(level),
             style: Object.assign({}, ST_FILES.guideLine, {
               top: zoomPadTop + (lineNumber - 1) * zoomLine + 'px',
-              left: Math.round(12 * zoom) + level * Math.round(15 * zoom) + 'px',
+              left: Math.round(12 * editorScale) + level * Math.round(15 * editorScale) + 'px',
               height: zoomLine + 'px',
             }),
           }));
@@ -2146,7 +2150,7 @@ function FileViewer(props: any) {
       }
       return children;
     },
-    [props.value, props.caret, editorScrollTop, wrap, readOnly, zoom, zoomLine, zoomPadTop],
+    [props.value, props.caret, editorScrollTop, wrap, readOnly, editorScale, zoomLine, zoomPadTop],
   );
 
   useEffect(function () {
@@ -3699,6 +3703,12 @@ function FilesView(props: any) {
     }
   }, []);
 
+  const fontResetToken = Number.isFinite(props.fontResetToken) ? Number(props.fontResetToken) : 0;
+  useEffect(function () {
+    if (fontResetToken > 0) resetZoom();
+    return undefined;
+  }, [fontResetToken, resetZoom]);
+
   const reloadSelected = useCallback(function () {
     if (selected === null) return;
     openPath(selected, null, { reload: true });
@@ -3728,8 +3738,12 @@ function FilesView(props: any) {
     }
   }, []);
 
-  const editorLineHeight = EDITOR_LINE_HEIGHT * zoom;
-  const editorPadTop = EDITOR_PADDING_TOP * zoom;
+  const baseEditorFont = Number.isFinite(props.editorFontSize)
+    ? S.normalizeEditorFontSize(props.editorFontSize)
+    : 12.5;
+  const editorScale = (baseEditorFont / 12.5) * zoom;
+  const editorLineHeight = EDITOR_LINE_HEIGHT * editorScale;
+  const editorPadTop = EDITOR_PADDING_TOP * editorScale;
 
   function applyLineJump(targetLine: any) {
     const textarea = textareaRef.current;
@@ -4469,6 +4483,7 @@ function FilesView(props: any) {
       wrap: wrap,
       onToggleWrap: toggleWrap,
       zoom: zoom,
+      editorFontSize: Number.isFinite(props.editorFontSize) ? props.editorFontSize : undefined,
       onZoomReset: resetZoom,
       bookmarkLines: selected === null ? [] : (bookmarks[selected] === undefined ? [] : bookmarks[selected]),
       gitMarkers: gitMarkers,

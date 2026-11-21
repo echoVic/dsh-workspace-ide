@@ -715,6 +715,7 @@ describe('i18n completeness', () => {
     };
     const views = [
       S.ShellToolbar({ t, tab: 'files', root: '/ws', workspaces: [{ path: '/ws', title: 'ws', live: true }], loading: false, onSelectTab() {}, onSelectRoot() {}, onRefresh() {} }),
+      S.FontSizePicker({ t, uiFontSize: 14, editorFontSize: 15, initialOpen: true, onSelectUiFontSize() {}, onSelectEditorFontSize() {}, onResetFontSizes() {} }),
       S.SearchView({ t, root: '/ws', reloadToken: 0, onOpenFile() {} }),
       S.SearchResults({ t, data: { files: [{ path: 'a.txt', matches: [{ line: 1, column: 1, length: 1, text: 'x' }] }], totalMatches: 1, elapsedMs: 12, truncated: true }, query: 'x', onOpenFile() {} }),
       S.FilesView({ t, root: '/ws', reloadToken: 0, openRequest: null }),
@@ -722,7 +723,8 @@ describe('i18n completeness', () => {
       S.GitView({ t, root: '/ws', reloadToken: 0, workspaces: [], onSelectWorkspace() {} }),
       S.GitNotRepoState({ t, root: '/ws', workspaces: [{ path: '/other', title: 'other', git: true }], onRetry() {}, onSelectWorkspace() {} }),
       S.GitHeader({ t, status: { repo: true, branch: 'main', upstream: 'origin/main', ahead: 1, behind: 2, clean: false }, view: 'changes', totalChanges: 3, onChangeView() {}, onRefresh() {} }),
-      S.GitChangesList({ t, groups: S.groupChanges([{ path: 'a.txt', index: 'M', worktree: ' ', status: 'M ', from: 'old.txt' }]), selection: null, onSelect() {} }),
+      S.GitChangesList({ t, groups: S.groupChanges([{ path: 'a.txt', index: 'M', worktree: ' ', status: 'M ', from: 'old.txt' }, { path: 'b.txt', index: '?', worktree: '?', status: '??' }]), selection: null, checked: { 'a.txt': true, 'b.txt': true }, onToggleFile() {}, onToggleGroup() {}, onToggleAll() {}, onRowAction() {}, onGroupAction() {}, onStageSelected() {}, onUnstageSelected() {}, onSelect() {} }),
+      S.GitCommitBox({ t, message: 'fix: bug', selectedCount: 2, untrackedCount: 1, conflictedCount: 1, busy: false, committing: false, onMessageChange() {}, onCommit() {} }),
       S.GitHistoryList({ t, commits: [{ hash: 'a'.repeat(40), short: 'aaaaaaa', author: 'a', date: new Date().toISOString(), subject: 's', refs: ['HEAD'] }], selection: null, onSelect() {} }),
       S.DiffView({ t, diff: '@@ -1 +1 @@\n-a\n+b\n', truncated: true }),
       S.EmptyState({ t, title: 'x', body: 'y', actionLabel: 'z', onAction() {} }),

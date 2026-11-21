@@ -471,7 +471,41 @@ function run() {
     assert.equal(source.indexOf("'" + id + "'") !== -1, true, 'theme ' + id + ' is defined');
   });
 
-  ok('panel renders three icon buttons (data-tab files/search/git) with dictionary aria-labels; theme root + closed palette picker');
+  // Font-size picker & persisted interface/editor font scaling.
+  const fontButtons = panelRender.hosts.filter(function (host) { return host.props['data-font-size-button'] !== undefined; });
+  assert.equal(fontButtons.length, 1, 'the toolbar renders one font-size button');
+  assert.equal(fontButtons[0].type, 'button', 'the font-size trigger is a button');
+  assert.equal(fontButtons[0].props['aria-label'], 'fontSize.label', 'the font-size trigger label comes from the dictionary');
+  assert.equal(themeRoots[0].props['data-ide-ui-font-size'], '13', 'default interface font size is 13px');
+  assert.equal(themeRoots[0].props['data-ide-editor-font-size'], '13', 'default editor font size is 13px');
+  assert.equal(themeRoots[0].props.style['--ide-ui-scale'], '1', 'default interface font scale is 1');
+
+  // Persisted font sizes mount on the panel root and clamp out-of-range values.
+  const previousWindowForFont = globalThis.window;
+  globalThis.window = /** @type {any} */ ({
+    localStorage: {
+      getItem: function (key) {
+        if (key === 'dsh-workspace-ide:ui-font-size') return '16';
+        if (key === 'dsh-workspace-ide:editor-font-size') return '18';
+        return null;
+      },
+      setItem: function () {},
+      removeItem: function () {},
+    },
+  });
+  let sizedRender;
+  try {
+    sizedRender = renderTree(main[0].component({ t: keyTranslator }));
+  } finally {
+    if (previousWindowForFont === undefined) Reflect.deleteProperty(globalThis, 'window');
+    else globalThis.window = previousWindowForFont;
+  }
+  const sizedRoot = sizedRender.hosts.filter(function (host) { return host.props['data-ide-ui-font-size'] !== undefined; })[0];
+  assert.equal(sizedRoot.props['data-ide-ui-font-size'], '16', 'persisted UI font size applies on mount');
+  assert.equal(sizedRoot.props['data-ide-editor-font-size'], '18', 'persisted editor font size applies on mount');
+  assert.equal(Number(sizedRoot.props.style['--ide-ui-scale']) > 1.2, true, '--ide-ui-scale reflects the larger UI font size');
+
+  ok('panel renders three icon buttons (data-tab files/search/git) with dictionary aria-labels; theme + font-size pickers');
   assert.ok(react.hookScopeCount() >= 5, 'the render walker must exercise several function components');
 
   section('locale service path');
@@ -1172,6 +1206,35 @@ function run() {
   const zoomedTextarea = findHost(zoomedViewer, 'textarea')[0];
   assert.equal(zoomedTextarea.props.style.fontSize, '18.8px', 'zoom scales the editor font');
   assert.equal(zoomedTextarea.props.style.lineHeight, '30px', 'zoom scales the editor line height');
+  const sizedEditorViewer = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, { editorFontSize: 16 })));
+  assert.equal(findHost(sizedEditorViewer, 'textarea')[0].props.style.fontSize, '16px', 'editorFontSize sets the editor font directly');
+  assert.equal(findHost(sizedEditorViewer, 'textarea')[0].props.style.lineHeight, '25.6px', 'editorFontSize scales line height proportionally');
+
+  const uiPicked = [];
+  const editorPicked = [];
+  let resetCalls = 0;
+  const fontPickerRender = renderTree(T.FontSizePicker({
+    t: keyTranslator,
+    uiFontSize: 14,
+    editorFontSize: 15,
+    initialOpen: true,
+    onSelectUiFontSize: function (next) { uiPicked.push(next); },
+    onSelectEditorFontSize: function (next) { editorPicked.push(next); },
+    onResetFontSizes: function () { resetCalls = resetCalls + 1; },
+  }));
+  assert.equal(fontPickerRender.hosts.some(function (host) { return host.props['data-font-size-popover'] === '1'; }), true, 'open FontSizePicker renders its popover');
+  fontPickerRender.hosts.filter(function (host) { return host.props['data-font-ui-inc'] === '1'; })[0].props.onClick();
+  fontPickerRender.hosts.filter(function (host) { return host.props['data-font-ui-preset'] === '18'; })[0].props.onClick();
+  fontPickerRender.hosts.filter(function (host) { return host.props['data-font-editor-dec'] === '1'; })[0].props.onClick();
+  fontPickerRender.hosts.filter(function (host) { return host.props['data-font-size-reset'] === '1'; })[0].props.onClick();
+  assert.deepEqual(uiPicked, [15, 18], 'UI font stepper and preset update the UI font size');
+  assert.deepEqual(editorPicked, [14], 'editor font stepper updates the editor font size');
+  assert.equal(resetCalls, 1, 'reset button triggers onResetFontSizes');
+  assert.equal(T.normalizeUiFontSize(99), 24, 'UI font size clamps at max');
+  assert.equal(T.normalizeUiFontSize(2), 10, 'UI font size clamps at min');
+  assert.equal(T.normalizeUiFontSize('bad'), 13, 'invalid UI font size falls back to default');
+  assert.equal(T.normalizeEditorFontSize(99), 28, 'editor font size clamps at max');
+  ok('FontSizePicker + font scaling helpers: steppers, presets, reset, persistence & editor base size');
   const zoomButton = zoomedViewer.hosts.filter(function (host) { return host.props['data-editor-zoom'] !== undefined; })[0];
   assert.equal(zoomButton.props['data-editor-zoom'], '150', 'the status bar reports the zoom percent');
   const invalidFindRender = renderTree(T.FileViewer(Object.assign({}, plainViewerProps, {
@@ -1395,6 +1458,86 @@ function run() {
   assert.equal(gitLists.texts.includes('git.group.staged'), true, 'staged group label');
   assert.equal(gitLists.texts.includes('git.group.untracked'), true, 'untracked group label');
   assert.equal(gitLists.texts.includes('git.group.conflicted'), false, 'empty groups are not rendered');
+
+  // Commit panel selection reconciliation, checkboxes, stage/unstage actions and commit box.
+  const commitGroups = T.groupChanges([
+    { path: 'src/staged.ts', status: 'M ', index: 'M', worktree: ' ' },
+    { path: 'src/edited.ts', status: ' M', index: ' ', worktree: 'M' },
+    { path: 'src/new.ts', status: '??', index: '?', worktree: '?' },
+    { path: 'src/conflict.ts', status: 'UU', index: 'U', worktree: 'U' },
+  ]);
+  const initialSelection = T.reconcileCheckedPaths({}, {}, commitGroups);
+  assert.deepEqual(initialSelection.checked, { 'src/staged.ts': true, 'src/edited.ts': true, 'src/new.ts': false }, 'tracked files start checked, untracked files start unchecked');
+  const afterManualToggle = T.reconcileCheckedPaths(
+    { 'src/staged.ts': false, 'src/edited.ts': true, 'src/new.ts': true },
+    initialSelection.seen,
+    commitGroups,
+  );
+  assert.deepEqual(afterManualToggle.checked, { 'src/staged.ts': false, 'src/edited.ts': true, 'src/new.ts': true }, 'manual toggles survive status refreshes');
+  const commitSummary = T.selectedCommitPaths(afterManualToggle.checked, commitGroups);
+  assert.deepEqual(commitSummary.paths, ['src/edited.ts', 'src/new.ts'], 'selected commit paths match checked files');
+  assert.deepEqual(commitSummary.untrackedSelected, ['src/new.ts'], 'selected untracked files are tracked separately');
+  assert.deepEqual(commitSummary.stageableSelected, ['src/edited.ts', 'src/new.ts'], 'stageable selection includes unstaged and untracked');
+
+  const toggledFiles = [];
+  const rowActions = [];
+  const previewedChanges = [];
+  const interactiveChanges = renderTree(T.GitChangesList({
+    t: keyTranslator,
+    groups: commitGroups,
+    selection: null,
+    checked: afterManualToggle.checked,
+    onToggleFile: function (p) { toggledFiles.push(p); },
+    onToggleGroup: function () {},
+    onToggleAll: function () {},
+    onRowAction: function (c) { rowActions.push(c.path); },
+    onGroupAction: function () {},
+    onStageSelected: function () {},
+    onUnstageSelected: function () {},
+    onSelect: function (c) { previewedChanges.push(c.path); },
+  }));
+  assert.equal(interactiveChanges.hosts.some(function (host) { return host.props['data-git-selection-bar'] === '1'; }), true, 'selection bar renders');
+  const newCheckbox = interactiveChanges.hosts.filter(function (host) { return host.props['data-commit-check'] === 'src/new.ts'; })[0];
+  assert.equal(newCheckbox.props.checked, true, 'checkbox reflects checked state');
+  newCheckbox.props.onChange({ stopPropagation: function () {} });
+  assert.deepEqual(toggledFiles, ['src/new.ts'], 'toggling checkbox calls onToggleFile');
+  assert.deepEqual(previewedChanges, [], 'toggling checkbox does not trigger row diff selection');
+  const stageBtn = interactiveChanges.hosts.filter(function (host) { return host.props['data-row-action-path'] === 'src/new.ts'; })[0];
+  stageBtn.props.onClick({ stopPropagation: function () {} });
+  assert.deepEqual(rowActions, ['src/new.ts'], 'row action button triggers stage/unstage');
+
+  let commitTriggered = 0;
+  const commitBoxEmpty = renderTree(T.GitCommitBox({
+    t: keyTranslator,
+    message: '   ',
+    selectedCount: 2,
+    untrackedCount: 1,
+    conflictedCount: 0,
+    onMessageChange: function () {},
+    onCommit: function () { commitTriggered = commitTriggered + 1; },
+  }));
+  const disabledCommitBtn = commitBoxEmpty.hosts.filter(function (host) { return host.props['data-git-commit'] === '1'; })[0];
+  assert.equal(disabledCommitBtn.props.disabled, true, 'Commit button stays disabled when message is empty');
+
+  const commitBoxReady = renderTree(T.GitCommitBox({
+    t: keyTranslator,
+    message: 'feat: add commit panel',
+    selectedCount: 2,
+    untrackedCount: 1,
+    conflictedCount: 1,
+    onMessageChange: function () {},
+    onCommit: function () { commitTriggered = commitTriggered + 1; },
+  }));
+  assert.equal(commitBoxReady.texts.includes('git.commit.conflictHint'), true, 'conflict warning renders when conflicted files exist');
+  const readyCommitBtn = commitBoxReady.hosts.filter(function (host) { return host.props['data-git-commit'] === '1'; })[0];
+  assert.equal(readyCommitBtn.props.disabled, false, 'Commit button enables when files are checked and message is present');
+  readyCommitBtn.props.onClick();
+  assert.equal(commitTriggered, 1, 'clicking Commit triggers onCommit');
+  const commitTextarea = commitBoxReady.hosts.filter(function (host) { return host.props['data-commit-message'] === '1'; })[0];
+  commitTextarea.props.onKeyDown({ metaKey: true, key: 'Enter', preventDefault: function () {} });
+  assert.equal(commitTriggered, 2, 'Cmd/Ctrl+Enter inside commit message triggers onCommit');
+  ok('Git Commit panel: selection reconciliation, checkboxes, stage/unstage actions and commit box');
+
   const historyRender = renderTree(T.GitHistoryList({ t: keyTranslator, commits: [{ hash: 'abcdef1234567890', short: 'abcdef1', author: 'Ada', date: '2026-01-02T03:04:05Z', subject: 'init', refs: ['HEAD'] }], selection: null, onSelect: function () {} }));
   assert.equal(historyRender.texts.includes('abcdef1'), true, 'history row shows the short hash');
   assert.equal(historyRender.texts.includes('init'), true, 'history row shows the subject');

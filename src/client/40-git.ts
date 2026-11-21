@@ -36,7 +36,7 @@ const ST_GIT = {
     alignItems: 'center',
     gap: 8,
     flex: '0 0 auto',
-    height: 42,
+    height: uiPx(42),
     padding: '0 12px',
     boxSizing: 'border-box',
     borderBottom: '1px solid ' + C.border2,
@@ -53,7 +53,7 @@ const ST_GIT = {
   },
   branchText: {
     fontFamily: FONT_MONO,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     color: C.text,
     maxWidth: 220,
     overflow: 'hidden',
@@ -63,21 +63,21 @@ const ST_GIT = {
     border: '1px solid ' + C.border1,
     borderRadius: 999,
     background: C.platform,
-    lineHeight: '17px',
+    lineHeight: uiPx(17),
   },
   meta: {
-    fontSize: 11,
+    fontSize: uiPx(11),
     color: C.textTertiary,
     flex: '0 0 auto',
   },
   ahead: {
     color: C.diffAdd,
-    fontSize: 11,
+    fontSize: uiPx(11),
     flex: '0 0 auto',
   },
   behind: {
     color: C.warnLabel,
-    fontSize: 11,
+    fontSize: uiPx(11),
     flex: '0 0 auto',
   },
   spacer: {
@@ -85,12 +85,12 @@ const ST_GIT = {
     minWidth: 6,
   },
   summaryClean: {
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     color: C.diffAdd,
     flex: '0 0 auto',
   },
   summaryDirty: {
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     color: C.warnLabel,
     flex: '0 0 auto',
   },
@@ -105,14 +105,14 @@ const ST_GIT = {
     flex: '0 0 auto',
   },
   segment: {
-    height: 22,
+    height: uiPx(22),
     padding: '0 10px',
     border: 'none',
     borderRadius: 5,
     background: 'transparent',
     color: C.textSecondary,
     fontFamily: FONT_UI,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     cursor: 'pointer',
     outline: 'none',
     transition: 'background 120ms ease, color 120ms ease',
@@ -142,25 +142,103 @@ const ST_GIT = {
     overflow: 'hidden',
     background: C.base,
   },
+  selectionBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flex: '0 0 auto',
+    minHeight: uiPx(32),
+    padding: '4px 12px',
+    boxSizing: 'border-box',
+    borderBottom: '1px solid ' + C.border1,
+    background: C.layer1,
+  },
+  selectAllLabel: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: uiPx(11.5),
+    color: C.textSecondary,
+    cursor: 'pointer',
+    userSelect: 'none',
+    minWidth: 0,
+  },
+  checkbox: {
+    width: 14,
+    height: 14,
+    margin: 0,
+    cursor: 'pointer',
+    accentColor: C.accent,
+    flex: '0 0 auto',
+  },
+  selectionActions: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 'auto',
+    flex: '0 0 auto',
+  },
+  miniAction: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 3,
+    height: uiPx(22),
+    padding: '0 7px',
+    border: '1px solid ' + C.border1,
+    borderRadius: 5,
+    background: C.base,
+    color: C.textSecondary,
+    fontFamily: FONT_UI,
+    fontSize: uiPx(11),
+    cursor: 'pointer',
+    outline: 'none',
+    whiteSpace: 'nowrap',
+  },
+  miniActionDisabled: {
+    opacity: 0.45,
+    cursor: 'default',
+  },
   listScroll: {
     display: 'flex',
     flexDirection: 'column',
     flex: '1 1 auto',
     minHeight: 0,
     overflow: 'auto',
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   groupHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    padding: '10px 12px 4px',
-    fontSize: 10.5,
+    padding: '9px 12px 4px',
+    fontSize: uiPx(10.5),
     fontWeight: 600,
     letterSpacing: '0.06em',
     textTransform: 'uppercase',
     color: C.textTertiary,
     whiteSpace: 'nowrap',
+  },
+  groupAction: {
+    marginLeft: 'auto',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 3,
+    padding: '1px 6px',
+    border: 'none',
+    borderRadius: 4,
+    background: 'transparent',
+    color: C.textTertiary,
+    fontFamily: FONT_UI,
+    fontSize: uiPx(10.5),
+    fontWeight: 500,
+    letterSpacing: '0',
+    textTransform: 'none',
+    cursor: 'pointer',
+    outline: 'none',
+  },
+  groupActionHover: {
+    background: C.hover,
+    color: C.text,
   },
   groupCount: {
     fontWeight: 400,
@@ -171,10 +249,10 @@ const ST_GIT = {
     display: 'flex',
     alignItems: 'center',
     gap: 7,
-    height: 26,
-    padding: '0 12px',
+    height: uiPx(26),
+    padding: '0 8px 0 12px',
     cursor: 'pointer',
-    fontSize: 12,
+    fontSize: uiPx(12),
     whiteSpace: 'nowrap',
     color: C.text,
     userSelect: 'none',
@@ -186,12 +264,33 @@ const ST_GIT = {
   changeRowActive: {
     background: C.activeBg,
   },
+  rowAction: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 20,
+    height: 20,
+    padding: 0,
+    border: 'none',
+    borderRadius: 4,
+    background: 'transparent',
+    color: C.textTertiary,
+    cursor: 'pointer',
+    outline: 'none',
+    flex: '0 0 auto',
+    opacity: 0.72,
+  },
+  rowActionHot: {
+    background: C.layer2,
+    color: C.text,
+    opacity: 1,
+  },
   letter: {
     flex: '0 0 auto',
     width: 13,
     textAlign: 'center',
     fontFamily: FONT_MONO,
-    fontSize: 11,
+    fontSize: uiPx(11),
     fontWeight: 700,
   },
   changePath: {
@@ -200,7 +299,7 @@ const ST_GIT = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     fontFamily: FONT_MONO,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
   },
   changeDir: {
     color: C.textTertiary,
@@ -208,7 +307,54 @@ const ST_GIT = {
   changeFrom: {
     flex: '0 0 auto',
     color: C.textTertiary,
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
+  },
+  commitBox: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    flex: '0 0 auto',
+    padding: '10px 12px 12px',
+    borderTop: '1px solid ' + C.border2,
+    background: C.layer1,
+    boxSizing: 'border-box',
+  },
+  commitScopeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
+    fontSize: uiPx(11),
+    color: C.textSecondary,
+  },
+  commitScopeWarn: {
+    color: C.warnLabel,
+    fontSize: uiPx(11),
+  },
+  commitTextarea: {
+    width: '100%',
+    minHeight: uiPx(66),
+    maxHeight: uiPx(160),
+    padding: '7px 9px',
+    boxSizing: 'border-box',
+    border: '1px solid ' + C.border1,
+    borderRadius: 6,
+    background: C.base,
+    color: C.text,
+    fontFamily: FONT_UI,
+    fontSize: uiPx(12),
+    lineHeight: 1.45,
+    resize: 'vertical',
+    outline: 'none',
+  },
+  commitTextareaFocus: {
+    boxShadow: '0 0 0 2px var(--dsw-focus-ring-color, ' + C.accent + ')',
+  },
+  commitFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   historyRow: {
     display: 'flex',
@@ -226,7 +372,7 @@ const ST_GIT = {
     background: C.activeBg,
   },
   historySubject: {
-    fontSize: 12,
+    fontSize: uiPx(12),
     color: C.text,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -236,7 +382,7 @@ const ST_GIT = {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
     color: C.textTertiary,
     overflow: 'hidden',
     whiteSpace: 'nowrap',
@@ -244,7 +390,7 @@ const ST_GIT = {
   hash: {
     fontFamily: FONT_MONO,
     color: C.accent,
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
     flex: '0 0 auto',
   },
   refBadge: {
@@ -253,8 +399,8 @@ const ST_GIT = {
     border: '1px solid ' + C.border1,
     borderRadius: 999,
     padding: '0 5px',
-    fontSize: 9.5,
-    lineHeight: '14px',
+    fontSize: uiPx(9.5),
+    lineHeight: uiPx(14),
     flex: '0 0 auto',
   },
   diffPane: {
@@ -272,7 +418,7 @@ const ST_GIT = {
     alignItems: 'center',
     gap: 8,
     flex: '0 0 auto',
-    height: 38,
+    height: uiPx(38),
     padding: '0 12px',
     boxSizing: 'border-box',
     borderBottom: '1px solid ' + C.border2,
@@ -286,7 +432,7 @@ const ST_GIT = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     fontFamily: FONT_MONO,
-    fontSize: 11.5,
+    fontSize: uiPx(11.5),
     color: C.text,
   },
   diffScroll: {
@@ -298,8 +444,8 @@ const ST_GIT = {
     margin: 0,
     padding: '6px 0 20px',
     fontFamily: FONT_MONO,
-    fontSize: 12,
-    lineHeight: '18px',
+    fontSize: uiPx(12),
+    lineHeight: uiPx(18),
     color: C.textSecondary,
   },
   diffRow: {
@@ -309,13 +455,13 @@ const ST_GIT = {
   },
   diffNo: {
     flex: '0 0 auto',
-    width: 42,
+    width: uiPx(42),
     paddingRight: 8,
     boxSizing: 'border-box',
     textAlign: 'right',
     color: C.textTertiary,
     opacity: 0.72,
-    fontSize: 10.5,
+    fontSize: uiPx(10.5),
     userSelect: 'none',
   },
   diffText: {
@@ -355,7 +501,7 @@ const ST_GIT = {
     justifyContent: 'center',
     padding: '24px 16px',
     color: C.textTertiary,
-    fontSize: 12,
+    fontSize: uiPx(12),
   },
   notRepoWrap: {
     display: 'flex',
@@ -390,14 +536,14 @@ const ST_GIT = {
   },
   notRepoTitle: {
     margin: 0,
-    fontSize: 13.5,
+    fontSize: uiPx(13.5),
     fontWeight: 600,
     color: C.text,
   },
   notRepoBody: {
     margin: 0,
-    fontSize: 12,
-    lineHeight: '18px',
+    fontSize: uiPx(12),
+    lineHeight: 1.5,
     color: C.textSecondary,
     maxWidth: 440,
     wordBreak: 'break-word',
@@ -414,7 +560,7 @@ const ST_GIT = {
   },
   notRepoSuggestLabel: {
     margin: 0,
-    fontSize: 11,
+    fontSize: uiPx(11),
     color: C.textTertiary,
   },
   notRepoActions: {
@@ -425,8 +571,8 @@ const ST_GIT = {
   },
   notRepoHint: {
     margin: 0,
-    fontSize: 11.5,
-    lineHeight: '17px',
+    fontSize: uiPx(11.5),
+    lineHeight: 1.5,
     color: C.textTertiary,
     maxWidth: 440,
   },
@@ -600,14 +746,23 @@ function statusLetterStyle(letter: string): any {
   return { color: C.textTertiary };
 }
 
-/** One change row (letter + path). Pure. */
+/** One change row (optional checkbox + letter + path + optional stage/unstage button). */
 function GitChangeRow(props: any) {
   const [hover, setHover] = useState(false);
+  const [actionHot, setActionHot] = useState(false);
   const change = props.change;
   const path = typeof change.path === 'string' ? change.path : '';
   const slash = path.lastIndexOf('/');
   const dir = slash === -1 ? '' : path.slice(0, slash + 1);
   const name = slash === -1 ? path : path.slice(slash + 1);
+  const showCheckbox = props.checkable === true && typeof props.onToggleCheck === 'function';
+  const isChecked = props.checked === true;
+  const showAction = typeof props.onRowAction === 'function';
+  const actionTitle = change.staged === true
+    ? S.tt(props.t, 'git.unstage')
+    : change.letter === '?'
+      ? S.tt(props.t, 'git.stageAdd')
+      : S.tt(props.t, 'git.stage');
   return h(
     'div',
     {
@@ -620,6 +775,23 @@ function GitChangeRow(props: any) {
       onMouseEnter: function () { setHover(true); },
       onMouseLeave: function () { setHover(false); },
     },
+    showCheckbox
+      ? h('input', {
+          type: 'checkbox',
+          checked: isChecked,
+          disabled: props.busy === true,
+          'aria-label': S.tt(props.t, 'git.selectFile', { path: path }),
+          'data-commit-check': path,
+          style: ST_GIT.checkbox,
+          onClick: function (event: any) {
+            if (event !== null && event !== undefined && typeof event.stopPropagation === 'function') event.stopPropagation();
+          },
+          onChange: function (event: any) {
+            if (event !== null && event !== undefined && typeof event.stopPropagation === 'function') event.stopPropagation();
+            props.onToggleCheck(path);
+          },
+        })
+      : null,
     h('span', { style: Object.assign({}, ST_GIT.letter, statusLetterStyle(change.letter)) }, change.letter),
     h(
       'span',
@@ -628,28 +800,111 @@ function GitChangeRow(props: any) {
       h('span', null, name),
     ),
     change.from ? h('span', { style: ST_GIT.changeFrom }, '‹ ' + change.from) : null,
+    showAction
+      ? h(
+          'button',
+          {
+            type: 'button',
+            title: actionTitle,
+            'aria-label': actionTitle + ' ' + path,
+            disabled: props.busy === true,
+            'data-row-action': change.staged === true ? 'unstage' : 'stage',
+            'data-row-action-path': path,
+            style: Object.assign({}, ST_GIT.rowAction, actionHot ? ST_GIT.rowActionHot : null),
+            onMouseEnter: function () { setActionHot(true); },
+            onMouseLeave: function () { setActionHot(false); },
+            onClick: function (event: any) {
+              if (event !== null && event !== undefined && typeof event.stopPropagation === 'function') event.stopPropagation();
+              props.onRowAction(change);
+            },
+          },
+          h(change.staged === true ? S.Icons.Minus : S.Icons.Plus, { size: 12 }),
+        )
+      : null,
   );
 }
 
 /** One group of changes (staged / unstaged / untracked / conflicted). */
 function GitChangeGroup(props: any) {
+  const [actionHover, setActionHover] = useState(false);
   const changes = props.changes;
   if (!Array.isArray(changes) || changes.length === 0) return null;
+  const checkable = props.groupId !== 'conflicted' && typeof props.onToggleFile === 'function';
+  const checkedMap = props.checked !== null && props.checked !== undefined && typeof props.checked === 'object' ? props.checked : {};
+  const uniquePaths: string[] = [];
+  const seenLocal: Record<string, boolean> = {};
+  changes.forEach(function (change: any) {
+    if (change !== null && change !== undefined && typeof change.path === 'string' && !seenLocal[change.path]) {
+      seenLocal[change.path] = true;
+      uniquePaths.push(change.path);
+    }
+  });
+  const checkedCount = uniquePaths.filter(function (filePath: string) { return checkedMap[filePath] === true; }).length;
+  const allChecked = uniquePaths.length > 0 && checkedCount === uniquePaths.length;
+  const someChecked = checkedCount > 0 && checkedCount < uniquePaths.length;
+  const showGroupCheckbox = checkable && typeof props.onToggleGroup === 'function';
+  const showGroupAction = props.groupId !== 'conflicted' && typeof props.onGroupAction === 'function';
+  const groupActionLabel = props.groupId === 'staged'
+    ? S.tt(props.t, 'git.unstageAll')
+    : props.groupId === 'untracked'
+      ? S.tt(props.t, 'git.stageAddAll')
+      : S.tt(props.t, 'git.stageAll');
+
   return h(
     'div',
     { 'data-group': props.groupId },
     h(
       'div',
       { style: ST_GIT.groupHeader },
+      showGroupCheckbox
+        ? h('input', {
+            type: 'checkbox',
+            checked: allChecked,
+            disabled: props.busy === true,
+            'aria-label': S.tt(props.t, 'git.selectGroup', { group: props.label }),
+            'data-group-check': props.groupId,
+            style: ST_GIT.checkbox,
+            ref: function (node: any) {
+              if (node !== null && node !== undefined) node.indeterminate = someChecked;
+            },
+            onChange: function () {
+              props.onToggleGroup(uniquePaths, !allChecked);
+            },
+          })
+        : null,
       h('span', null, props.label),
       h('span', { style: ST_GIT.groupCount }, String(changes.length)),
+      showGroupAction
+        ? h(
+            'button',
+            {
+              type: 'button',
+              title: groupActionLabel,
+              'aria-label': groupActionLabel,
+              disabled: props.busy === true,
+              'data-group-action': props.groupId,
+              style: Object.assign({}, ST_GIT.groupAction, actionHover ? ST_GIT.groupActionHover : null),
+              onMouseEnter: function () { setActionHover(true); },
+              onMouseLeave: function () { setActionHover(false); },
+              onClick: function () {
+                props.onGroupAction(props.groupId, uniquePaths);
+              },
+            },
+            groupActionLabel,
+          )
+        : null,
     ),
-    changes.map(function (change) {
+    changes.map(function (change: any) {
       return h(GitChangeRow, {
         key: 'change:' + change.staged + ':' + change.path,
         t: props.t,
         change: change,
         active: props.activePath === change.path && props.activeStaged === change.staged,
+        checkable: checkable,
+        checked: checkedMap[change.path] === true,
+        busy: props.busy === true,
+        onToggleCheck: props.onToggleFile,
+        onRowAction: props.groupId === 'conflicted' ? null : props.onRowAction,
         onSelect: props.onSelect,
       });
     }),
@@ -718,7 +973,119 @@ function groupChanges(files: Array<GitFileRow>): any {
   return groups;
 }
 
-/** Left list for the Changes view. */
+/**
+ * Reconcile checkbox selection across status refreshes (live poll, stage/unstage,
+ * commit). Mirrors PyCharm's Commit window: newly seen tracked changes (staged /
+ * unstaged) start checked, newly seen untracked files start unchecked, and manual
+ * user toggles are preserved for paths that remain dirty.
+ */
+function reconcileCheckedPaths(
+  previousChecked: Record<string, boolean> | null | undefined,
+  previousSeen: Record<string, boolean> | null | undefined,
+  groups: any,
+): { checked: Record<string, boolean>, seen: Record<string, boolean> } {
+  const prevChecked = previousChecked !== null && previousChecked !== undefined && typeof previousChecked === 'object' ? previousChecked : {};
+  const prevSeen = previousSeen !== null && previousSeen !== undefined && typeof previousSeen === 'object' ? previousSeen : {};
+  const trackedSet: Record<string, boolean> = {};
+  const commitablePaths: string[] = [];
+  const added: Record<string, boolean> = {};
+  const pushFrom = function (list: any, tracked: boolean) {
+    if (!Array.isArray(list)) return;
+    list.forEach(function (entry: any) {
+      if (entry === null || entry === undefined || typeof entry.path !== 'string' || entry.path.length === 0) return;
+      if (tracked) trackedSet[entry.path] = true;
+      if (!added[entry.path]) {
+        added[entry.path] = true;
+        commitablePaths.push(entry.path);
+      }
+    });
+  };
+  if (groups !== null && groups !== undefined) {
+    pushFrom(groups.staged, true);
+    pushFrom(groups.unstaged, true);
+    pushFrom(groups.untracked, false);
+  }
+  const checked: Record<string, boolean> = {};
+  const seen: Record<string, boolean> = {};
+  commitablePaths.forEach(function (filePath: string) {
+    seen[filePath] = true;
+    if (prevSeen[filePath] === true) {
+      checked[filePath] = prevChecked[filePath] === true;
+    } else {
+      checked[filePath] = trackedSet[filePath] === true;
+    }
+  });
+  return { checked: checked, seen: seen };
+}
+
+/**
+ * Summarise which paths are selected for commit / stage / unstage from the
+ * current checkbox map and change groups.
+ */
+function selectedCommitPaths(
+  checked: Record<string, boolean> | null | undefined,
+  groups: any,
+): {
+  paths: string[],
+  stagedSelected: string[],
+  unstagedSelected: string[],
+  untrackedSelected: string[],
+  stageableSelected: string[],
+  allCommitable: string[],
+  totalCommitable: number,
+} {
+  const map = checked !== null && checked !== undefined && typeof checked === 'object' ? checked : {};
+  const collectUnique = function (list: any): string[] {
+    const out: string[] = [];
+    const seen: Record<string, boolean> = {};
+    if (!Array.isArray(list)) return out;
+    list.forEach(function (entry: any) {
+      if (entry === null || entry === undefined || typeof entry.path !== 'string' || entry.path.length === 0) return;
+      if (!seen[entry.path]) {
+        seen[entry.path] = true;
+        out.push(entry.path);
+      }
+    });
+    return out;
+  };
+  const stagedAll = collectUnique(groups !== null && groups !== undefined ? groups.staged : null);
+  const unstagedAll = collectUnique(groups !== null && groups !== undefined ? groups.unstaged : null);
+  const untrackedAll = collectUnique(groups !== null && groups !== undefined ? groups.untracked : null);
+
+  const allCommitable: string[] = [];
+  const seenAll: Record<string, boolean> = {};
+  stagedAll.concat(unstagedAll, untrackedAll).forEach(function (filePath: string) {
+    if (!seenAll[filePath]) {
+      seenAll[filePath] = true;
+      allCommitable.push(filePath);
+    }
+  });
+
+  const paths = allCommitable.filter(function (filePath: string) { return map[filePath] === true; });
+  const stagedSelected = stagedAll.filter(function (filePath: string) { return map[filePath] === true; });
+  const unstagedSelected = unstagedAll.filter(function (filePath: string) { return map[filePath] === true; });
+  const untrackedSelected = untrackedAll.filter(function (filePath: string) { return map[filePath] === true; });
+  const stageableSelected: string[] = [];
+  const seenStageable: Record<string, boolean> = {};
+  unstagedSelected.concat(untrackedSelected).forEach(function (filePath: string) {
+    if (!seenStageable[filePath]) {
+      seenStageable[filePath] = true;
+      stageableSelected.push(filePath);
+    }
+  });
+
+  return {
+    paths: paths,
+    stagedSelected: stagedSelected,
+    unstagedSelected: unstagedSelected,
+    untrackedSelected: untrackedSelected,
+    stageableSelected: stageableSelected,
+    allCommitable: allCommitable,
+    totalCommitable: allCommitable.length,
+  };
+}
+
+/** Left list for the Changes / Commit view. */
 function GitChangesList(props: any) {
   const t = props.t;
   const groups = props.groups;
@@ -727,13 +1094,158 @@ function GitChangesList(props: any) {
     return h(S.EmptyState, { t: t, icon: S.Icons.Git, title: t('git.changes.empty'), body: t('git.changes.empty.body') });
   }
   const active = props.selection !== null && props.selection !== undefined && props.selection.kind === 'change' ? props.selection.change : null;
+  const summary = selectedCommitPaths(props.checked, groups);
+  const allChecked = summary.totalCommitable > 0 && summary.paths.length === summary.totalCommitable;
+  const someChecked = summary.paths.length > 0 && summary.paths.length < summary.totalCommitable;
+  const showSelectionBar = typeof props.onToggleAll === 'function' && summary.totalCommitable > 0;
+  const busy = props.busy === true;
+
   return h(
     'div',
-    { style: ST_GIT.listScroll },
-    h(GitChangeGroup, { t: t, groupId: 'conflicted', label: t('git.group.conflicted'), changes: groups.conflicted, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, onSelect: props.onSelect }),
-    h(GitChangeGroup, { t: t, groupId: 'staged', label: t('git.group.staged'), changes: groups.staged, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, onSelect: props.onSelect }),
-    h(GitChangeGroup, { t: t, groupId: 'unstaged', label: t('git.group.unstaged'), changes: groups.unstaged, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, onSelect: props.onSelect }),
-    h(GitChangeGroup, { t: t, groupId: 'untracked', label: t('git.group.untracked'), changes: groups.untracked, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, onSelect: props.onSelect }),
+    { style: { display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0, overflow: 'hidden' } },
+    showSelectionBar
+      ? h(
+          'div',
+          { style: ST_GIT.selectionBar, 'data-git-selection-bar': '1' },
+          h(
+            'label',
+            { style: ST_GIT.selectAllLabel },
+            h('input', {
+              type: 'checkbox',
+              checked: allChecked,
+              disabled: busy,
+              'aria-label': t('git.selectAll'),
+              'data-git-select-all': '1',
+              style: ST_GIT.checkbox,
+              ref: function (node: any) {
+                if (node !== null && node !== undefined) node.indeterminate = someChecked;
+              },
+              onChange: function () {
+                props.onToggleAll(!allChecked);
+              },
+            }),
+            h('span', null, t('git.selectAll')),
+            h('span', { style: ST_GIT.groupCount }, t('git.selectCount', { selected: summary.paths.length, total: summary.totalCommitable })),
+          ),
+          h(
+            'div',
+            { style: ST_GIT.selectionActions },
+            summary.stageableSelected.length > 0 && typeof props.onStageSelected === 'function'
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    title: t('git.stageSelected'),
+                    'aria-label': t('git.stageSelected'),
+                    disabled: busy,
+                    'data-git-stage-selected': '1',
+                    style: Object.assign({}, ST_GIT.miniAction, busy ? ST_GIT.miniActionDisabled : null),
+                    onClick: function () { props.onStageSelected(summary.stageableSelected); },
+                  },
+                  h(S.Icons.Plus, { size: 11 }),
+                  t('git.stageSelected'),
+                )
+              : null,
+            summary.stagedSelected.length > 0 && typeof props.onUnstageSelected === 'function'
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    title: t('git.unstageSelected'),
+                    'aria-label': t('git.unstageSelected'),
+                    disabled: busy,
+                    'data-git-unstage-selected': '1',
+                    style: Object.assign({}, ST_GIT.miniAction, busy ? ST_GIT.miniActionDisabled : null),
+                    onClick: function () { props.onUnstageSelected(summary.stagedSelected); },
+                  },
+                  h(S.Icons.Minus, { size: 11 }),
+                  t('git.unstageSelected'),
+                )
+              : null,
+          ),
+        )
+      : null,
+    h(
+      'div',
+      { style: ST_GIT.listScroll },
+      h(GitChangeGroup, { t: t, groupId: 'conflicted', label: t('git.group.conflicted'), changes: groups.conflicted, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, checked: props.checked, busy: busy, onSelect: props.onSelect }),
+      h(GitChangeGroup, { t: t, groupId: 'staged', label: t('git.group.staged'), changes: groups.staged, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, checked: props.checked, busy: busy, onToggleFile: props.onToggleFile, onToggleGroup: props.onToggleGroup, onRowAction: props.onRowAction, onGroupAction: props.onGroupAction, onSelect: props.onSelect }),
+      h(GitChangeGroup, { t: t, groupId: 'unstaged', label: t('git.group.unstaged'), changes: groups.unstaged, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, checked: props.checked, busy: busy, onToggleFile: props.onToggleFile, onToggleGroup: props.onToggleGroup, onRowAction: props.onRowAction, onGroupAction: props.onGroupAction, onSelect: props.onSelect }),
+      h(GitChangeGroup, { t: t, groupId: 'untracked', label: t('git.group.untracked'), changes: groups.untracked, selection: props.selection, activePath: active === null ? null : active.path, activeStaged: active === null ? null : active.staged, checked: props.checked, busy: busy, onToggleFile: props.onToggleFile, onToggleGroup: props.onToggleGroup, onRowAction: props.onRowAction, onGroupAction: props.onGroupAction, onSelect: props.onSelect }),
+    ),
+  );
+}
+
+/** PyCharm-style Commit box docked at the bottom of the Changes pane. */
+function GitCommitBox(props: any) {
+  const t = typeof props.t === 'function' ? props.t : S.translate;
+  const [focused, setFocused] = useState(false);
+  const message = typeof props.message === 'string' ? props.message : '';
+  const selectedCount = Number.isFinite(props.selectedCount) ? Math.max(0, Math.floor(props.selectedCount)) : 0;
+  const untrackedCount = Number.isFinite(props.untrackedCount) ? Math.max(0, Math.floor(props.untrackedCount)) : 0;
+  const conflictedCount = Number.isFinite(props.conflictedCount) ? Math.max(0, Math.floor(props.conflictedCount)) : 0;
+  const committing = props.committing === true;
+  const busy = props.busy === true;
+  const canCommit = !busy && !committing && selectedCount > 0 && message.trim().length > 0;
+
+  const scopeText = selectedCount === 0
+    ? t('git.commit.scopeNone')
+    : untrackedCount > 0
+      ? t('git.commit.scopeUntracked', { count: selectedCount, untracked: untrackedCount })
+      : t('git.commit.scope', { count: selectedCount });
+
+  return h(
+    'div',
+    { style: ST_GIT.commitBox, 'data-git-commit-box': '1' },
+    h(
+      'div',
+      { style: ST_GIT.commitScopeRow, 'data-commit-scope': String(selectedCount) },
+      h('span', null, scopeText),
+    ),
+    conflictedCount > 0
+      ? h('div', { style: ST_GIT.commitScopeWarn }, t('git.commit.conflictHint'))
+      : null,
+    h('textarea', {
+      value: message,
+      placeholder: t('git.commit.placeholder'),
+      'aria-label': t('git.commit.messageLabel'),
+      'data-commit-message': '1',
+      disabled: committing,
+      rows: 3,
+      style: Object.assign({}, ST_GIT.commitTextarea, focused ? ST_GIT.commitTextareaFocus : null),
+      onFocus: function () { setFocused(true); },
+      onBlur: function () { setFocused(false); },
+      onChange: function (event: any) {
+        const value = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? String(event.target.value) : '';
+        if (typeof props.onMessageChange === 'function') props.onMessageChange(value);
+      },
+      onKeyDown: function (event: any) {
+        if (event === null || event === undefined) return;
+        if ((event.metaKey === true || event.ctrlKey === true) && event.key === 'Enter') {
+          if (typeof event.preventDefault === 'function') event.preventDefault();
+          if (canCommit && typeof props.onCommit === 'function') props.onCommit();
+        }
+      },
+    }),
+    h(
+      'div',
+      { style: ST_GIT.commitFooter },
+      h('span', { style: ST_GIT.spacer }),
+      h(
+        S.PrimaryButton,
+        {
+          title: t('git.commit.button'),
+          ariaLabel: t('git.commit.button'),
+          disabled: !canCommit,
+          'data-git-commit': '1',
+          onClick: function () {
+            if (canCommit && typeof props.onCommit === 'function') props.onCommit();
+          },
+        },
+        committing ? h(S.Icons.Spinner, { size: 13 }) : h(S.Icons.GitCommit, { size: 14 }),
+        committing ? t('git.commit.submitting') : t('git.commit.button'),
+      ),
+    ),
   );
 }
 
@@ -884,11 +1396,11 @@ function GitDiffPane(props: any) {
   );
 }
 
-/** Segmented Changes / History switch. */
+/** Segmented Commit / History switch. */
 function GitSwitch(props: any) {
   const [hover, setHover] = useState<any>(null);
   const options = [
-    { id: 'changes', label: props.t('git.changes') },
+    { id: 'changes', label: props.t('git.commit.tab') },
     { id: 'history', label: props.t('git.history') },
   ];
   return h(
@@ -963,10 +1475,26 @@ function GitView(props: any) {
   const [selection, setSelection] = useState<any>(null);
   const [diff, setDiff] = useState({ status: 'idle', payload: null, error: null });
   const [version, setVersion] = useState(0);
+  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [commitMessage, setCommitMessage] = useState('');
+  const [actionBusy, setActionBusy] = useState(false);
+  const [committing, setCommitting] = useState(false);
+  const [actionNotice, setActionNotice] = useState<{ kind: string, text: string } | null>(null);
 
   const diffRequestRef = useRef(0);
   const lastDiffRef = useRef<any>(null);
   const abortRef = useRef<any>(null);
+  const seenPathsRef = useRef<Record<string, boolean>>({});
+  const selectionRef = useRef<any>(null);
+  selectionRef.current = selection;
+
+  useEffect(function () {
+    seenPathsRef.current = {};
+    setChecked({});
+    setCommitMessage('');
+    setActionNotice(null);
+    return undefined;
+  }, [root]);
 
   useEffect(function () {
     const controller = typeof AbortController === 'function' ? new AbortController() : null;
@@ -1124,6 +1652,174 @@ function GitView(props: any) {
     return groupChanges(status !== null && status !== undefined && Array.isArray(status.files) ? status.files : []);
   }, [status]);
 
+  useEffect(function () {
+    setChecked(function (previous: Record<string, boolean>) {
+      const next = reconcileCheckedPaths(previous, seenPathsRef.current, groups);
+      seenPathsRef.current = next.seen;
+      return next.checked;
+    });
+  }, [groups]);
+
+  const commitSummary = useMemo(function () {
+    return selectedCommitPaths(checked, groups);
+  }, [checked, groups]);
+
+  const syncAfterAction = useCallback(function (checkPaths?: string[]) {
+    return Promise.all([
+      S.requestJson(S.apiUrl(ROUTES.git, { root: root, kind: 'status' })),
+      S.requestJson(S.apiUrl(ROUTES.git, { root: root, kind: 'log', limit: 30 })),
+    ]).then(function (results: any[]) {
+      const nextStatus = results[0];
+      const nextLog = results[1];
+      setStatus(nextStatus);
+      setLog(nextLog);
+      setLoad({ status: 'loaded', error: null });
+      const nextGroups = groupChanges(nextStatus !== null && nextStatus !== undefined && Array.isArray(nextStatus.files) ? nextStatus.files : []);
+      if (Array.isArray(checkPaths) && checkPaths.length > 0) {
+        setChecked(function (previous: Record<string, boolean>) {
+          const seeded = Object.assign({}, previous);
+          checkPaths.forEach(function (filePath: string) {
+            seeded[filePath] = true;
+            seenPathsRef.current[filePath] = true;
+          });
+          const reconciled = reconcileCheckedPaths(seeded, seenPathsRef.current, nextGroups);
+          seenPathsRef.current = reconciled.seen;
+          return reconciled.checked;
+        });
+      }
+      const currentSelection = selectionRef.current;
+      if (currentSelection !== null && currentSelection !== undefined && currentSelection.kind === 'change') {
+        const targetPath = currentSelection.change.path;
+        const nextStaged = nextGroups.staged.find(function (entry: any) { return entry.path === targetPath; });
+        const nextUnstaged = nextGroups.unstaged.find(function (entry: any) { return entry.path === targetPath; });
+        const nextUntracked = nextGroups.untracked.find(function (entry: any) { return entry.path === targetPath; });
+        const nextConflicted = nextGroups.conflicted.find(function (entry: any) { return entry.path === targetPath; });
+        const matching = currentSelection.change.staged
+          ? (nextStaged || nextUnstaged || nextUntracked || nextConflicted)
+          : (nextUnstaged || nextUntracked || nextStaged || nextConflicted);
+        if (matching === undefined) {
+          setSelection(null);
+          setDiff({ status: 'idle', payload: null, error: null });
+        } else {
+          const params: any = { path: matching.path };
+          if (matching.staged === true) params.staged = '1';
+          loadDiff(params, { kind: 'change', change: matching });
+        }
+      }
+    });
+  }, [root, loadDiff]);
+
+  const toggleFileCheck = useCallback(function (filePath: string) {
+    if (typeof filePath !== 'string' || filePath.length === 0) return;
+    seenPathsRef.current[filePath] = true;
+    setChecked(function (previous: Record<string, boolean>) {
+      return Object.assign({}, previous, { [filePath]: previous[filePath] !== true });
+    });
+  }, []);
+
+  const toggleGroupCheck = useCallback(function (paths: string[], nextValue: boolean) {
+    if (!Array.isArray(paths) || paths.length === 0) return;
+    setChecked(function (previous: Record<string, boolean>) {
+      const next = Object.assign({}, previous);
+      paths.forEach(function (filePath: string) {
+        seenPathsRef.current[filePath] = true;
+        next[filePath] = nextValue;
+      });
+      return next;
+    });
+  }, []);
+
+  const toggleAllCheck = useCallback(function (nextValue: boolean) {
+    setChecked(function (previous: Record<string, boolean>) {
+      const next = Object.assign({}, previous);
+      commitSummary.allCommitable.forEach(function (filePath: string) {
+        seenPathsRef.current[filePath] = true;
+        next[filePath] = nextValue;
+      });
+      return next;
+    });
+  }, [commitSummary.allCommitable]);
+
+  const runStage = useCallback(function (paths: string[]) {
+    if (!Array.isArray(paths) || paths.length === 0 || actionBusy || committing) return;
+    setActionBusy(true);
+    setActionNotice(null);
+    S.requestJson(ROUTES.gitAction, {
+      method: 'POST',
+      body: { root: root, action: 'stage', paths: paths },
+    })
+      .then(function () {
+        return syncAfterAction(paths);
+      })
+      .catch(function (cause: any) {
+        setActionNotice({ kind: 'error', text: t('git.actionError', { message: S.errorText(cause) }) });
+      })
+      .then(function () {
+        setActionBusy(false);
+      });
+  }, [root, actionBusy, committing, syncAfterAction, t]);
+
+  const runUnstage = useCallback(function (paths: string[]) {
+    if (!Array.isArray(paths) || paths.length === 0 || actionBusy || committing) return;
+    setActionBusy(true);
+    setActionNotice(null);
+    S.requestJson(ROUTES.gitAction, {
+      method: 'POST',
+      body: { root: root, action: 'unstage', paths: paths },
+    })
+      .then(function () {
+        return syncAfterAction();
+      })
+      .catch(function (cause: any) {
+        setActionNotice({ kind: 'error', text: t('git.actionError', { message: S.errorText(cause) }) });
+      })
+      .then(function () {
+        setActionBusy(false);
+      });
+  }, [root, actionBusy, committing, syncAfterAction, t]);
+
+  const handleRowAction = useCallback(function (change: any) {
+    if (change === null || change === undefined || typeof change.path !== 'string') return;
+    if (change.staged === true) runUnstage([change.path]);
+    else runStage([change.path]);
+  }, [runStage, runUnstage]);
+
+  const handleGroupAction = useCallback(function (groupId: string, paths: string[]) {
+    if (groupId === 'staged') runUnstage(paths);
+    else runStage(paths);
+  }, [runStage, runUnstage]);
+
+  const runCommit = useCallback(function () {
+    const trimmed = commitMessage.trim();
+    if (trimmed.length === 0 || commitSummary.paths.length === 0 || actionBusy || committing) return;
+    setCommitting(true);
+    setActionNotice(null);
+    S.requestJson(ROUTES.gitAction, {
+      method: 'POST',
+      body: {
+        root: root,
+        action: 'commit',
+        message: commitMessage,
+        paths: commitSummary.paths,
+      },
+    })
+      .then(function (payload: any) {
+        setCommitMessage('');
+        const shortHash = payload !== null && payload !== undefined && typeof payload.short === 'string' && payload.short.length > 0 ? payload.short : '';
+        setActionNotice({
+          kind: 'success',
+          text: shortHash.length > 0 ? t('git.commit.success', { short: shortHash }) : t('git.commit.successNoHash'),
+        });
+        return syncAfterAction();
+      })
+      .catch(function (cause: any) {
+        setActionNotice({ kind: 'error', text: t('git.commit.error', { message: S.errorText(cause) }) });
+      })
+      .then(function () {
+        setCommitting(false);
+      });
+  }, [root, commitMessage, commitSummary.paths, actionBusy, committing, syncAfterAction, t]);
+
   const totalChanges = groups.staged.length + groups.unstaged.length + groups.untracked.length + groups.conflicted.length;
   const repo = status !== null && status !== undefined && status.repo === true;
   const commits = log !== null && log !== undefined && Array.isArray(log.commits) ? log.commits : [];
@@ -1143,12 +1839,52 @@ function GitView(props: any) {
       onRetry: refresh,
     });
   } else {
-    const left =
+    const leftBody =
       view === 'history'
         ? h(GitHistoryList, { t: t, commits: commits, selection: selection, onSelect: selectCommit })
-        : h(GitChangesList, { t: t, groups: groups, selection: selection, onSelect: selectChange });
+        : h(GitChangesList, {
+            t: t,
+            groups: groups,
+            selection: selection,
+            checked: checked,
+            busy: actionBusy || committing,
+            onToggleFile: toggleFileCheck,
+            onToggleGroup: toggleGroupCheck,
+            onToggleAll: toggleAllCheck,
+            onRowAction: handleRowAction,
+            onGroupAction: handleGroupAction,
+            onStageSelected: runStage,
+            onUnstageSelected: runUnstage,
+            onSelect: selectChange,
+          });
+    const leftPane = h(
+      'div',
+      { style: ST_GIT.listPane },
+      actionNotice !== null
+        ? h(S.NoticeBar, {
+            t: t,
+            kind: actionNotice.kind,
+            text: actionNotice.text,
+            onDismiss: function () { setActionNotice(null); },
+          })
+        : null,
+      leftBody,
+      view === 'changes' && totalChanges > 0
+        ? h(GitCommitBox, {
+            t: t,
+            message: commitMessage,
+            selectedCount: commitSummary.paths.length,
+            untrackedCount: commitSummary.untrackedSelected.length,
+            conflictedCount: groups.conflicted.length,
+            busy: actionBusy,
+            committing: committing,
+            onMessageChange: setCommitMessage,
+            onCommit: runCommit,
+          })
+        : null,
+    );
     content = h(S.SplitPane, {
-      left: h('div', { style: ST_GIT.listPane }, left),
+      left: leftPane,
       right: h(GitDiffPane, { t: t, view: view, selection: selection, diff: diff, onRetry: retryDiff }),
       storageKey: 'dsh-workspace-ide:git-list-width',
       initialWidth: 320,
@@ -1174,6 +1910,7 @@ function GitView(props: any) {
 }
 
 S.GitView = GitView;
+S.GitCommitBox = GitCommitBox;
 S.GitNotRepoState = GitNotRepoState;
 S.GitHeader = GitHeader;
 S.GitChangesList = GitChangesList;
@@ -1187,4 +1924,6 @@ S.DiffView = DiffView;
 S.parseDiffLines = parseDiffLines;
 S.classifyDiffLine = classifyDiffLine;
 S.groupChanges = groupChanges;
+S.reconcileCheckedPaths = reconcileCheckedPaths;
+S.selectedCommitPaths = selectedCommitPaths;
 S.ST_GIT = ST_GIT;

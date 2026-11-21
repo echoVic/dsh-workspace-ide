@@ -6,12 +6,12 @@
 
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 
 import { parseBranches, parseLog, parseStatus } from '../../lib/host/git.js';
-import { call, encode, makeApp, temporaryDirectory } from './support.mjs';
+import { call, encode, makeApp, postJson, temporaryDirectory } from './support.mjs';
 
 /**
  * Run git synchronously in a test repository.
@@ -288,5 +288,168 @@ describe('GET git degradation', () => {
     assert.equal(missingRoot.status, 400);
     const ghost = await gitRoute(join(root, 'ghost'), '&kind=status');
     assert.equal(ghost.status, 404);
+  });
+});
+
+/** Run one git-action POST request. */
+async function gitActionRoute(payload) {
+  return postJson(makeApp(), 'git-action', payload);
+}
+
+describe('POST git-action (stage, unstage, commit)', () => {
+  it('stages modified, untracked and deleted files and unstages them cleanly', async (t) => {
+    const root = makeRepository(t);
+    writeFileSync(join(root, 'tracked.txt'), 'one\ntwo\n');
+    writeFileSync(join(root, 'fresh.txt'), 'hello\n');
+    const staged = await gitActionRoute({ root, action: 'stage', paths: ['tracked.txt', 'fresh.txt'] });
+    assert.equal(staged.status, 200);
+    assert.equal(staged.body.ok, true);
+    assert.equal(staged.body.action, 'stage');
+    assert.deepEqual(staged.body.paths, ['tracked.txt', 'fresh.txt']);
+
+    const afterStage = await gitRoute(root, '&kind=status');
+    const stageMap = new Map(afterStage.body.files.map((file) => [file.path, file.status]));
+    assert.equal(stageMap.get('tracked.txt'), 'M ');
+    assert.equal(stageMap.get('fresh.txt'), 'A ');
+
+    const unstaged = await gitActionRoute({ root, action: 'unstage', paths: ['tracked.txt', 'fresh.txt'] });
+    assert.equal(unstaged.status, 200);
+    assert.equal(unstaged.body.ok, true);
+    assert.equal(unstaged.body.action, 'unstage');
+
+    const afterUnstage = await gitRoute(root, '&kind=status');
+    const unstageMap = new Map(afterUnstage.body.files.map((file) => [file.path, file.status]));
+    assert.equal(unstageMap.get('tracked.txt'), ' M');
+    assert.equal(unstageMap.get('fresh.txt'), '??');
+  });
+
+  it('commits only selected files and preserves unselected modified and staged changes', async (t) => {
+    const root = makeRepository(t);
+    writeFileSync(join(root, 'a.txt'), 'a1\n');
+    writeFileSync(join(root, 'b.txt'), 'b1\n');
+    git(root, 'add', '-A');
+    git(root, 'commit', '-qm', 'add a and b');
+
+    // Modify both a.txt and b.txt, stage c.txt, and create untracked u.txt.
+    writeFileSync(join(root, 'a.txt'), 'a2\n');
+    writeFileSync(join(root, 'b.txt'), 'b2\n');
+    writeFileSync(join(root, 'c.txt'), 'c1\n');
+    git(root, 'add', 'c.txt');
+    writeFileSync(join(root, 'u.txt'), 'u1\n');
+
+    // Commit only a.txt and u.txt; b.txt (unstaged) and c.txt (staged) must stay untouched.
+    const committed = await gitActionRoute({
+      root,
+      action: 'commit',
+      message: 'feat: selective commit',
+      paths: ['a.txt', 'u.txt'],
+    });
+    assert.equal(committed.status, 200);
+    assert.equal(committed.body.ok, true);
+    assert.equal(committed.body.action, 'commit');
+    assert.match(committed.body.hash, /^[0-9a-f]{40}$/);
+    assert.equal(committed.body.short, committed.body.hash.slice(0, 7));
+    assert.equal(committed.body.subject, 'feat: selective commit');
+
+    const headFiles = git(root, 'show', '--name-status', '--format=', 'HEAD').trim().split(/\r?\n/).sort();
+    assert.deepEqual(headFiles, ['A\tu.txt', 'M\ta.txt']);
+
+    const remaining = await gitRoute(root, '&kind=status');
+    const remainingMap = new Map(remaining.body.files.map((file) => [file.path, file.status]));
+    assert.equal(remainingMap.size, 2);
+    assert.equal(remainingMap.get('b.txt'), ' M', 'unselected modified file remains dirty');
+    assert.equal(remainingMap.get('c.txt'), 'A ', 'unselected staged file stays staged');
+  });
+
+  it('supports stage, unstage and selective initial commit in an unborn repository', async (t) => {
+    const root = temporaryDirectory(t, 'wsi-git-unborn-action-');
+    git(root, 'init', '-q', '-b', 'main');
+    git(root, 'config', 'user.email', 'test@example.com');
+    git(root, 'config', 'user.name', 'Test User');
+    git(root, 'config', 'commit.gpgsign', 'false');
+    writeFileSync(join(root, 'first.txt'), 'first\n');
+    writeFileSync(join(root, 'second.txt'), 'second\n');
+
+    const staged = await gitActionRoute({ root, action: 'stage', paths: ['second.txt'] });
+    assert.equal(staged.body.ok, true);
+    const unstaged = await gitActionRoute({ root, action: 'unstage', paths: ['second.txt'] });
+    assert.equal(unstaged.body.ok, true);
+    const afterUnstage = await gitRoute(root, '&kind=status');
+    assert.equal(afterUnstage.body.counts.untracked, 2);
+
+    // Stage second.txt again, then selectively commit only first.txt.
+    await gitActionRoute({ root, action: 'stage', paths: ['second.txt'] });
+    const committed = await gitActionRoute({
+      root,
+      action: 'commit',
+      message: 'initial selective commit',
+      paths: ['first.txt'],
+    });
+    assert.equal(committed.status, 200);
+    assert.equal(committed.body.ok, true);
+    assert.equal(committed.body.subject, 'initial selective commit');
+    const headFiles = git(root, 'show', '--name-status', '--format=', 'HEAD').trim().split(/\r?\n/);
+    assert.deepEqual(headFiles, ['A\tfirst.txt']);
+    const remaining = await gitRoute(root, '&kind=status');
+    assert.deepEqual(remaining.body.files.map((file) => [file.path, file.status]), [['second.txt', 'A ']]);
+  });
+
+  it('handles staged renames and subdirectory workspace roots cleanly', async (t) => {
+    const root = makeRepository(t);
+    mkdirSync(join(root, 'sub'));
+    writeFileSync(join(root, 'sub', 'old.txt'), 'old\n');
+    writeFileSync(join(root, 'sub', 'keep.txt'), 'keep\n');
+    git(root, 'add', '-A');
+    git(root, 'commit', '-qm', 'add sub files');
+    git(root, 'mv', 'sub/old.txt', 'sub/new.txt');
+    writeFileSync(join(root, 'sub', 'keep.txt'), 'keep2\n');
+
+    const subRoot = join(root, 'sub');
+    const committed = await gitActionRoute({
+      root: subRoot,
+      action: 'commit',
+      message: 'rename inside sub',
+      paths: ['new.txt'],
+    });
+    assert.equal(committed.body.ok, true);
+    const remaining = await gitRoute(subRoot, '&kind=status');
+    assert.deepEqual(remaining.body.files.map((file) => file.path), ['keep.txt']);
+
+    // Staged deletion also commits cleanly.
+    rmSync(join(root, 'sub', 'new.txt'));
+    const delStage = await gitActionRoute({ root: subRoot, action: 'stage', paths: ['new.txt'] });
+    assert.equal(delStage.body.ok, true);
+    const delCommit = await gitActionRoute({
+      root: subRoot,
+      action: 'commit',
+      message: 'delete new.txt',
+      paths: ['new.txt'],
+    });
+    assert.equal(delCommit.body.ok, true);
+  });
+
+  it('validates action inputs, rejects escapes and degrades on non-repos', async (t) => {
+    const root = makeRepository(t);
+    const badAction = await gitActionRoute({ root, action: 'push', paths: ['tracked.txt'] });
+    assert.equal(badAction.status, 400);
+    assert.equal(badAction.body.error.code, 'bad-request');
+
+    const emptyPaths = await gitActionRoute({ root, action: 'stage', paths: [] });
+    assert.equal(emptyPaths.status, 400);
+    assert.equal(emptyPaths.body.error.code, 'bad-request');
+
+    const escaped = await gitActionRoute({ root, action: 'stage', paths: ['../escape.txt'] });
+    assert.equal(escaped.status, 403);
+    assert.equal(escaped.body.error.code, 'outside-workspace');
+
+    const emptyMsg = await gitActionRoute({ root, action: 'commit', message: '   ', paths: ['tracked.txt'] });
+    assert.equal(emptyMsg.status, 400);
+    assert.equal(emptyMsg.body.error.code, 'bad-request');
+
+    const plainDir = temporaryDirectory(t, 'wsi-not-repo-action-');
+    const nonRepo = await gitActionRoute({ root: plainDir, action: 'stage', paths: ['a.txt'] });
+    assert.equal(nonRepo.status, 200);
+    assert.equal(nonRepo.body.ok, false);
+    assert.equal(nonRepo.body.error.code, 'git-failed');
   });
 });

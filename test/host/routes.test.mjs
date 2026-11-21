@@ -58,15 +58,16 @@ describe('plugin module face', () => {
     assert.equal(typeof pluginApply, 'function');
   });
 
-  it('apply registers all nine routes through ctx.effect', () => {
+  it('apply registers all ten routes through ctx.effect', () => {
     const fake = fakePluginContext();
     pluginApply(fake.ctx);
-    assert.equal(fake.routes.length, 9);
-    assert.equal(fake.effects.length, 9);
+    assert.equal(fake.routes.length, 10);
+    assert.equal(fake.effects.length, 10);
     assert.deepEqual(fake.routes.map((route) => route.path).sort(), [
       `${ROUTE_PREFIX}file`,
       `${ROUTE_PREFIX}files`,
       `${ROUTE_PREFIX}git`,
+      `${ROUTE_PREFIX}git-action`,
       `${ROUTE_PREFIX}image`,
       `${ROUTE_PREFIX}list`,
       `${ROUTE_PREFIX}ping`,
@@ -85,7 +86,7 @@ describe('plugin module face', () => {
 
 describe('route table', () => {
   it('declares the contracted paths, methods and body mode', () => {
-    assert.equal(ROUTE_DEFINITIONS.length, 9);
+    assert.equal(ROUTE_DEFINITIONS.length, 10);
     const expected = new Map([
       ['workspaces', ['GET']],
       ['list', ['GET']],
@@ -94,6 +95,7 @@ describe('route table', () => {
       ['image', ['GET']],
       ['search', ['GET']],
       ['git', ['GET']],
+      ['git-action', ['POST']],
       ['save', ['POST']],
       ['ping', ['POST']],
     ]);
@@ -116,8 +118,8 @@ describe('route table', () => {
   it('the registered disposer removes the route', () => {
     const fake = fakePluginContext();
     registerRoutes(fake.ctx);
-    assert.equal(fake.routes.length, 9);
-    assert.equal(fake.disposers.length, 9);
+    assert.equal(fake.routes.length, 10);
+    assert.equal(fake.disposers.length, 10);
     for (const dispose of fake.disposers) dispose();
     assert.equal(fake.routes.length, 0);
   });
@@ -261,6 +263,7 @@ describe('handler guard', () => {
       { name: 'search', query: '', ok: false },
       { name: 'git', query: '', ok: false },
       { name: 'git', query: `?root=${encode(root)}&kind=bogus`, ok: false },
+      { name: 'git-action', query: '', ok: false },
       { name: 'search', query: `?root=${encode(root)}&q=${encode('a(')}&regex=1`, ok: false },
       { name: 'save', query: '', ok: false },
       { name: 'ping', query: '', ok: true },

@@ -4,6 +4,28 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.9.0 — 2026-11-21
+
+### Added
+- **Font size settings** (#1): added a toolbar Font Size popover (`FontSizePicker`)
+  next to the theme picker with independent controls for interface font size
+  (`10–24px`, default `13px`, scaled across file tree, tabs, breadcrumbs, search
+  results, Markdown preview, Git panel, diffs and dialogs via `--ide-ui-scale`)
+  and editor base font size (`10–28px`, default `13px`). Supports `-`/`+` steppers,
+  direct numeric input, quick presets (`12 / 13 / 14 / 16 / 18`), immediate live
+  preview, persistence in `localStorage`, and one-click reset to defaults.
+- **PyCharm-style Git Commit panel** (#2): added `POST /api/dsh-workspace-ide.git-action`
+  (`stage`, `unstage`, `commit`) on the Host and an interactive Commit flow in the
+  Git tab. Supports per-file, per-group and select-all checkboxes (tracked changes
+  checked by default, untracked files unchecked), click-to-preview diffs, per-file /
+  per-group / batch stage, add-to-Git and unstage actions, a docked commit message
+  box with clear scope summary and `Cmd/Ctrl+Enter` shortcut, selective commits
+  (`git commit --only`) that preserve unselected staged/unstaged changes, automatic
+  rollback on failed commits, and immediate status/history refresh.
+- Host unit tests: 131 (including `git-action` stage/unstage/selective commit,
+  unborn repo, rename, subdirectory root and input validation); client smoke
+  checks: 45.
+
 ## 1.8.11 — 2026-11-13
 
 ### Fixed
