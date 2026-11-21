@@ -715,6 +715,7 @@ describe('i18n completeness', () => {
     };
     const views = [
       S.ShellToolbar({ t, tab: 'files', root: '/ws', workspaces: [{ path: '/ws', title: 'ws', live: true }], loading: false, onSelectTab() {}, onSelectRoot() {}, onRefresh() {} }),
+      S.WorkspacePicker({ t, root: '/ws', workspaces: [{ path: '/ws', title: 'ws', live: true, git: true }, { path: '/other', title: 'other', live: false, git: false }], initialOpen: true, onSelectRoot() {} }),
       S.FontSizePicker({ t, uiFontSize: 14, editorFontSize: 15, initialOpen: true, onSelectUiFontSize() {}, onSelectEditorFontSize() {}, onResetFontSizes() {} }),
       S.SearchView({ t, root: '/ws', reloadToken: 0, onOpenFile() {} }),
       S.SearchResults({ t, data: { files: [{ path: 'a.txt', matches: [{ line: 1, column: 1, length: 1, text: 'x' }] }], totalMatches: 1, elapsedMs: 12, truncated: true }, query: 'x', onOpenFile() {} }),

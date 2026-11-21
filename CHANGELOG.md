@@ -4,6 +4,16 @@ All notable changes to `dsh-workspace-ide` are documented here. Releases are
 annotated Git tags; every entry ships the prebuilt Host + client halves, so
 installing needs no build step and no runtime dependency beyond DSH and React.
 
+## 1.9.1 — 2026-11-21
+
+### Changed
+- **Workspace picker**: replaced the native OS `<select>` dropdown with a custom
+  searchable popover (`WorkspacePicker`) that follows the active colour theme and
+  interface font size (`--ide-ui-scale`). Groups active/live workspaces at the
+  top, shortens home-directory prefixes to `~` (with full paths on hover), shows
+  Git and Live badges, and supports instant name/path/subsequence filtering plus
+  full keyboard navigation (`↑`/`↓`/`Home`/`End`/`Enter`/`Esc`).
+
 ## 1.9.0 — 2026-11-21
 
 ### Added

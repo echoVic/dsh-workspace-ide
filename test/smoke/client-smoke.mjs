@@ -1597,19 +1597,64 @@ function run() {
     tab: 'files',
     root: '/w/a',
     workspaces: [
-      { id: 'a', path: '/w/a', title: 'A', sessionCount: 1, live: true },
-      { id: 'b', path: '/w/b', title: 'B', sessionCount: 0, live: false },
+      { id: 'a', path: '/w/a', title: 'A', sessionCount: 1, live: true, git: true },
+      { id: 'b', path: '/w/b', title: 'B', sessionCount: 0, live: false, git: false },
     ],
     loading: false,
     onSelectTab: function () {},
     onSelectRoot: function () {},
     onRefresh: function () {},
   }));
-  const selects = findHost(toolbarRender, 'select');
-  assert.equal(selects.length, 1, 'the workspace picker renders a native select');
-  assert.equal(selects[0].props.value, '/w/a', 'the select reflects the active root');
-  assert.equal(findHost(toolbarRender, 'option').length, 2, 'one option per workspace');
-  ok('ShellToolbar: three tabs + workspace select + refresh');
+  const wsButtons = toolbarRender.hosts.filter(function (host) { return host.props['data-workspace-button'] === '1'; });
+  assert.equal(wsButtons.length, 1, 'the workspace picker renders one themed trigger button');
+  assert.equal(wsButtons[0].props['aria-haspopup'], 'listbox', 'the workspace trigger advertises its listbox popover');
+  assert.equal(toolbarRender.texts.includes('A'), true, 'the trigger shows the active workspace title');
+
+  assert.equal(T.shortenWorkspacePath('/Users/alice/Documents/GitHub/app'), '~/Documents/GitHub/app', 'macOS home prefix shortens to ~');
+  assert.equal(T.shortenWorkspacePath('/home/alice/work/app'), '~/work/app', 'Linux home prefix shortens to ~');
+  assert.equal(T.shortenWorkspacePath('C:\\Users\\alice\\src\\app'), '~/src/app', 'Windows home prefix shortens to ~');
+  assert.equal(T.shortenWorkspacePath('/var/www/app'), '/var/www/app', 'non-home paths stay intact');
+
+  const pickerWorkspaces = [
+    { id: 'c', path: '/Users/alice/Documents/GitHub/blog', title: 'blog', live: false, git: true },
+    { id: 'a', path: '/Users/alice/Documents/my_files', title: 'my_files', live: true, git: false },
+    { id: 'b', path: '/Users/alice/Documents/GitHub/dsh-workspace-ide', title: 'dsh-workspace-ide', live: false, git: true },
+  ];
+  assert.deepEqual(
+    T.sortWorkspacesForPicker(pickerWorkspaces).map(function (ws) { return ws.title; }),
+    ['my_files', 'blog', 'dsh-workspace-ide'],
+    'live workspaces sort ahead of inactive ones while preserving order',
+  );
+  assert.deepEqual(
+    T.filterWorkspaces(pickerWorkspaces, 'dwi').map(function (ws) { return ws.title; }),
+    ['dsh-workspace-ide'],
+    'subsequence query matches workspace title',
+  );
+  assert.deepEqual(
+    T.filterWorkspaces(pickerWorkspaces, 'github').map(function (ws) { return ws.title; }),
+    ['blog', 'dsh-workspace-ide'],
+    'query also matches workspace paths',
+  );
+
+  const selectedRoots = [];
+  const openPickerRender = renderTree(T.WorkspacePicker({
+    t: keyTranslator,
+    workspaces: pickerWorkspaces,
+    root: '/Users/alice/Documents/my_files',
+    initialOpen: true,
+    onSelectRoot: function (next) { selectedRoots.push(next); },
+  }));
+  assert.equal(openPickerRender.hosts.some(function (host) { return host.props['data-workspace-popover'] === '1'; }), true, 'open WorkspacePicker renders its custom popover');
+  assert.equal(openPickerRender.hosts.some(function (host) { return host.props['data-workspace-search'] === '1'; }), true, 'open WorkspacePicker renders a filter input');
+  assert.equal(openPickerRender.texts.includes('root.group.live'), true, 'live group header renders when live and other workspaces coexist');
+  assert.equal(openPickerRender.texts.includes('root.group.other'), true, 'other workspaces group header renders');
+  assert.equal(openPickerRender.texts.includes('~/Documents/GitHub/blog'), true, 'rows render shortened paths');
+  const wsOptions = openPickerRender.hosts.filter(function (host) { return host.props['data-workspace-option'] !== undefined; });
+  assert.equal(wsOptions.length, 3, 'one option per workspace');
+  assert.equal(wsOptions[0].props['aria-selected'], 'true', 'active workspace is marked aria-selected');
+  wsOptions[1].props.onClick({ detail: 1 });
+  assert.deepEqual(selectedRoots, ['/Users/alice/Documents/GitHub/blog'], 'clicking a workspace option selects its root');
+  ok('ShellToolbar + WorkspacePicker: custom searchable popover, live-first grouping, shortened paths & selection');
 
   section('error boundary');
   const boundary = new (T.PanelBoundary)({ t: keyTranslator, children: { type: 'div', props: { children: 'ok' } } });

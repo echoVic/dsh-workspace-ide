@@ -97,8 +97,12 @@ S.face = {
     return {
       Shell: S.Shell,
       ShellToolbar: S.ShellToolbar,
+      WorkspacePicker: S.WorkspacePicker,
       ThemePicker: S.ThemePicker,
       FontSizePicker: S.FontSizePicker,
+      shortenWorkspacePath: S.shortenWorkspacePath,
+      sortWorkspacesForPicker: S.sortWorkspacesForPicker,
+      filterWorkspaces: S.filterWorkspaces,
       PanelBoundary: S.PanelBoundary,
       Icons: S.Icons,
       TABS: S.TABS,

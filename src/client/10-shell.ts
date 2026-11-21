@@ -74,7 +74,17 @@ const ST_SHELL = {
     fontFamily: FONT_UI,
     fontSize: uiPx(12),
     cursor: 'pointer',
+    outline: 'none',
     overflow: 'hidden',
+    transition: 'background 120ms ease, border-color 120ms ease',
+  },
+  pickerHover: {
+    background: C.hover,
+    borderColor: C.border2,
+  },
+  pickerOpen: {
+    background: C.activeBg,
+    borderColor: C.border2,
   },
   pickerFocused: {
     boxShadow: '0 0 0 2px var(--dsw-focus-ring-color, ' + C.accent + ')',
@@ -96,29 +106,203 @@ const ST_SHELL = {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
   },
+  pickerLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    background: C.diffAdd,
+    flex: '0 0 auto',
+  },
   pickerCaret: {
     display: 'inline-flex',
     alignItems: 'center',
     color: C.textTertiary,
     flex: '0 0 auto',
+    transition: 'transform 140ms ease',
   },
-  // The native select covers the whole control invisibly: it keeps the OS
-  // dropdown (and keyboard semantics) while the visible box uses theme tokens.
-  pickerSelect: {
+  // ── custom workspace-picker popover ──
+  wsMenu: {
     position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-    margin: 0,
-    padding: 0,
+    top: 'calc(100% + 6px)',
+    right: 0,
+    zIndex: 60,
+    display: 'flex',
+    flexDirection: 'column',
+    width: 340,
+    maxWidth: 'min(380px, 85vw)',
+    boxSizing: 'border-box',
+    border: '1px solid ' + C.border2,
+    borderRadius: 10,
+    background: C.platform,
+    color: C.text,
+    overflow: 'hidden',
+    boxShadow: '0 12px 32px color-mix(in srgb, ' + C.text + ' 22%, transparent)',
+  },
+  wsSearchRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '8px 10px',
+    borderBottom: '1px solid ' + C.border1,
+    background: C.base,
+    flex: '0 0 auto',
+  },
+  wsSearchIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    color: C.textTertiary,
+    flex: '0 0 auto',
+  },
+  wsSearchInput: {
+    flex: '1 1 auto',
+    minWidth: 0,
     border: 'none',
-    opacity: 0,
-    appearance: 'none',
-    WebkitAppearance: 'none',
+    outline: 'none',
     background: 'transparent',
+    color: C.text,
     fontFamily: FONT_UI,
     fontSize: uiPx(12),
+    lineHeight: 1.4,
+    padding: 0,
+  },
+  wsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: 5,
+    maxHeight: 'min(360px, 55vh)',
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    minHeight: 0,
+  },
+  wsGroupLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 8px 3px',
+    fontSize: uiPx(10.5),
+    fontWeight: 600,
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase',
+    color: C.textTertiary,
+    userSelect: 'none',
+  },
+  wsGroupCount: {
+    fontWeight: 400,
+    opacity: 0.78,
+  },
+  wsOption: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    padding: '6px 8px',
+    boxSizing: 'border-box',
+    border: 'none',
+    borderRadius: 7,
+    background: 'transparent',
+    color: C.text,
+    fontFamily: FONT_UI,
+    textAlign: 'left',
     cursor: 'pointer',
+    outline: 'none',
+    transition: 'background 100ms ease',
+  },
+  wsOptionHot: {
+    background: C.hover,
+  },
+  wsOptionActive: {
+    background: C.activeBg,
+  },
+  wsOptionLeading: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 16,
+    height: 16,
+    flex: '0 0 auto',
+    color: C.textTertiary,
+  },
+  wsOptionBody: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    flex: '1 1 auto',
+    minWidth: 0,
+  },
+  wsOptionTop: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
+  },
+  wsOptionTitle: {
+    flex: '0 1 auto',
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: uiPx(12.5),
+    fontWeight: 500,
+    lineHeight: 1.3,
+    color: C.text,
+  },
+  wsOptionTitleSelected: {
+    fontWeight: 600,
+  },
+  wsOptionPath: {
+    fontFamily: FONT_MONO,
+    fontSize: uiPx(10.5),
+    lineHeight: 1.3,
+    color: C.textTertiary,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  wsMeta: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    flex: '0 0 auto',
+    marginLeft: 'auto',
+  },
+  wsLiveBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '0 5px',
+    height: uiPx(16),
+    borderRadius: 999,
+    border: '1px solid ' + C.border1,
+    background: C.base,
+    color: C.diffAdd,
+    fontSize: uiPx(10),
+    fontWeight: 500,
+    whiteSpace: 'nowrap',
+  },
+  wsGitIcon: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    color: C.textTertiary,
+    opacity: 0.8,
+  },
+  wsEmpty: {
+    padding: '18px 12px',
+    textAlign: 'center',
+    color: C.textTertiary,
+    fontSize: uiPx(12),
+  },
+  wsFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    padding: '5px 10px',
+    borderTop: '1px solid ' + C.border1,
+    background: C.base,
+    color: C.textTertiary,
+    fontSize: uiPx(10.5),
+    whiteSpace: 'nowrap',
   },
   workspaceHint: {
     fontSize: uiPx(11),
@@ -1090,6 +1274,446 @@ function FontSizePicker(props: any) {
 }
 
 /**
+ * Shorten a user home-directory prefix (`/Users/<name>`, `/home/<name>`,
+ * `C:\Users\<name>`) to `~` so workspace paths stay compact and scannable in
+ * the workspace picker while keeping the full absolute path in tooltips.
+ */
+function shortenWorkspacePath(fullPath: string): string {
+  if (typeof fullPath !== 'string' || fullPath.length === 0) return '';
+  const macOrLinux = /^\/(?:Users|home)\/[^/]+(?=\/|$)/.exec(fullPath);
+  if (macOrLinux !== null) return '~' + fullPath.slice(macOrLinux[0].length);
+  const windows = /^[A-Za-z]:[\\/]Users[\\/][^\\/]+(?=[\\/]|$)/i.exec(fullPath);
+  if (windows !== null) {
+    const rest = fullPath.slice(windows[0].length).replace(/\\/g, '/');
+    return '~' + rest;
+  }
+  return fullPath;
+}
+
+/**
+ * Order workspaces for the picker: live-session workspaces first (preserving
+ * registry order within each group) so active projects sit right at the top.
+ */
+function sortWorkspacesForPicker(workspaces: any[]): any[] {
+  if (!Array.isArray(workspaces)) return [];
+  const live: any[] = [];
+  const rest: any[] = [];
+  workspaces.forEach(function (entry: any) {
+    if (entry === null || entry === undefined || typeof entry.path !== 'string') return;
+    if (entry.live === true) live.push(entry);
+    else rest.push(entry);
+  });
+  return live.concat(rest);
+}
+
+/** Case-insensitive subsequence check for quick workspace filtering. */
+function isSubsequence(needle: string, haystack: string): boolean {
+  let cursor = 0;
+  for (let index = 0; index < needle.length; index += 1) {
+    const found = haystack.indexOf(needle.charAt(index), cursor);
+    if (found === -1) return false;
+    cursor = found + 1;
+  }
+  return true;
+}
+
+/**
+ * Filter and rank workspaces by query against title and full/shortened path.
+ * Empty query returns the ordered full list (`live` first).
+ */
+function filterWorkspaces(workspaces: any[], rawQuery: string): any[] {
+  const ordered = sortWorkspacesForPicker(workspaces);
+  const query = typeof rawQuery === 'string' ? rawQuery.trim().toLowerCase() : '';
+  if (query.length === 0) return ordered;
+  const scored: Array<{ entry: any, score: number, index: number }> = [];
+  ordered.forEach(function (entry: any, index: number) {
+    const title = String(entry.title || '').toLowerCase();
+    const full = String(entry.path || '').toLowerCase();
+    const short = shortenWorkspacePath(entry.path).toLowerCase();
+    let score = -1;
+    if (title === query) score = 100;
+    else if (title.indexOf(query) === 0) score = 80;
+    else if (title.indexOf(query) !== -1) score = 60;
+    else if (isSubsequence(query, title)) score = 45;
+    else if (short.indexOf(query) !== -1 || full.indexOf(query) !== -1) score = 30;
+    if (score >= 0) {
+      if (entry.live === true) score = score + 5;
+      scored.push({ entry: entry, score: score, index: index });
+    }
+  });
+  scored.sort(function (left, right) {
+    if (right.score !== left.score) return right.score - left.score;
+    return left.index - right.index;
+  });
+  return scored.map(function (item) { return item.entry; });
+}
+
+/**
+ * Custom themed workspace picker: compact toolbar trigger + searchable popover
+ * showing active workspaces first, shortened paths, live/git badges, check mark
+ * and full keyboard navigation (ArrowUp/ArrowDown/Home/End/Enter/Escape).
+ */
+function WorkspacePicker(props: any) {
+  const t = typeof props.t === 'function' ? props.t : S.translate;
+  const workspaces = Array.isArray(props.workspaces) ? props.workspaces : [];
+  const root = typeof props.root === 'string' ? props.root : '';
+  const busy = props.disabled === true;
+
+  const [open, setOpen] = useState(props.initialOpen === true);
+  const [hoverTrigger, setHoverTrigger] = useState(false);
+  const [focusTriggerState, setFocusTriggerState] = useState(false);
+  const [query, setQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const wrapRef = useRef<any>(null);
+  const triggerRef = useRef<any>(null);
+  const searchRef = useRef<any>(null);
+  const itemRefs = useRef<any[]>([]);
+  itemRefs.current = [];
+
+  const current = useMemo(function () {
+    return workspaces.find(function (entry: any) { return entry !== null && entry !== undefined && entry.path === root; });
+  }, [workspaces, root]);
+
+  const filtered = useMemo(function () {
+    return filterWorkspaces(workspaces, query);
+  }, [workspaces, query]);
+
+  const trimmedQuery = query.trim();
+  const hasLive = trimmedQuery.length === 0 && filtered.some(function (entry: any) { return entry.live === true; });
+  const hasOther = trimmedQuery.length === 0 && filtered.some(function (entry: any) { return entry.live !== true; });
+  const showSections = hasLive && hasOther;
+
+  const closeMenu = useCallback(function (refocus: boolean) {
+    setOpen(false);
+    setQuery('');
+    if (refocus === true) {
+      const btn = triggerRef.current;
+      if (btn !== null && btn !== undefined && typeof btn.focus === 'function') btn.focus();
+    }
+  }, []);
+
+  useEffect(function () {
+    if (!open) return undefined;
+    const onPointerDown = function (event: any) {
+      const wrapper = wrapRef.current;
+      const target = event !== null && event !== undefined ? event.target : null;
+      if (wrapper !== null && wrapper !== undefined && typeof wrapper.contains === 'function' && target !== null && target !== undefined && wrapper.contains(target)) return;
+      setOpen(false);
+      setQuery('');
+    };
+    const onKeyDown = function (event: any) {
+      if (event === null || event === undefined || event.key !== 'Escape') return;
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      closeMenu(true);
+    };
+    try {
+      if (typeof document === 'undefined' || document === null || typeof document.addEventListener !== 'function') return undefined;
+      document.addEventListener('mousedown', onPointerDown, true);
+      document.addEventListener('keydown', onKeyDown, true);
+    } catch (error) {
+      return undefined;
+    }
+    return function () {
+      try {
+        document.removeEventListener('mousedown', onPointerDown, true);
+        document.removeEventListener('keydown', onKeyDown, true);
+      } catch (error) {
+        /* no DOM */
+      }
+    };
+  }, [open, closeMenu]);
+
+  useEffect(function () {
+    if (!open) return undefined;
+    let initial = 0;
+    for (let index = 0; index < filtered.length; index += 1) {
+      if (filtered[index].path === root) {
+        initial = index;
+        break;
+      }
+    }
+    setActiveIndex(initial);
+    const input = searchRef.current;
+    if (input !== null && input !== undefined && typeof input.focus === 'function') {
+      try {
+        input.focus();
+      } catch (error) {
+        /* focus is optional */
+      }
+    }
+    return undefined;
+  }, [open, root]);
+
+  useEffect(function () {
+    setActiveIndex(0);
+  }, [trimmedQuery]);
+
+  const choose = useCallback(function (path: string, keyboard: boolean) {
+    if (typeof props.onSelectRoot === 'function') props.onSelectRoot(path);
+    closeMenu(keyboard);
+  }, [props.onSelectRoot, closeMenu]);
+
+  const moveActive = useCallback(function (delta: number | 'first' | 'last') {
+    if (filtered.length === 0) return;
+    setActiveIndex(function (prev: number) {
+      let next: number;
+      if (delta === 'first') next = 0;
+      else if (delta === 'last') next = filtered.length - 1;
+      else next = (prev + delta + filtered.length) % filtered.length;
+      const node = itemRefs.current[next];
+      if (node !== null && node !== undefined && typeof node.scrollIntoView === 'function') {
+        try {
+          node.scrollIntoView({ block: 'nearest' });
+        } catch (error) {
+          /* scroll is optional */
+        }
+      }
+      return next;
+    });
+  }, [filtered.length]);
+
+  const onSearchKeyDown = useCallback(function (event: any) {
+    if (event === null || event === undefined) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      moveActive(1);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveActive(-1);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      moveActive('first');
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      moveActive('last');
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const target = filtered[activeIndex];
+      if (target !== undefined && target !== null) choose(target.path, true);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      if (query.length > 0) setQuery('');
+      else closeMenu(true);
+    }
+  }, [moveActive, filtered, activeIndex, choose, query, closeMenu]);
+
+  const renderOption = function (entry: any, index: number) {
+    const selected = entry.path === root;
+    const hot = index === activeIndex;
+    const shortPath = shortenWorkspacePath(entry.path);
+    return h(
+      'button',
+      {
+        key: entry.path,
+        type: 'button',
+        role: 'option',
+        'aria-selected': selected ? 'true' : 'false',
+        'data-workspace-option': entry.path,
+        title: entry.path,
+        ref: function (node: any) { itemRefs.current[index] = node; },
+        style: Object.assign(
+          {},
+          ST_SHELL.wsOption,
+          selected ? ST_SHELL.wsOptionActive : hot ? ST_SHELL.wsOptionHot : null,
+        ),
+        onMouseEnter: function () { setActiveIndex(index); },
+        onClick: function (event: any) {
+          choose(entry.path, event !== null && event !== undefined && event.detail === 0);
+        },
+      },
+      h(
+        'span',
+        { style: Object.assign({}, ST_SHELL.wsOptionLeading, selected ? { color: C.accent } : null), 'aria-hidden': true },
+        h(S.Icons.Folder, { size: 14 }),
+      ),
+      h(
+        'span',
+        { style: ST_SHELL.wsOptionBody },
+        h(
+          'span',
+          { style: ST_SHELL.wsOptionTop },
+          h(
+            'span',
+            { style: Object.assign({}, ST_SHELL.wsOptionTitle, selected ? ST_SHELL.wsOptionTitleSelected : null) },
+            entry.title,
+          ),
+          h(
+            'span',
+            { style: ST_SHELL.wsMeta },
+            entry.git === true
+              ? h('span', { style: ST_SHELL.wsGitIcon, title: 'Git', 'aria-hidden': true }, h(S.Icons.Git, { size: 11 }))
+              : null,
+            entry.live === true
+              ? h(
+                  'span',
+                  { style: ST_SHELL.wsLiveBadge },
+                  h('span', { style: ST_SHELL.pickerLiveDot, 'aria-hidden': true }),
+                  t('root.badge.live'),
+                )
+              : null,
+          ),
+        ),
+        h('span', { style: ST_SHELL.wsOptionPath }, shortPath),
+      ),
+      selected
+        ? h('span', { style: ST_SHELL.themeCheck, 'aria-hidden': true }, h(S.Icons.Check, { size: 13 }))
+        : null,
+    );
+  };
+
+  let listContent: any = null;
+  if (filtered.length === 0) {
+    listContent = h('div', { style: ST_SHELL.wsEmpty }, t('root.noMatches'));
+  } else if (showSections) {
+    const liveEntries: Array<{ entry: any, index: number }> = [];
+    const otherEntries: Array<{ entry: any, index: number }> = [];
+    filtered.forEach(function (entry: any, index: number) {
+      if (entry.live === true) liveEntries.push({ entry: entry, index: index });
+      else otherEntries.push({ entry: entry, index: index });
+    });
+    listContent = [
+      h(
+        'div',
+        { key: 'grp-live', style: ST_SHELL.wsGroupLabel },
+        h('span', { style: ST_SHELL.pickerLiveDot, 'aria-hidden': true }),
+        h('span', null, t('root.group.live')),
+        h('span', { style: ST_SHELL.wsGroupCount }, String(liveEntries.length)),
+      ),
+      liveEntries.map(function (item) { return renderOption(item.entry, item.index); }),
+      h(
+        'div',
+        { key: 'grp-other', style: ST_SHELL.wsGroupLabel },
+        h('span', null, t('root.group.other')),
+        h('span', { style: ST_SHELL.wsGroupCount }, String(otherEntries.length)),
+      ),
+      otherEntries.map(function (item) { return renderOption(item.entry, item.index); }),
+    ];
+  } else {
+    listContent = filtered.map(function (entry: any, index: number) { return renderOption(entry, index); });
+  }
+
+  return h(
+    'div',
+    { style: ST_SHELL.themeWrap, ref: wrapRef, 'data-workspace-picker': '1' },
+    h(
+      'button',
+      {
+        type: 'button',
+        ref: triggerRef,
+        disabled: busy,
+        title: current !== undefined && current !== null ? current.path : t('root.pick'),
+        'aria-label': t('root.select.title'),
+        'aria-haspopup': 'listbox',
+        'aria-expanded': open ? 'true' : 'false',
+        'data-workspace-button': '1',
+        style: Object.assign(
+          {},
+          ST_SHELL.picker,
+          busy ? ST_SHELL.pickerDisabled : null,
+          open ? ST_SHELL.pickerOpen : hoverTrigger && !busy ? ST_SHELL.pickerHover : null,
+          focusTriggerState && !busy ? ST_SHELL.pickerFocused : null,
+        ),
+        onMouseEnter: function () { setHoverTrigger(true); },
+        onMouseLeave: function () { setHoverTrigger(false); },
+        onFocus: function (event: any) {
+          let visible = true;
+          try {
+            visible = event !== null && event !== undefined && event.target !== null && event.target !== undefined && typeof event.target.matches === 'function'
+              ? event.target.matches(':focus-visible')
+              : true;
+          } catch (error) {
+            visible = true;
+          }
+          setFocusTriggerState(visible);
+        },
+        onBlur: function () { setFocusTriggerState(false); },
+        onClick: function () {
+          if (busy) return;
+          setOpen(function (value) { return value !== true; });
+        },
+        onKeyDown: function (event: any) {
+          if (busy || event === null || event === undefined) return;
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            setOpen(true);
+          }
+        },
+      },
+      h('span', { style: ST_SHELL.pickerIcon, 'aria-hidden': true }, h(S.Icons.Folder, { size: 13 })),
+      h('span', { style: ST_SHELL.pickerLabel }, current === undefined || current === null ? t('root.pick') : current.title),
+      current !== undefined && current !== null && current.live === true
+        ? h('span', { style: ST_SHELL.pickerLiveDot, title: t('root.badge.live'), 'aria-hidden': true })
+        : null,
+      h(
+        'span',
+        {
+          style: Object.assign({}, ST_SHELL.pickerCaret, { transform: open ? 'rotate(-90deg)' : 'rotate(90deg)' }),
+          'aria-hidden': true,
+        },
+        h(S.Icons.Chevron, { size: 10 }),
+      ),
+    ),
+    open
+      ? h(
+          'div',
+          { style: ST_SHELL.wsMenu, 'data-workspace-popover': '1' },
+          h(
+            'div',
+            { style: ST_SHELL.wsSearchRow },
+            h('span', { style: ST_SHELL.wsSearchIcon, 'aria-hidden': true }, h(S.Icons.Search, { size: 13 })),
+            h('input', {
+              type: 'text',
+              ref: searchRef,
+              value: query,
+              placeholder: t('root.searchPlaceholder'),
+              'aria-label': t('root.searchLabel'),
+              'data-workspace-search': '1',
+              spellCheck: false,
+              autoCapitalize: 'off',
+              autoCorrect: 'off',
+              autoComplete: 'off',
+              style: ST_SHELL.wsSearchInput,
+              onChange: function (event: any) {
+                const value = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? String(event.target.value) : '';
+                setQuery(value);
+              },
+              onKeyDown: onSearchKeyDown,
+            }),
+            query.length > 0
+              ? h(
+                  S.ToolButton,
+                  {
+                    title: t('root.clearSearch'),
+                    ariaLabel: t('root.clearSearch'),
+                    style: { width: 18, height: 18, borderRadius: 4 },
+                    onClick: function () {
+                      setQuery('');
+                      const input = searchRef.current;
+                      if (input !== null && input !== undefined && typeof input.focus === 'function') input.focus();
+                    },
+                  },
+                  h(S.Icons.Close, { size: 11 }),
+                )
+              : null,
+          ),
+          h(
+            'div',
+            { style: ST_SHELL.wsList, role: 'listbox', 'aria-label': t('root.select.title') },
+            listContent,
+          ),
+          h(
+            'div',
+            { style: ST_SHELL.wsFooter },
+            h('span', null, t('root.count', { count: filtered.length })),
+            h('span', null, t('root.hint')),
+          ),
+        )
+      : null,
+  );
+}
+
+/**
  * Toolbar: three view icons on the left, the workspace picker and refresh on
  * the right, plus the font-size and colour-theme pickers at the far right.
  * Icons only (no labels) with aria-label + title, exactly like the reference rail.
@@ -1099,7 +1723,6 @@ function ShellToolbar(props: any) {
   const workspaces = Array.isArray(props.workspaces) ? props.workspaces : [];
   const tab = props.tab;
   const busy = props.loading === true;
-  const [pickerFocused, setPickerFocused] = useState(false);
 
   const tabs = S.TABS.map(function (entry: any) {
     const Icon = S.Icons[entry.icon];
@@ -1122,58 +1745,19 @@ function ShellToolbar(props: any) {
     );
   });
 
-  const current = workspaces.find(function (entry: any) {
-    return entry.path === props.root;
-  });
-
   return h(
     'div',
     { style: ST_SHELL.toolbar },
     h('div', { style: ST_SHELL.tabStrip, role: 'tablist', 'aria-label': t('tabs.label') }, tabs),
     h('div', { style: ST_SHELL.spacer }),
     workspaces.length > 0
-      ? h(
-          'div',
-          {
-            style: Object.assign(
-              {},
-              ST_SHELL.picker,
-              busy ? ST_SHELL.pickerDisabled : null,
-              pickerFocused ? ST_SHELL.pickerFocused : null,
-            ),
-            title: typeof props.root === 'string' ? props.root : t('root.pick'),
-          },
-          h('span', { style: ST_SHELL.pickerIcon }, h(S.Icons.Folder, { size: 13 })),
-          h('span', { style: ST_SHELL.pickerLabel }, current === undefined ? t('root.pick') : current.title),
-          h(
-            'span',
-            { style: Object.assign({}, ST_SHELL.pickerCaret, { transform: 'rotate(90deg)' }) },
-            h(S.Icons.Chevron, { size: 10 }),
-          ),
-          h(
-            'select',
-            /** @type {any} */ ({
-              style: ST_SHELL.pickerSelect,
-              title: typeof props.root === 'string' ? props.root : t('root.pick'),
-              'aria-label': t('root.select.title'),
-              value: typeof props.root === 'string' ? props.root : '',
-              disabled: busy,
-              onFocus: function () { setPickerFocused(true); },
-              onBlur: function () { setPickerFocused(false); },
-              onChange: function (event) {
-                const value = event !== null && event !== undefined && event.target !== null && event.target !== undefined ? (event.target as any).value : '';
-                if (typeof props.onSelectRoot === 'function') props.onSelectRoot(value);
-              },
-            }),
-            workspaces.map(function (entry: any) {
-              return h(
-                'option',
-                { key: entry.path, value: entry.path, title: entry.path },
-                entry.title + '  —  ' + entry.path + (entry.live ? '  ●' : ''),
-              );
-            }),
-          ),
-        )
+      ? h(WorkspacePicker, {
+          t: t,
+          workspaces: workspaces,
+          root: props.root,
+          disabled: busy,
+          onSelectRoot: props.onSelectRoot,
+        })
       : h('span', { style: ST_SHELL.workspaceHint }, busy ? t('root.loading') : t('root.pick')),
     h(
       S.ToolButton,
@@ -1494,8 +2078,12 @@ class PanelBoundary extends React.Component<any, any> {
 
 S.Shell = Shell;
 S.ShellToolbar = ShellToolbar;
+S.WorkspacePicker = WorkspacePicker;
 S.ThemePicker = ThemePicker;
 S.FontSizePicker = FontSizePicker;
+S.shortenWorkspacePath = shortenWorkspacePath;
+S.sortWorkspacesForPicker = sortWorkspacesForPicker;
+S.filterWorkspaces = filterWorkspaces;
 S.themeName = themeName;
 S.themeSwatches = themeSwatches;
 S.PanelBoundary = PanelBoundary;
